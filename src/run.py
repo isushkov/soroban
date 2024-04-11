@@ -75,9 +75,9 @@ class Run:
                 'date': self.date
             }])
             self.df_records = pd.concat([self.df_records, new_df], ignore_index=True)
+            self.df_exercise = self.get_df_exercise()
             self.user_id = self.df_records.index[-1]
-            self.upd_rank()
-            self.user_rank = self.df_records.loc[self.user_id, 'rank']
+            self.user_rank = self.upd_rank()
             # save
             tmp_df = self.df_records.reset_index().rename(columns={'index': 'id'})
             tmp_df.to_csv('data/_records.csv', index=False)
@@ -149,8 +149,6 @@ class Run:
         except FileNotFoundError:
             columns = ['id', 'rank', 'name', 'exercise', 'is_exam', 'is_passed', 'time', 'time_seconds', 'date']
             return pd.DataFrame(columns=columns).set_index('id')
-    def get_df_exercise(self):
-        return self.df_records[self.df_records['exercise'] == self.exercise].copy()
     def get_best_time(self, passed):
         df = self.df_exercise[(self.df_exercise['is_exam'] == self.is_exam) & (self.df_exercise['is_passed'] == passed)]
         if df.empty:
@@ -158,6 +156,8 @@ class Run:
         best_time_row = df.nsmallest(1, 'time_seconds')
         best_time_value = best_time_row['time_seconds'].iloc[0]
         return best_time_value
+    def get_df_exercise(self):
+        return self.df_records[self.df_records['exercise'] == self.exercise].copy()
     def upd_rank(self):
         self.df_exercise['sort_priority'] = self.df_exercise.apply(
             lambda row: 0 if row['is_exam'] == 1 else (1 if row['is_passed'] == 1 else 2), axis=1
@@ -167,6 +167,7 @@ class Run:
         self.df_exercise['rank'] = range(1, len(self.df_exercise) + 1)
         for idx in self.df_exercise.index:
             self.df_records.at[idx, 'rank'] = self.df_exercise.at[idx, 'rank']
+        return self.df_records.loc[self.user_id, 'rank']
 
     # ready
     def get_ready(self):
@@ -301,9 +302,9 @@ class Run:
         df_exam = df.loc[(df['is_exam'] == 1)]
         df_training = df.loc[(df['is_exam'] == 0) & (df['is_passed'] == 1)]
         df_repetitions = df.loc[(df['is_exam'] == 0) & (df['is_passed'] == 0)]
-        table_exam = self.get_leaderboard_table(df_exam, '[g]')
-        table_training = self.get_leaderboard_table(df_training, '[b]')
-        table_repetitions = self.get_leaderboard_table(df_repetitions, '[x]')
+        table_exam, is_user_found = self.get_leaderboard_table(df_exam, '[g]', is_user_found=False)
+        table_training, is_user_found = self.get_leaderboard_table(df_training, '[b]', is_user_found)
+        table_repetitions, is_user_found = self.get_leaderboard_table(df_repetitions, '[x]', is_user_found)
         table = self.merge_tables(table_exam, table_training, table_repetitions)
         # print
         print('')
@@ -311,41 +312,44 @@ class Run:
             print('   '+line)
         print('')
     # TODO:
-    # TODO:
-    # TODO:
-    # TODO:
-    # TODO:
-    # TODO:
-    def get_leaderboard_table(self, df, row_color):
+    def get_leaderboard_table(self, df, row_color, is_user_found=False):
         table = []
         table_size=9
         if df.empty:
             table.append(cz('[x]│ None                        │'))
             table.append(cz('[x]└─────────────────────────────┘'))
-            return table
+            return table, is_user_found
+        # find user in df
+        is_user_here = False if df[df.index == self.user_id].empty else True
         # first_9
-        is_user_found = False
         for i, row in df.head(table_size).iterrows():
-            is_user = False
-            if i == self.user_name:
-                is_user = True
+            if is_user_here and i == self.user_id:
                 is_user_found = True
-            table.append(self.row2rec(row, row_color, is_user))
-        # if is more than table_size
+                table.append(self.row2rec(row, row_color, is_user=True))
+                continue
+            table.append(self.row2rec(row, row_color, is_user=False))
+        # if records is more than table_size
         empty_record = cz('[x]│ .. ...         ... ........ │')
         rows_count = df.shape[0]
         if rows_count > table_size:
             table.append(empty_record)
-        if not is_user_found and int(self.is_exam) == row['is_exam'] and int(self.is_passed) == row['is_passed']:
-            table.append(self.row2rec(row, row_color, True))
+        # if user rank worse than 9
+        if is_user_here and not is_user_found:
+            table.append(self.row2rec(row, row_color, is_user=True))
+            # if there records with rank worse than user rank
             if rows_count > self.user_rank:
                 table.append(empty_record)
         table.append(cz('[x]└─────────────────────────────┘'))
-        return table
+        return table, is_user_found
     def row2rec(self, row, row_color, is_user):
-        rank, name, time = row['rank'], row['name'], row['time']
-        if rank > 99:   rank = '99'
-        elif rank < 10: rank = f'{rank} '
+        if is_user:
+            rank, name, time = self.user_rank, self.user_name, self.end_time_formated
+        else:
+            rank, name, time = row['rank'], row['name'], row['time']
+        if rank > 99:
+            rank = '99'
+        elif rank < 10:
+            rank = f'{rank} '
         if len(name) < 6:
             name = name.ljust(6)
         color = '[y]' if is_user else row_color
@@ -353,7 +357,7 @@ class Run:
 
     def merge_tables(self, exam, training, repetitions):
         table = []
-        table.append(cz('[x]  ┌─ Leaderboard ────────────────────────────────────────────────┐'))
+        table.append(cz('[x]  ┌─ Leaderboard ───────────────────────────────────────────┐'))
         table.append(cz('[x]  │                             ┌─────────────────────── Training ──────────────────────┐'))
         table.append(cz('[x]┌─── [g]EXAM PASSED[x] ─────────────┐─┴─ [b]Passed[x] ──────────────────┐─── With repetitions ──────┴─┐'))
         # body
