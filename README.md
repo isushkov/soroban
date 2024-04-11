@@ -149,7 +149,7 @@ NOTE: Suitable for up to four-digit numbers,
       pairs well with Soroban for up to two-digit numbers.
 ```
 - Multiplication Table on Fingers (6-10): https://youtu.be/T_LjhJKuFKw
-- Memory techniques:
+- Memorization techniques:
     - Memory palace: https://youtu.be/E1x9IaMTpyw
     - Major system: https://www.youtube.com/watch?v=nJGMXUJCB-4&t=20s
     - Dominic system (PAO system):
