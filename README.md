@@ -139,11 +139,13 @@ NOTE: An internet connection is required to generate uncached sounds.
 NOTE: An internet connection is required to generate uncached sounds.
       Ensure your system is connected to the internet before attempting to play these exercises.
 ```
-
+<br>
+<br>
 ### Related topics:
 - Chisanbop (finger counting method): https://youtu.be/RSHDTsDebpY
 ```
-NOTE: Suitable for up to four-digit numbers, pairs well with Soroban for up to two-digit numbers.
+NOTE: Suitable for up to four-digit numbers,
+      pairs well with Soroban for up to two-digit numbers.
 ```
 - Multiplication Table on Fingers (6-10): https://youtu.be/T_LjhJKuFKw
 - Memory techniques: Memory palace, Major system, Dominis system, etc..
