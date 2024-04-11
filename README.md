@@ -12,7 +12,7 @@ Demonstrations:
 Resources for Learning Soroban:
 ```
 Playlist for Beginners:
-  https://www.youtube.com/playlist?list=PLLByEhnwMI5lhKse9FjEMNj_KzF5-W5BI
+  - https://www.youtube.com/playlist?list=PLLByEhnwMI5lhKse9FjEMNj_KzF5-W5BI
 Books:
   - Japanese Abacus Use & Theory
   - Advanced Abacus: Theory and Practice
