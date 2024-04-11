@@ -2,14 +2,14 @@
 ![./imgs/screen-run.jpg](./imgs/screen-run.jpg)
 ## Content
 - [Intro](#Intro)
-- [Installation Guide](#Installation Guide)
+- [Installation Guide](#Installation-Guide)
 - [Usage](#Usage)
-   - [Main commands](#Main commands)
-   - [Creating an Exercise](#Creating an Exercise)
-   - [Analyzing an Exercise](#Analyzing an Exercise)
-   - [Run an existing exercise](#Run an existing exercise)
-   - [Create, analyze and run a new exercise](#Create, analyze and run a new exercise)
-- [Related topics](#Related topics)
+   - [Main commands](#Main-commands)
+   - [Creating an Exercise](#Creating-an-Exercise)
+   - [Analyzing an Exercise](#Analyzing-an-Exercise)
+   - [Run an existing exercise](#Run-an-existing-exercise)
+   - [Create, analyze and run a new exercise](#Create-analyze-and-run-a-new-exercise)
+- [Related topics](#Related-topics)
 
 ### Intro
 What is Soroban and Its Benefits:
