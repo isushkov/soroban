@@ -1,0 +1,6 @@
+speech:
+  lang: en
+  speed_percents: 100 # 50 -> 500
+stages:
+  length: 10
+  delay_between_numbers_seconds: 3

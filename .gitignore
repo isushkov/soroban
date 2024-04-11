@@ -1,0 +1,7 @@
+**/__pycache__/
+sounds/*/
+data/
+
+congig.yml
+course-of-study.sh
+*.log

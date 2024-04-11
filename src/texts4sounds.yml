@@ -1,0 +1,24 @@
+get-ready:
+  en: 'get ready'
+  ru: 'приготовиться'
+start-number:
+  en: 'start number is'
+  ru: 'начальное число'
+stage:
+  en: 'stage'
+  ru: 'этап'
+stage-result:
+  en: 'stage result is'
+  ru: 'итог этапа'
+enter-stage-result:
+  en: 'enter stage result'
+  ru: 'введите итог этапа'
+continue-with:
+  en: 'continue with'
+  ru: 'продолжайте от'
+answer:
+  en: 'final answer is'
+  ru: 'окончательный ответ'
+enter-answer:
+  en: 'enter final answer'
+  ru: 'введите окончательный ответ'
