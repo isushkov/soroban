@@ -12,14 +12,14 @@
 - [Related topics](#Related-topics)
 
 ### Intro
-###### What is Soroban and Its Benefits:
+#### What is Soroban and Its Benefits:
 Soroban is a traditional Japanese abacus used for arithmetic calculations.<br>
 It helps develop mental abilities, attention, and calculation speed.<br>
 Demonstrations:
   - https://www.youtube.com/watch?v=F-THPY14fzc
   - https://www.youtube.com/watch?v=uKCb-ek9Vs8
 
-###### Resources for Learning Soroban:
+#### Resources for Learning Soroban:
 - Playlist for Beginners:
   - https://www.youtube.com/playlist?list=PLLByEhnwMI5lhKse9FjEMNj_KzF5-W5BI
 - Books:
@@ -28,7 +28,7 @@ Demonstrations:
 - Additional Resources:
   - Soroban Exam: https://www.sorobanexam.org/
 
-###### Cheat Sheet for Finger Techniques: [./imgs/cheat-sheet.jpg](./imgs/cheat-sheet.jpg)
+#### Cheat Sheet for Finger Techniques: [./imgs/cheat-sheet.jpg](./imgs/cheat-sheet.jpg)
 ```
 Symbols:
   table 1:
