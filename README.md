@@ -122,24 +122,20 @@ OK: The calculated total matches the provided total.
 ```
 ##### Run an existing exercise (`run`):
 ```
+# NOTE: An internet connection is required to generate uncached sounds.
+#       Ensure your system is connected to the internet before attempting to play these exercises.
 ./main.py run [-h] name
     name                Name of the exercise to run.
 ```
-```
-NOTE: An internet connection is required to generate uncached sounds.
-      Ensure your system is connected to the internet before attempting to play these exercises.
-```
 ##### Create, analyze and run a new exercise (`run-new`):
 ```
+# NOTE: An internet connection is required to generate uncached sounds.
+#       Ensure your system is connected to the internet before attempting to play these exercises.
 ./main.py run-new [-h] {random,cover-units,arithmetic} ...
                         Type for creating exercise.
     random              Random type for creating exercise.
     cover-units         An exercise with all possible combinations of the number of units.
     arithmetic          Arithmetic type for creating exercise.
-```
-```
-NOTE: An internet connection is required to generate uncached sounds.
-      Ensure your system is connected to the internet before attempting to play these exercises.
 ```
 <br/>
 <br/>
