@@ -52,6 +52,8 @@ class Config:
     def get_percent(self, mode, direction, key):
         direction = 'throughout_the_exercise' if direction == 'in' else 'outside_the_exercise'
         val = int(self.data[mode]['speed'][direction][key])
+        if val == 0:
+            return False
         if val < 50:
             return self.config_error(f'.{mode}.{direction}.{key}', val, 50)
         if val > 500:

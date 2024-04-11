@@ -6,4 +6,5 @@ data/
 congig.yml
 
 course-of-study.sh
+tests.sh
 mk.wiki

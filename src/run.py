@@ -115,7 +115,7 @@ class Run:
         for i, number in enumerate(self.all_numbers):
             path = f'sounds/{self.c.lang}/numbers/{number}.mp3'
             if not fo.f_exist(path):
-                self.generate_sound(path, self.c.lang, num2words(number, lang=self.c.lang))
+                self.generate_sound(path, num2words(number, lang=self.c.lang))
             self.progress_bar('generate speech (numbers)', total, i)
         print()
     def generate_sound(self, path, text):
@@ -126,6 +126,7 @@ class Run:
         done = '#' * progress
         in_progress = ('.'*(62 - progress))
         print(cz(f'[x]>>> {msg} [{done}{in_progress}]'), end='\r', flush=True)
+
     def say_beep(self, sound, speed):
         self.mpv(f'sounds/{sound}.mp3', speed)
     def say_text(self, sound, speed):
@@ -136,6 +137,8 @@ class Run:
             self.generate_sound(path, num2words(sound, lang=self.c.lang))
         self.mpv(path, speed)
     def mpv(self, path, speed):
+        if not speed:
+            return False
         cmd.run(f'mpv {path} --speed={speed}', strict=False, verbose4fail=False)
 
     # dfs
