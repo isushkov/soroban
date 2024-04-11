@@ -302,9 +302,9 @@ class Run:
         df_exam = df.loc[(df['is_exam'] == 1)]
         df_training = df.loc[(df['is_exam'] == 0) & (df['is_passed'] == 1)]
         df_repetitions = df.loc[(df['is_exam'] == 0) & (df['is_passed'] == 0)]
-        table_exam, is_user_found = self.get_leaderboard_table(df_exam, '[g]', is_user_found=False)
-        table_training, is_user_found = self.get_leaderboard_table(df_training, '[b]', is_user_found)
-        table_repetitions, is_user_found = self.get_leaderboard_table(df_repetitions, '[x]', is_user_found)
+        table_exam = self.get_leaderboard_table(df_exam, '[g]')
+        table_training = self.get_leaderboard_table(df_training, '[b]')
+        table_repetitions = self.get_leaderboard_table(df_repetitions, '[x]')
         table = self.merge_tables(table_exam, table_training, table_repetitions)
         # print
         print('')
@@ -312,16 +312,17 @@ class Run:
             print('   '+line)
         print('')
     # TODO:
-    def get_leaderboard_table(self, df, row_color, is_user_found=False):
+    def get_leaderboard_table(self, df, row_color):
         table = []
         table_size=9
         if df.empty:
             table.append(cz('[x]│ None                        │'))
             table.append(cz('[x]└─────────────────────────────┘'))
-            return table, is_user_found
+            return table
         # find user in df
         is_user_here = False if df[df.index == self.user_id].empty else True
         # first_9
+        is_user_found = False
         for i, row in df.head(table_size).iterrows():
             if is_user_here and i == self.user_id:
                 is_user_found = True
@@ -340,7 +341,7 @@ class Run:
             if rows_count > self.user_rank:
                 table.append(empty_record)
         table.append(cz('[x]└─────────────────────────────┘'))
-        return table, is_user_found
+        return table
     def row2rec(self, row, row_color, is_user):
         if is_user:
             rank, name, time = self.user_rank, self.user_name, self.end_time_formated
