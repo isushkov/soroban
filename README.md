@@ -152,6 +152,6 @@ NOTE: Suitable for up to four-digit numbers,
 - Memory techniques:
     - Memory palace: https://youtu.be/E1x9IaMTpyw
     - Major system: https://www.youtube.com/watch?v=nJGMXUJCB-4&t=20s
-    - Dominic system (PAO systems):
-        https://youtu.be/R-gCm3gEFQE
-        https://youtu.be/ogtVQ48VgC4
+    - Dominic system (PAO system):
+        - https://youtu.be/R-gCm3gEFQE
+        - https://youtu.be/ogtVQ48VgC4
