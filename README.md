@@ -37,7 +37,7 @@ Symbols:
          NOTE: "x" means that there was no example given for this group
 How to use:
   always perform movements from left to right.
-  movements arranged horizontally:
+  for movements that are recorded horizontally:
     - both movements must be performed simultaneously,
       mentally implying that the one from above is the first movement
     - if you do not have enough experience to perform movements at the same time,
