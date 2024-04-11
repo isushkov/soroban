@@ -57,7 +57,7 @@ sudo apt-get install mpv
 ```
 
 ### Usage
-###### Main commands:
+##### Main commands:
 ```
 ./main.py [-h] {create,analyze,run,run-new} ...
     create              Create a new exercise.
@@ -65,7 +65,7 @@ sudo apt-get install mpv
     run                 Run an existing exercise.
     run-new             Create, analyze and run a new exercise.
 ```
-###### Creating an Exercise (`create`):
+##### Creating an Exercise (`create`):
 ```
 ./main.py create [-h] {random,cover-units,arithmetic} ...
                         Type for creating exercise.
@@ -73,7 +73,7 @@ sudo apt-get install mpv
     arithmetic          Arithmetic type for creating exercise.
     cover-units         An exercise with all possible combinations of the number of units.
 ```
-###### Analyzing an Exercise (`analyze`: [./imgs/screen-analyze.jpg](./imgs/screen-analyze.jpg)):
+##### Analyzing an Exercise (`analyze`: [./imgs/screen-analyze.jpg](./imgs/screen-analyze.jpg)):
 ```
 ./main.py analyze [-h] name
     name                Name of the exercise to analyze.
@@ -118,7 +118,7 @@ OK: The calculated total matches the provided total.
                                   ├───────────┼───┼───────────┤
                                   └─987654321─┘   └─123456789─┘
 ```
-###### Run an existing exercise (`run`):
+##### Run an existing exercise (`run`):
 ```
 ./main.py run [-h] name
     name                Name of the exercise to run.
@@ -127,7 +127,7 @@ OK: The calculated total matches the provided total.
 NOTE: An internet connection is required to generate uncached sounds.
       Ensure your system is connected to the internet before attempting to play these exercises.
 ```
-###### Create, analyze and run a new exercise (`run-new`):
+##### Create, analyze and run a new exercise (`run-new`):
 ```
 ./main.py run-new [-h] {random,cover-units,arithmetic} ...
                         Type for creating exercise.
