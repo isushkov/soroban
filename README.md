@@ -77,7 +77,7 @@ cp ./examples/config.yml ./config.yml
     run                 Run an existing exercise.
     run-new             Create, analyze and run a new exercise.
 ```
-##### Creating an Exercise (`create`):
+##### Creating an Exercise
 ```bash
 ./main.py create [-h] {random,cover-units,arithmetic} ...
                         Type for creating exercise.
@@ -85,7 +85,8 @@ cp ./examples/config.yml ./config.yml
     arithmetic          Arithmetic type for creating exercise.
     cover-units         An exercise with all possible combinations of the number of units.
 ```
-##### Analyzing an Exercise (`analyze`: [./imgs/screen-analyze.jpg](./imgs/screen-analyze.jpg)):
+##### Analyzing an Exercise 
+[./imgs/screen-analyze.jpg](./imgs/screen-analyze.jpg)
 ```bash
 ./main.py analyze [-h] name
     name                Name of the exercise to analyze.
@@ -133,14 +134,14 @@ OK: The calculated total matches the provided total.
                                   ├───────────┼───┼───────────┤
                                   └─987654321─┘   └─123456789─┘
 ```
-##### Run an existing exercise (`run`):
+##### Run an existing exercise
 ```bash
 # NOTE: An internet connection is required to generate uncached sounds.
 #       Ensure your system is connected to the internet before attempting to play these exercises.
 ./main.py run [-h] name
     name                Name of the exercise to run.
 ```
-##### Create, analyze and run a new exercise (`run-new`):
+##### Create, analyze and run a new exercise
 ```bash
 # NOTE: An internet connection is required to generate uncached sounds.
 #       Ensure your system is connected to the internet before attempting to play these exercises.
@@ -153,7 +154,7 @@ OK: The calculated total matches the provided total.
 <br/>
 <br/>
 
-### Related topics:
+### Related topics
 - Chisanbop (finger counting method): https://youtu.be/RSHDTsDebpY
 ```
 NOTE: Suitable for up to four-digit numbers,
