@@ -77,7 +77,11 @@ sudo apt-get install mpv
 ./main.py analyze [-h] name
     name                Name of the exercise to analyze.
 ```
-NOTE: that arithmetic progression does not guarantee full coverage of all possible combinations.
+NOTE: an arithmetic progression with an initial number of 0
+      does not effectively cover all possible combinations:
+        - the category of units is a cycle of 20 unique combinations (about 20-25 members long)
+        - the category of tens is a cycle of 98 unique combinations (about 780 members long)
+        - a progression of about 800 members finally covers all options
 ```
 ================================== ANALYZE arithmetic_0-100 ==================================
 Lenght sequence:  101
