@@ -4,7 +4,7 @@ venv/
 sounds/*/
 data/
 
-congig.yml
+config.yml
 
 course-of-study.sh
 tests.sh
