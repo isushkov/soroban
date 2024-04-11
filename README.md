@@ -1,5 +1,16 @@
 # Soroban Exercise Management System
 ![./imgs/screen-run.jpg](./imgs/screen-run.jpg)
+## Content
+- [Intro](#Intro)
+- [Installation Guide](#Installation Guide)
+- [Usage](#Usage)
+   - [Main commands](#Main commands)
+   - [Creating an Exercise](#Creating an Exercise)
+   - [Analyzing an Exercise](#Analyzing an Exercise)
+   - [Run an existing exercise](#Run an existing exercise)
+   - [Create, analyze and run a new exercise](#Create, analyze and run a new exercise)
+- [Related topics](#Related topics)
+
 ### Intro
 What is Soroban and Its Benefits:
 ```
@@ -53,6 +64,8 @@ source venv/bin/activate
 pip install -r requirements.txt
 # Install the console player mpv:
 sudo apt-get install mpv
+# create and configure the config to suit your needs
+cp ./examples/config.yml ./config.yml
 ```
 
 ### Usage

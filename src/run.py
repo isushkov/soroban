@@ -74,6 +74,7 @@ class Run:
                 'time_seconds': round(self.end_time - self.start_time, 2),
                 'date': self.date
             }])
+            self.df_records = self.df_records.dropna(axis=1, how='all')
             self.df_records = pd.concat([self.df_records, new_df], ignore_index=True)
             self.df_exercise = self.get_df_exercise()
             self.user_id = self.df_records.index[-1]
@@ -146,7 +147,7 @@ class Run:
         try:
             df = pd.read_csv('data/_records.csv')
             df = df.rename(columns=lambda x: x.strip())
-            df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+            df = df.apply(lambda col: col.apply(lambda x: x.strip() if isinstance(x, str) else x))
             df.set_index('id', inplace=True)
             return df
         except FileNotFoundError:
