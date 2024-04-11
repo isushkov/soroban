@@ -85,8 +85,8 @@ cp ./examples/config.yml ./config.yml
     arithmetic          Arithmetic type for creating exercise.
     cover-units         An exercise with all possible combinations of the number of units.
 ```
-##### Analyzing an Exercise 
-[./imgs/screen-analyze.jpg](./imgs/screen-analyze.jpg)
+##### Analyzing an Exercise
+Example: [./imgs/screen-analyze.jpg](./imgs/screen-analyze.jpg)
 ```bash
 ./main.py analyze [-h] name
     name                Name of the exercise to analyze.
