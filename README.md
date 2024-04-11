@@ -1,5 +1,5 @@
 # Soroban Exercise Management System
-[./imgs/screen-run.jpg](./imgs/screen-run.jpg)
+![./imgs/screen-run.jpg](./imgs/screen-run.jpg)
 ### Intro
 What is Soroban and Its Benefits:
 ```
@@ -53,7 +53,6 @@ source venv/bin/activate
 # Install python dependencies:
 pip install -r requirements.txt
 # Install the console player mpv:
-```bash
 sudo apt-get install mpv
 ```
 
