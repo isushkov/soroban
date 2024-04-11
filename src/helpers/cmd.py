@@ -9,9 +9,9 @@ class Cmd:
     # exec bash cmd inside python:
     #   cmd:          комманда
     #   strict:       если команда завершилась ошибкой прекратить выполнение python скрипта
-    #   verbose:      показывать команду/return_code/stdout/stderr
-    #   verbose4ok:   показывать команду/return_code/stdout/stderr если ошибки небыло
-    #   verbose4fail: показывать команду/return_code/stdout/stderr если была ошибка
+    #   verbose4fail: выводить команду/return_code/stdout/stderr если была ошибка
+    #   verbose4ok:   выводить команду/return_code/stdout/stderr если ошибки небыло
+    #   verbose:      выводить команду/return_code/stdout/stderr ???
     @classmethod
     def run(cls, cmd, strict=True, verbose4fail=True, verbose4ok=False, verbose=False):
         # validate params

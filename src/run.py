@@ -46,7 +46,7 @@ class Run:
         self.user_errors = 0
         for i, stage in enumerate(self.stages):
             self.stage_number = i+1
-            self.numbers = self.stages[i]
+            self.stage_numbers = self.stages[i]
             if self.stage_number == len(self.stages):
                 self.is_last_stage = True
             self.start_number = self.run_stage()
@@ -136,7 +136,7 @@ class Run:
             self.generate_sound(path, num2words(sound, lang=self.c.lang))
         self.mpv(path, speed)
     def mpv(self, path, speed):
-        cmd.run(f'mpv {path} --speed={speed} 1>/dev/null 2>/dev/null')
+        cmd.run(f'mpv {path} --speed={speed}', strict=False, verbose4fail=False)
 
     # dfs
     def get_df_records(self):
@@ -181,7 +181,7 @@ class Run:
     def run_stage(self):
         total = self.start_number
         self.announcement_stage()
-        for number in self.numbers:
+        for number in self.stage_numbers:
             output = f' {self.operation_char}{number}'.rjust(self.len_for_number)
             self.stage_row += output
             print(output, end='', flush=True)
@@ -250,13 +250,13 @@ class Run:
         for _ in range(count_lines):
             sys.stdout.write('\x1b[1A')
             sys.stdout.write('\x1b[2K')
+
+    # delta time
     def get_delta_time(self):
-        count_numbers_done = self.c.numbers_per_stage * self.stage_number
         best_time = self.define_best_time()
         if not best_time:
             return ''
-        best_time_for_number = round(best_time / len(self.all_numbers), 2)
-        best_time_spent = round(best_time_for_number * count_numbers_done, 2)
+        best_time_spent = self.get_best_time_spent(best_time)
         user_time_spent = round(round(time.time(), 2) - self.start_time, 2)
         delta_time = round(best_time_spent - user_time_spent, 2)
         sfx, color = ('+', '[g]') if delta_time >= 0 else ('', '[r]')
@@ -281,8 +281,15 @@ class Run:
             if not self.best_time_repetitions:
                 return False
             return self.best_time_repetitions
-
-    # finish
+    def get_best_time_spent(self, best_time):
+        if self.is_last_stage:
+            return best_time
+        prev_stages_count_numbers_done = self.c.numbers_per_stage * (self.stage_number - 1)
+        this_stage_count_numbers_done = len(self.stage_numbers)
+        count_numbers_done = prev_stages_count_numbers_done + this_stage_count_numbers_done
+        best_time_per_number = round(best_time / (len(self.all_numbers) - 1), 2)
+        best_time_spent = round(best_time_per_number * count_numbers_done, 2)
+        return best_time_spent
     def format_time(self, seconds_total):
         sign = "-" if seconds_total < 0 else ""
         seconds_total = abs(seconds_total)
@@ -296,7 +303,8 @@ class Run:
             seconds = min(seconds, 59.99)
         formatted_time = f'{sign}{minutes:02d}:{seconds:05.2f}'
         return formatted_time
-    # display
+
+    # finish
     def display_results(self):
         df = self.df_exercise
         df_exam = df.loc[(df['is_exam'] == 1)]
@@ -363,7 +371,6 @@ class Run:
         table.append(cz('[x]┌─── [g]EXAM PASSED[x] ─────────────┐─┴─ [b]Passed[x] ──────────────────┐─── With repetitions ──────┴─┐'))
         # body
         max_length = max(len(exam), len(training), len(repetitions))
-
         for i in range(max_length):
             exm = exam[i] if i < len(exam) else ''
             trg = training[i] if i < len(training) else ''

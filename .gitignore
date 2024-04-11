@@ -1,9 +1,9 @@
 **/__pycache__/
+**/*.log
 sounds/*/
 data/
 
 congig.yml
-course-of-study.sh
-*.log
 
+course-of-study.sh
 mk.wiki
