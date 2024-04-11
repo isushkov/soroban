@@ -5,3 +5,5 @@ data/
 congig.yml
 course-of-study.sh
 *.log
+
+mk.wiki
