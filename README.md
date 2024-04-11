@@ -11,15 +11,15 @@
    - [Create, analyze and run a new exercise](#Create-analyze-and-run-a-new-exercise)
 - [Related topics](#Related-topics)
 
-### Intro
-#### What is Soroban and Its Benefits:
+## Intro
+### What is Soroban and Its Benefits:
 Soroban is a traditional Japanese abacus used for arithmetic calculations.<br>
 It helps develop mental abilities, attention, and calculation speed.<br>
 Demonstrations:
   - https://www.youtube.com/watch?v=F-THPY14fzc
   - https://www.youtube.com/watch?v=uKCb-ek9Vs8
 
-#### Resources for Learning Soroban:
+### Resources for Learning Soroban:
 - Playlist for Beginners:
   - https://www.youtube.com/playlist?list=PLLByEhnwMI5lhKse9FjEMNj_KzF5-W5BI
 - Books:
@@ -28,7 +28,7 @@ Demonstrations:
 - Additional Resources:
   - Soroban Exam: https://www.sorobanexam.org/
 
-#### Cheat Sheet for Finger Techniques: [./imgs/cheat-sheet.jpg](./imgs/cheat-sheet.jpg)
+### Cheat Sheet for Finger Techniques: [./imgs/cheat-sheet.jpg](./imgs/cheat-sheet.jpg)
 ```
 Symbols:
   table 1:
@@ -53,7 +53,7 @@ How to use:
       first do the one from above
 ```
 
-### Installation Guide
+## Installation Guide
 ```bash
 # Create a Python virtual environment (venv).
 python -m venv venv
@@ -66,8 +66,8 @@ sudo apt-get install mpv
 cp ./examples/config.yml ./config.yml
 ```
 
-### Usage
-##### Main commands:
+## Usage
+### Main commands:
 ```bash
 ./main.py [-h] {create,analyze,run,run-new} ...
     create              Create a new exercise.
@@ -75,7 +75,7 @@ cp ./examples/config.yml ./config.yml
     run                 Run an existing exercise.
     run-new             Create, analyze and run a new exercise.
 ```
-##### Creating an Exercise
+### Creating an Exercise
 ```bash
 ./main.py create [-h] {random,cover-units,arithmetic} ...
                         Type for creating exercise.
@@ -83,7 +83,7 @@ cp ./examples/config.yml ./config.yml
     arithmetic          Arithmetic type for creating exercise.
     cover-units         An exercise with all possible combinations of the number of units.
 ```
-##### Analyzing an Exercise
+### Analyzing an Exercise
 Example: [./imgs/screen-analyze.jpg](./imgs/screen-analyze.jpg)
 ```bash
 ./main.py analyze [-h] name
@@ -132,14 +132,14 @@ OK: The calculated total matches the provided total.
                                   ├───────────┼───┼───────────┤
                                   └─987654321─┘   └─123456789─┘
 ```
-##### Run an existing exercise
+### Run an existing exercise
 ```bash
 # NOTE: An internet connection is required to generate uncached sounds.
 #       Ensure your system is connected to the internet before attempting to play these exercises.
 ./main.py run [-h] name
     name                Name of the exercise to run.
 ```
-##### Create, analyze and run a new exercise
+### Create, analyze and run a new exercise
 ```bash
 # NOTE: An internet connection is required to generate uncached sounds.
 #       Ensure your system is connected to the internet before attempting to play these exercises.
@@ -152,7 +152,7 @@ OK: The calculated total matches the provided total.
 <br/>
 <br/>
 
-### Related topics
+## Related topics
 - Chisanbop (finger counting method): https://youtu.be/RSHDTsDebpY
 ```
 NOTE: Suitable for up to four-digit numbers,
