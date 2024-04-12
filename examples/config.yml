@@ -1,7 +1,7 @@
 common:
   lang: en # en, ru, [TODO] <any> (may be ugly)
-  mode: training # exam, training, [TODO] study_program
-  course_of_study_step: 1 # for ./course-of-study.sh
+  mode: training # [TODO] exam, training, [TODO] study_program
+  course_of_study_step: 1 # [TODO]
 exam:
   speed:
     outside_the_exercise:

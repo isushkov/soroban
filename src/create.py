@@ -20,6 +20,7 @@ def get_total(numbers, operation_char):
         rest_elements_sum = sum(numbers[1:])
         return first_element - rest_elements_sum
 def save_file(name, data):
+    cmd.run('mkdir -p ./data')
     path = f'data/{name}.txt'
     fo.str2txt(data, path)
     print(cz(f'[g]Exercise was created:[c] {path}'))

@@ -89,7 +89,9 @@ Example: [./imgs/screen-analyze.jpg](./imgs/screen-analyze.jpg)
 ./main.py analyze [-h] name
     name                Name of the exercise to analyze.
 ```
-NOTE: An arithmetic progression starting with an initial number of 0 does not effectively cover all possible combinations:
+NOTE: Training on arithmetic progression may not be the most effective way:
+- It is advisable to use changing sequences to avoid memorization, instead of calculations
+- An arithmetic progression starting with an initial number of 0 does not effectively cover all possible combinations:
   - The category of units is a cycle of 20 unique combinations (about 20-25 numbers long).
   - The category of tens is a cycle of 98 unique combinations (about 780 numbers long).
   - A progression of about 800 numbers finally covers all options.
