@@ -2,7 +2,7 @@ import random
 import src.helpers.fexit
 from src.helpers.colors import *
 from src.helpers.fo import Fo as fo
-
+from src.helpers.cmd import Cmd as cmd
 
 # common
 def get_operation_char(operations):
