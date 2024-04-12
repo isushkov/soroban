@@ -26,9 +26,9 @@ Demonstrations:
   - Japanese Abacus Use & Theory
   - Advanced Abacus: Theory and Practice
 - Additional Resources:
-  - Soroban Exam: https://www.sorobanexam.org/
+  - https://www.sorobanexam.org/
 
-### Cheat Sheet for Finger Techniques: [./imgs/cheat-sheet.jpg](./imgs/cheat-sheet.jpg)
+### Cheat Sheet for Finger Techniques: [cheat-sheet.jpg](./imgs/cheat-sheet.jpg)
 ```
 Symbols:
   table 1:
