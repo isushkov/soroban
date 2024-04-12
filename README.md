@@ -2,7 +2,7 @@
 ![./imgs/screen-run.jpg](./imgs/screen-run.jpg)
 ## Content
 - [Intro](#Intro)
-- [Installation Guide](#Installation-Guide)
+- [Installation](#Installation)
 - [Usage](#Usage)
    - [Main commands](#Main-commands)
    - [Creating an Exercise](#Creating-an-Exercise)
@@ -53,7 +53,7 @@ How to use:
       first do the one from above
 ```
 
-## Installation Guide
+## Installation
 ```bash
 # Create a Python virtual environment (venv).
 python -m venv venv
