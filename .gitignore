@@ -1,9 +1,9 @@
 **/__pycache__/
 **/*.log
 venv/
-sounds/*/
-data/
 
+sounds/**/
+data/*
 config.yml
 
 course-of-study.sh
