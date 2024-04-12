@@ -28,6 +28,9 @@ class Run:
         self.total = self.get_total()
         self.c = Config()
         self.is_exam = True if self.c.mode == 'exam' else False
+        # prepare fs
+        self.records_columns = ['id', 'rank', 'name', 'exercise', 'is_exam', 'is_passed', 'time', 'time_seconds', 'date']
+        self.prepare_fs()
         # generate sounds
         self.generate_sounds_texts()
         self.generate_sounds_numbers()
@@ -100,6 +103,13 @@ class Run:
             fexit(cz('[r]FAIL:[c] Mismatch between [y]calculated total[c] and [y]provided total[c].'))
         total = total_calculated
         return total
+    def prepare_fs(self):
+        cmd.run(f'mkdir -p ./sounds/{self.c.lang}/numbers')
+        cmd.run('mkdir -p ./data')
+        if not fo.f_exist('config.yml'):
+            cmd.run('copy ./examples/config.yml ./config.yml')
+        if not fo.f_exist('./data/_records.csv'):
+            cmd.run(f'echo {",".join(self.records_columns)} > data/_records.csv')
 
     # sounds
     def generate_sounds_texts(self):
@@ -151,8 +161,7 @@ class Run:
             df.set_index('id', inplace=True)
             return df
         except FileNotFoundError:
-            columns = ['id', 'rank', 'name', 'exercise', 'is_exam', 'is_passed', 'time', 'time_seconds', 'date']
-            return pd.DataFrame(columns=columns).set_index('id')
+            return pd.DataFrame(columns=self.records_columns).set_index('id')
     def get_best_time(self, passed):
         df = self.df_exercise[(self.df_exercise['is_exam'] == self.is_exam) & (self.df_exercise['is_passed'] == passed)]
         if df.empty:
@@ -196,9 +205,11 @@ class Run:
             else:
                 fexit(f'TODO: unknown operation "{self.operation_char}"')
         # check stage result
-        if not self.check_stage_result(total):
+        self.stage_result = self.check_stage_result(total)
+        if not self.stage_result:
             self.is_passed = False
-            self.user_errors += 1
+            if self.user_errors < 9:
+                self.user_errors += 1
             total = self.run_stage()
         else:
             self.user_errors = 0
@@ -207,12 +218,13 @@ class Run:
     def announcement_stage(self):
         speed = self.c.spd_speech if self.stage_number == 1 else self.c.spd_stage
         speed_beeps = self.c.spd_signals if self.stage_number == 1 else self.c.spd_start
-        pfx = f'[r].x{self.user_errors+1}[x]:' if self.user_errors else ':'+'  '*len(str(self.user_errors))+' '
-        self.stage_row = cz(f'[x]Stage{self.stage_number}{pfx}')
+        stage_lenght = len(str(len(self.stages))) + 10
+        pfx = f'[r].x{self.user_errors+1}[x]:' if self.user_errors else ':'
+        self.stage_row = cz(f'[x]Stage{self.stage_number}{pfx}').ljust(stage_lenght)
         print(self.stage_row, end='', flush=True)
         self.say_text('stage', speed)
         self.say_number(self.stage_number, speed)
-        if not self.is_passed:
+        if not self.stage_result:
             self.say_text('continue-with', speed)
             self.say_number(self.start_number, speed)
         self.say_beep('start-beeps', speed_beeps)
