@@ -79,7 +79,7 @@ cp ./examples/config.yml ./config.yml
 ```bash
 ./main.py create [-h] {random,cover-units,arithmetic} ...
                         Type for creating exercise.
-    arithmetic          Arithmetic type for creating exercise.
+    arithmetic          Create an arithmetic progression.
     random              Random type for creating exercise.
     cover-units         An exercise with all possible combinations of the number of units.
 ```

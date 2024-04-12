@@ -35,7 +35,7 @@ def create_subparser_for_create_command(subparsers, parent_parser):
     # 'cover-units' type
     create_subparsers.add_parser("cover-units", parents=[shared_parser, parent_parser], help="An exercise with all possible combinations of the number of units.")
     # 'arithmetic' type specific
-    parser_arithmetic = create_subparsers.add_parser("arithmetic", parents=[parent_parser], help="Arithmetic type for creating exercise.")
+    parser_arithmetic = create_subparsers.add_parser("arithmetic", parents=[parent_parser], help="Create an arithmetic progression.")
     parser_arithmetic.add_argument("first", type=int, help="First number of the progression.")
     parser_arithmetic.add_argument("length", type=int, help="Length of the progression.")
 def create_subparser_for_runnew_command(subparsers, parent_parser):
@@ -51,7 +51,7 @@ def create_subparser_for_runnew_command(subparsers, parent_parser):
     # 'cover-units' type
     runnew_subparsers.add_parser("cover-units", parents=[shared_parser, parent_parser], help="An exercise with all possible combinations of the number of units.")
     # 'arithmetic' type specific
-    parser_arithmetic = runnew_subparsers.add_parser("arithmetic", parents=[parent_parser], help="Arithmetic type for creating exercise.")
+    parser_arithmetic = runnew_subparsers.add_parser("arithmetic", parents=[parent_parser], help="Create an arithmetic progression.")
     parser_arithmetic.add_argument("first", type=int, help="First number of the progression.")
     parser_arithmetic.add_argument("length", type=int, help="Length of the progression.")
 
