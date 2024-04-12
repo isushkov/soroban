@@ -79,8 +79,8 @@ cp ./examples/config.yml ./config.yml
 ```bash
 ./main.py create [-h] {random,cover-units,arithmetic} ...
                         Type for creating exercise.
-    random              Random type for creating exercise.
     arithmetic          Arithmetic type for creating exercise.
+    random              Random type for creating exercise.
     cover-units         An exercise with all possible combinations of the number of units.
 ```
 ### Analyzing an Exercise
@@ -145,9 +145,9 @@ OK: The calculated total matches the provided total.
 #       Ensure your system is connected to the internet before attempting to play these exercises.
 ./main.py run-new [-h] {random,cover-units,arithmetic} ...
                         Type for creating exercise.
+    arithmetic          Arithmetic type for creating exercise.
     random              Random type for creating exercise.
     cover-units         An exercise with all possible combinations of the number of units.
-    arithmetic          Arithmetic type for creating exercise.
 ```
 <br/>
 <br/>
@@ -155,8 +155,8 @@ OK: The calculated total matches the provided total.
 ## Related topics
 - Chisanbop (finger counting method): https://youtu.be/RSHDTsDebpY
 ```
-NOTE: Suitable for up to four-digit numbers,
-      pairs well with Soroban for up to two-digit numbers.
+NOTE: Suitable for up to four-digit numbers.
+      Pairs well with Soroban for up to two-digit numbers.
 ```
 - Multiplication Table on Fingers (6-10): https://youtu.be/T_LjhJKuFKw
 - Memorization techniques:
