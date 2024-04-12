@@ -45,8 +45,9 @@ class Run:
         self.stages = [self.all_numbers[i:i+self.c.numbers_per_stage] for i in range(1, len(self.all_numbers), self.c.numbers_per_stage)]
         # TODO: without stages
         # run stage
-        self.is_last_stage = False
+        self.stage_result = True
         self.user_errors = 0
+        self.is_last_stage = False
         for i, stage in enumerate(self.stages):
             self.stage_number = i+1
             self.stage_numbers = self.stages[i]
@@ -220,7 +221,7 @@ class Run:
         speed_beeps = self.c.spd_signals if self.stage_number == 1 else self.c.spd_start
         stage_lenght = len(str(len(self.stages))) + 10
         pfx = f'[r].x{self.user_errors+1}[x]:' if self.user_errors else ':'
-        self.stage_row = cz(f'[x]Stage{self.stage_number}{pfx}').ljust(stage_lenght)
+        self.stage_row = cz(f'[x]Stage{self.stage_number}{pfx}'.ljust(stage_lenght))
         print(self.stage_row, end='', flush=True)
         self.say_text('stage', speed)
         self.say_number(self.stage_number, speed)
