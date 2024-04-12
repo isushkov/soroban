@@ -47,13 +47,13 @@ def c_center(text, width, fill_char=' ', fill_color=False):
     color = get_fill_color(fill_color)
     return color + fill_char * padding_left + text + color + fill_char * padding_right
 
-def c_ljust(text, width, fillchar=' ', fill_color=False):
+def c_ljust(text, width, fill_char=' ', fill_color=False):
     text_length = len(remove_colors(text))
     if text_length < width:
         color = get_fill_color(fill_color)
         return text + color + fill_char * (width - text_length)
     return text
-def c_rjust(text, width, fillchar=' ', fill_color=False):
+def c_rjust(text, width, fill_char=' ', fill_color=False):
     text_length = len(remove_colors(text))
     if text_length < width:
         color = get_fill_color(fill_color)

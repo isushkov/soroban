@@ -62,5 +62,5 @@ class Config:
     def get_delay(self, mode):
         val = int(self.data[mode]['speed']['throughout_the_exercise']['delay_between_numbers_ms'])
         if val < 0:
-            return self.config_error(f'.{mode}.throughout_the_exercise.delay_between_numbers_ms', val, 3000)
+            return self.config_error(f'.{mode}.throughout_the_exercise.delay_between_numbers_ms', val, 3)
         return val / 1000

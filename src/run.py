@@ -219,9 +219,9 @@ class Run:
     def announcement_stage(self):
         speed = self.c.spd_speech if self.stage_number == 1 else self.c.spd_stage
         speed_beeps = self.c.spd_signals if self.stage_number == 1 else self.c.spd_start
-        stage_lenght = len(str(len(self.stages))) + 10
+        stage_lenght = len(str(len(self.stages))) + 9
         pfx = f'[r].x{self.user_errors+1}[x]:' if self.user_errors else ':'
-        self.stage_row = cz(f'[x]Stage{self.stage_number}{pfx}'.ljust(stage_lenght))
+        self.stage_row = c_ljust(cz(f'[x]Stage{self.stage_number}{pfx}'), stage_lenght)
         print(self.stage_row, end='', flush=True)
         self.say_text('stage', speed)
         self.say_number(self.stage_number, speed)
