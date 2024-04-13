@@ -19,6 +19,8 @@ class Config:
         self.numbers_per_stage = self.get_number_per_stage()
         self.check_method = self.get_check_method()
         self.spd_stage = self.get_percent('training', 'in', 'announcement_stage_percents')
+        self.spd_stage_cont_txt = self.get_percent('training', 'in', 'announcement_stage_continue_with_text_percents')
+        self.spd_stage_cont_num = self.get_percent('training', 'in', 'announcement_stage_continue_with_number_percents')
         self.spd_start = self.get_percent('training', 'in', 'signal_start_stage_percents')
         self.spd_result_txt = self.get_percent('training', 'in', 'announcement_stage_result_text_percents')
         self.spd_result_num = self.get_percent('training', 'in', 'announcement_stage_result_number_percents')
@@ -55,10 +57,8 @@ class Config:
         val = int(self.data[mode]['speed'][direction][key])
         if val == 0:
             return False
-        if val < 50:
-            return self.config_error(f'.{mode}.{direction}.{key}', val, 0.5)
-        if val > 500:
-            return self.config_error(f'.{mode}.{direction}.{key}', val, 5)
+        if not (50 <= val <= 500):
+            return self.config_error(f'.{mode}.{direction}.{key}', val, 100) / 100
         return val / 100
     def get_delay(self, mode):
         val = int(self.data[mode]['speed']['throughout_the_exercise']['delay_between_numbers_ms'])

@@ -228,14 +228,13 @@ class Run:
             speed_beeps = self.c.spd_signals
         else:
             speed = self.c.spd_stage
-            speed_cont_with = self.c.spd_stage if self.c.spd_stage else 5
             speed_beeps = self.c.spd_start
         # say
         self.say_text('stage', speed)
         self.say_number(self.stage_number, speed)
         if not self.is_passed:
-            self.say_text('continue-with', speed_cont_with)
-            self.say_number(self.start_number, speed_cont_with)
+            self.say_text('continue-with', self.c.spd_stage_cont_txt)
+            self.say_number(self.start_number, self.c.spd_stage_cont_num)
         self.say_beep('start-beeps', speed_beeps)
         # init start time
         if self.stage_number == 1:

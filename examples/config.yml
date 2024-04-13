@@ -20,9 +20,11 @@ training:
       signals_percents: 100
     throughout_the_exercise:
       announcement_stage_percents: 200
+      announcement_stage_continue_with_text_percents: 200
+      announcement_stage_continue_with_number_percents: 100
       signal_start_stage_percents: 200
       announcement_number_percents: 100
       delay_between_numbers_ms: 3000
       announcement_stage_result_text_percents: 200
-      announcement_stage_result_number_percents: 200
+      announcement_stage_result_number_percents: 100
       announcement_enter_stage_result_percents: 200 # [TODO]
