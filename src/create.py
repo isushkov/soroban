@@ -28,7 +28,7 @@ def create_arithmetic(first, length, name):
     data = f'{sequence} = {total}'
     # save
     save_file(path, data)
-    return filename
+    return path
 def generate_arithmetic(first, length):
     first_number = int(first)
     numbers = [first_number]
@@ -49,7 +49,7 @@ def create_random(operations, length, digits_range, name):
     data = f'{sequence} = {total}'
     # save
     save_file(path, data)
-    return name
+    return path
 def generate_random(digits_range, length):
     numbers = []
     start, end = get_range(digits_range)
@@ -70,7 +70,7 @@ def create_cover_units(operations, digits_range, name):
     data = f'{sequence} = {total}'
     # save
     save_file(path, data)
-    return name
+    return path
 # TODO: generate_cover for all digit
 # TODO: '-' убедиться что не уходит в отрицательные при любых digits_range
 # TODO: '-' сделать чтобы сумма всегда была 0
@@ -109,7 +109,7 @@ def generate_second_number(digits_range, y):
 def name2path(name):
     base = os.path.basename(name)
     validated_name = os.path.splitext(base)[0]
-    path = './data/{name}.txt'
+    return './data/{name}.txt'
 def save_file(path, data):
     cmd.run('mkdir -p ./data')
     fo.str2txt(data, path)

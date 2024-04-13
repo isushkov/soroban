@@ -2,7 +2,7 @@
 import argparse
 import sys
 import src.helpers.exit_handler
-from src.create import create_random, create_cover_units, create_arithmetic
+from src.create import create
 from src.analyze import analyze
 from src.run import Run
 

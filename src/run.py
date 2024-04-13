@@ -6,6 +6,7 @@ from src.config import Config
 from gtts import gTTS
 from num2words import num2words
 import sys
+import os
 import termios
 import tty
 import re
@@ -18,6 +19,7 @@ class Run:
         print(c_center(cz(f' [y]RUNNING {path} '), 94, '=', 'x'))
         # preinit
         self.path = path
+        self.exercise = os.path.splitext(os.path.basename(path))[0]
         self.sequence = fo.txt2str(self.path)
         self.all_numbers = self.get_numbers()
         self.len_for_number = 2+len(str(max(self.all_numbers)))
