@@ -14,12 +14,11 @@ from datetime import datetime
 import pandas as pd
 
 class Run:
-    def __init__(self, exercise):
-        print(c_center(cz(f' [y]RUNNING {exercise} '), 94, '=', 'x'))
+    def __init__(self, path):
+        print(c_center(cz(f' [y]RUNNING {path} '), 94, '=', 'x'))
         # preinit
-        self.exercise = exercise
-        self.filename = f'data/{exercise}.txt'
-        self.sequence = fo.txt2str(self.filename)
+        self.path = path
+        self.sequence = fo.txt2str(self.path)
         self.all_numbers = self.get_numbers()
         self.len_for_number = 2+len(str(max(self.all_numbers)))
         self.start_number = self.all_numbers[0]

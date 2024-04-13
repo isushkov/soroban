@@ -6,14 +6,14 @@ from src.helpers.colors import *
 from src.helpers.fexit import fexit
 
 
-def analyze(exercise):
-    numbers_part, total_part = fo.txt2str(f'data/{exercise}.txt').split('=')
+def analyze(path):
+    numbers_part, total_part = fo.txt2str(path).split('=')
     numbers = [int(num) for num in re.findall(r'\d+', numbers_part)]
     first_number = numbers[0]
     operation = get_operation(numbers_part)
     total = get_total(numbers, operation, int(total_part.strip()))
     # info
-    print(c_center(cz(f' [y]ANALYZE {exercise} '), 94, '=', 'x'))
+    print(c_center(cz(f' [y]ANALYZE {path} '), 94, '=', 'x'))
     print(cz(f'[g]Lenght sequence:[c]  {len(numbers)}'))
     print(cz(f'[g]Calculated total:[c] {total}'))
     print(cz(f'[g]Provided total:[c]   {total}'))
