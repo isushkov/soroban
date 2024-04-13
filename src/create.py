@@ -109,7 +109,7 @@ def generate_second_number(digits_range, y):
 def name2path(name):
     base = os.path.basename(name)
     validated_name = os.path.splitext(base)[0]
-    return './data/{name}.txt'
+    return f'./data/{name}.txt'
 def save_file(path, data):
     cmd.run('mkdir -p ./data')
     fo.str2txt(data, path)
