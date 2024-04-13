@@ -40,15 +40,14 @@ class Run:
         self.df_exercise = self.get_df_exercise()
         self.best_time_passed = self.get_best_time(passed=True)
         self.best_time_repetitions = self.get_best_time(passed=False)
-        # start
+        # run stage
+        # TODO: without stages
         self.is_passed = True
+        self.stage_passed = True
+        self.is_last_stage = False
+        self.user_errors = 0
         self.get_ready()
         self.stages = [self.all_numbers[i:i+self.c.numbers_per_stage] for i in range(1, len(self.all_numbers), self.c.numbers_per_stage)]
-        # TODO: without stages
-        # run stage
-        self.is_passed = True
-        self.user_errors = 0
-        self.is_last_stage = False
         for i, stage in enumerate(self.stages):
             self.stage_number = i+1
             self.stage_numbers = self.stages[i]
@@ -207,8 +206,9 @@ class Run:
             else:
                 fexit(f'TODO: unknown operation "{self.operation_char}"')
         # check stage result
-        self.is_passed = self.check_stage_result(total)
-        if not self.is_passed:
+        self.stage_passed = self.check_stage_result(total)
+        if not self.stage_passed:
+            self.is_passed = False
             if self.user_errors < 9:
                 self.user_errors += 1
             total = self.run_stage()
@@ -223,7 +223,7 @@ class Run:
         self.stage_row = c_ljust(cz(f'[x]Stage{self.stage_number}{pfx}'), stage_lenght)
         print(self.stage_row, end='', flush=True)
         # calc speed
-        if self.stage_number == 1 and self.is_passed:
+        if self.stage_number == 1 and self.stage_passed:
             speed = self.c.spd_speech
             speed_beeps = self.c.spd_signals
         else:
@@ -232,7 +232,7 @@ class Run:
         # say
         self.say_text('stage', speed)
         self.say_number(self.stage_number, speed)
-        if not self.is_passed:
+        if not self.stage_passed:
             self.say_text('continue-with', self.c.spd_stage_cont_txt)
             self.say_number(self.start_number, self.c.spd_stage_cont_num)
         self.say_beep('start-beeps', speed_beeps)
