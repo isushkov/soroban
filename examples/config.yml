@@ -23,5 +23,6 @@ training:
       signal_start_stage_percents: 200
       announcement_number_percents: 100
       delay_between_numbers_ms: 3000
-      announcement_stage_result_percents: 200
+      announcement_stage_result_text_percents: 200
+      announcement_stage_result_number_percents: 200
       announcement_enter_stage_result_percents: 200 # [TODO]

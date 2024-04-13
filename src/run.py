@@ -46,7 +46,7 @@ class Run:
         self.stages = [self.all_numbers[i:i+self.c.numbers_per_stage] for i in range(1, len(self.all_numbers), self.c.numbers_per_stage)]
         # TODO: without stages
         # run stage
-        self.stage_result = True
+        self.is_passed = True
         self.user_errors = 0
         self.is_last_stage = False
         for i, stage in enumerate(self.stages):
@@ -207,9 +207,8 @@ class Run:
             else:
                 fexit(f'TODO: unknown operation "{self.operation_char}"')
         # check stage result
-        self.stage_result = self.check_stage_result(total)
-        if not self.stage_result:
-            self.is_passed = False
+        self.is_passed = self.check_stage_result(total)
+        if not self.is_passed:
             if self.user_errors < 9:
                 self.user_errors += 1
             total = self.run_stage()
@@ -218,18 +217,27 @@ class Run:
             print(self.stage_row + self.get_delta_time())
         return total
     def announcement_stage(self):
-        speed = self.c.spd_speech if self.stage_number == 1 else self.c.spd_stage
-        speed_beeps = self.c.spd_signals if self.stage_number == 1 else self.c.spd_start
+        # print
         stage_lenght = len(str(len(self.stages))) + 9
         pfx = f'[r].x{self.user_errors+1}[x]:' if self.user_errors else ':'
         self.stage_row = c_ljust(cz(f'[x]Stage{self.stage_number}{pfx}'), stage_lenght)
         print(self.stage_row, end='', flush=True)
+        # calc speed
+        if self.stage_number == 1 and self.is_passed:
+            speed = self.c.spd_speech
+            speed_beeps = self.c.spd_signals
+        else:
+            speed = self.c.spd_stage
+            speed_cont_with = self.c.spd_stage if self.c.spd_stage else 5
+            speed_beeps = self.c.spd_start
+        # say
         self.say_text('stage', speed)
         self.say_number(self.stage_number, speed)
-        if not self.stage_result:
-            self.say_text('continue-with', speed)
-            self.say_number(self.start_number, speed)
+        if not self.is_passed:
+            self.say_text('continue-with', speed_cont_with)
+            self.say_number(self.start_number, speed_cont_with)
         self.say_beep('start-beeps', speed_beeps)
+        # init start time
         if self.stage_number == 1:
             self.start_time = round(time.time(), 2)
     def check_stage_result(self, total):
@@ -242,8 +250,8 @@ class Run:
         output = self.get_filled_center(remove_colors(self.stage_row), remove_colors(total_str), 94-19) + total_str
         self.stage_row += output
         print(output)
-        self.say_text('answer' if self.is_last_stage else 'stage-result', self.c.spd_result)
-        self.say_number(total, self.c.spd_result)
+        self.say_text('answer' if self.is_last_stage else 'stage-result', self.c.spd_result_txt)
+        self.say_number(total, self.c.spd_result_num)
         if self.is_last_stage: print(cz('   [y]<Space/Enter>[c]   FINISH'))
         else:                  print(cz('   [y]<Space/Enter>[c]   Continue'))
         print(cz('   [y]<Other-key>[c]     Restart the stage'))
