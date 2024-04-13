@@ -16,11 +16,11 @@ def create_subparser_for_create_command(subparsers, parent_parser):
 
     # 'arithmetic' kind specific
     parser_arithmetic = create_subparsers.add_parser("arithmetic", parents=[parent_parser], help="Create an arithmetic progression.")
-    parser_arithmetic.add_argument("first", kind=int, help="First number of the progression.")
-    parser_arithmetic.add_argument("length", kind=int, help="Amount of numbers.")
+    parser_arithmetic.add_argument("first", type=int, help="First number of the progression.")
+    parser_arithmetic.add_argument("length", type=int, help="Amount of numbers.")
     # 'random' kind specific
     parser_random = create_subparsers.add_parser("random", parents=[shared_parser, parent_parser], help="Generate numbers randomly.")
-    parser_random.add_argument("length", kind=int, help="Amount of numbers.")
+    parser_random.add_argument("length", type=int, help="Amount of numbers.")
     # 'cover-units' kind
     create_subparsers.add_parser("cover-units", parents=[shared_parser, parent_parser], help="Covering all possible combinations of the category of units.")
 
@@ -34,11 +34,11 @@ def create_subparser_for_runnew_command(subparsers, parent_parser):
 
     # 'arithmetic' kind specific
     parser_arithmetic = runnew_subparsers.add_parser("arithmetic", parents=[parent_parser], help="Create an arithmetic progression.")
-    parser_arithmetic.add_argument("first", kind=int, help="First number of the progression.")
-    parser_arithmetic.add_argument("length", kind=int, help="Amount of numbers.")
+    parser_arithmetic.add_argument("first", type=int, help="First number of the progression.")
+    parser_arithmetic.add_argument("length", type=int, help="Amount of numbers.")
     # 'random' kind specific
     parser_random = runnew_subparsers.add_parser("random", parents=[shared_parser, parent_parser], help="Generate numbers randomly.")
-    parser_random.add_argument("length", kind=int, help="Amount of numbers.")
+    parser_random.add_argument("length", type=int, help="Amount of numbers.")
     # 'cover-units' kind
     runnew_subparsers.add_parser("cover-units", parents=[shared_parser, parent_parser], help="Covering all possible combinations of the category of units.")
 
