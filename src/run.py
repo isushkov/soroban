@@ -104,7 +104,7 @@ class Run:
             total_calculated = sum(self.all_numbers)
         else:
             # TODO
-            fexit('TODO: unknown operations')
+            fexit('TODO: unknown operation_char')
         total_provided = int(self.sequence.split('=')[1].strip())
         if total_calculated != total_provided:
             fexit(cz('[r]FAIL:[c] Mismatch between [y]calculated total[c] and [y]provided total[c].'))
@@ -141,12 +141,19 @@ class Run:
             self.progress_bar('generate speech (texts)  ', total, i)
         print()
     def generate_sounds_numbers(self):
-        total = len(self.all_numbers)
-        for i, number in enumerate(self.all_numbers):
+        current_sum = self.all_numbers[0]
+        sum_list = [current_sum]
+        for number in self.all_numbers[1:]:
+            if self.operation_char != '+':
+                fexit('TODO: unknown operation_char')
+            current_sum += number
+            sum_list.append(current_sum)
+        numbers = self.all_numbers + sum_list
+        for i, number in enumerate(numbers):
             path = f'sounds/{self.c.lang}/numbers/{number}.mp3'
             if not fo.f_exist(path):
                 self.generate_sound(path, num2words(number, lang=self.c.lang))
-            self.progress_bar('generate speech (numbers)', total, i)
+            self.progress_bar('generate speech (numbers)', len(numbers), i)
         print()
     def generate_sound(self, path, text):
         tts = gTTS(text=text, lang=self.c.lang)
