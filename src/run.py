@@ -3,16 +3,17 @@ from src.helpers.fexit import fexit
 from src.helpers.cmd import Cmd as cmd
 from src.helpers.colors import *
 from src.config import Config
-from gtts import gTTS
-from num2words import num2words
-import sys
 import os
-import termios
+import sys
 import tty
+import termios
+import select
 import re
 import time
 from datetime import datetime
 import pandas as pd
+from gtts import gTTS
+from num2words import num2words
 
 class Run:
     def __init__(self, path):
@@ -29,6 +30,10 @@ class Run:
         self.total = self.get_total()
         self.c = Config()
         self.is_exam = True if self.c.mode == 'exam' else False
+        self.fd = sys.stdin.fileno()
+        self.term_origin = termios.tcgetattr(self.fd)
+        self.term_noecho = termios.tcgetattr(self.fd)
+        self.echo_off()
         # prepare fs
         self.records_columns = ['id', 'rank', 'name', 'exercise', 'is_exam', 'is_passed', 'time', 'time_seconds', 'date']
         self.prepare_fs()
@@ -66,6 +71,7 @@ class Run:
             self.user_id = False
             self.user_rank = False
         else:
+            self.echo_on()
             user_name = input('Please enter your name: ').strip()
             self.user_name = user_name[:6] if user_name else '<anon>'
             new_df = pd.DataFrame([{
@@ -112,6 +118,18 @@ class Run:
         if not fo.f_exist('./data/_records.csv'):
             cmd.run(f'echo {",".join(self.records_columns)} > data/_records.csv')
 
+    # tui
+    def echo_off(self):
+        self.term_noecho[3] = self.term_noecho[3] & ~termios.ECHO
+        termios.tcsetattr(self.fd, termios.TCSADRAIN, self.term_noecho)
+    def echo_on(self):
+        termios.tcsetattr(self.fd, termios.TCSADRAIN, self.term_origin)
+        termios.tcflush(sys.stdin, termios.TCIFLUSH)
+    def clean_output(self, count_lines):
+        for _ in range(count_lines):
+            sys.stdout.write('\x1b[1A')
+            sys.stdout.write('\x1b[2K')
+
     # sounds
     def generate_sounds_texts(self):
         texts = fo.yml2dict('./src/texts4sounds.yml')
@@ -138,7 +156,6 @@ class Run:
         done = '#' * progress
         in_progress = ('.'*(62 - progress))
         print(cz(f'[x]>>> {msg} [{done}{in_progress}]'), end='\r', flush=True)
-
     def say_beep(self, sound, speed):
         self.mpv(f'sounds/{sound}.mp3', speed)
     def say_text(self, sound, speed):
@@ -253,8 +270,8 @@ class Run:
         self.say_number(total, self.c.spd_result_num)
         if self.is_last_stage: print(cz('   [y]<Space/Enter>[c]   FINISH'))
         else:                  print(cz('   [y]<Space/Enter>[c]   Continue'))
-        print(cz('   [y]<Other-key>[c]     Restart the stage'))
-        print(cz('   [y]<Esc>      [c]     Exit'))
+        print(cz('   [y]<a-Z>[c]           Restart the stage'))
+        print(cz('   [y]<Esc>[c]           Exit'))
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         tty.setraw(sys.stdin.fileno())
@@ -271,10 +288,6 @@ class Run:
     def get_filled_center(self, x, y, len_line, fill_char=' '):
         len_center  = len_line - len(x) - len(y)
         return len_center * fill_char
-    def clean_output(self, count_lines):
-        for _ in range(count_lines):
-            sys.stdout.write('\x1b[1A')
-            sys.stdout.write('\x1b[2K')
 
     # delta time
     def get_delta_time(self):
