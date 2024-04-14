@@ -1,7 +1,27 @@
 common:
   lang: en # en, ru, [TODO] <any> (may be ugly)
   mode: training # exam, training, [TODO] study_program
-  course_of_study_step: 1 # [TODO]
+  # Course of study program:
+  # Step  Mode      Time  Command args
+  #  1    training  4:00  run-new cover-units plus x-x
+  #  2    exam      4:00  run-new cover-units plus x-x
+  #  5    training  4:00  run-new cover-units minus x-x
+  #  6    exam      4:00  run-new cover-units minus x-x
+  #  3    training  4:00  run-new cover-units plus xx-xx
+  #  4    exam      4:00  run-new cover-units plus xx-xx
+  #  7    training  4:00  run-new cover-units minus xx-xx
+  #  8    exam      4:00  run-new cover-units minus xx-xx
+  #  9    training  8:00  run-new cover-units plus-minus-roudtrip xx-xx
+  #  10   exam      8:00  run-new cover-units plus-minus-roudtrip xx-xx
+  #  11   training  4:00  run-new cover-units plus-minus xx-xx
+  #  12   exam      4:00  run-new cover-units plus-minus xx-xx
+  study_program: # [TODO]
+    student_name: alice
+    swith_mode_policy:
+      # after X consecutive training sessions without repetitions and in time
+      training2exam: 1 # 0 <-> 9999...
+      # after X consecutive exams with an incorrect answer
+      exam2training: 3 # 0 <-> 9999...
 exam:
   speed:
     outside_the_exercise:
