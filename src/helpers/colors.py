@@ -39,23 +39,27 @@ def get_fill_color(fill_color):
        'r': Fore.RED,
        'x': Fore.LIGHTBLACK_EX
     }[fill_color]
+
+def c_ljust(text, width, fill_char=' ', fill_color=False):
+    text_length = len(remove_colors(text))
+    if text_length < width:
+        color = get_fill_color(fill_color)
+        return text + color+fill_char*(width - text_length)
+    return text
+def c_rjust(text, width, fill_char=' ', fill_color=False):
+    text_length = len(remove_colors(text))
+    if text_length < width:
+        color = get_fill_color(fill_color)
+        return color+fill_char*(width - text_length) + text
+    return text
+def c_edgesjust(text_left, text_right, width, fill_char=' ', fill_color=False):
+    color = get_fill_color(fill_color)
+    len_center  = width - len(remove_colors(text_left)) - len(remove_colors(text_left))
+    return text_left + (color+len_center*fill_char) + text_right
 def c_center(text, width, fill_char=' ', fill_color=False):
     text_length = len(remove_colors(text))
     total_padding = width - text_length
     padding_left = total_padding // 2
     padding_right = total_padding - padding_left
     color = get_fill_color(fill_color)
-    return color + fill_char * padding_left + text + color + fill_char * padding_right
-
-def c_ljust(text, width, fill_char=' ', fill_color=False):
-    text_length = len(remove_colors(text))
-    if text_length < width:
-        color = get_fill_color(fill_color)
-        return text + color + fill_char * (width - text_length)
-    return text
-def c_rjust(text, width, fill_char=' ', fill_color=False):
-    text_length = len(remove_colors(text))
-    if text_length < width:
-        color = get_fill_color(fill_color)
-        return color + fill_char * (width - text_length) + text
-    return text
+    return (color+fill_char*padding_left) + text + (color+fill_char*padding_right)

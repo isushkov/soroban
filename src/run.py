@@ -1,5 +1,4 @@
 from src.helpers.fo import Fo as fo
-from src.helpers.fexit import fexit
 from src.helpers.cmd import Cmd as cmd
 from src.helpers.colors import *
 from src.config import Config
@@ -73,6 +72,7 @@ class Run:
         else:
             self.echo_on()
             user_name = input('Please enter your name: ').strip()
+            self.echo_off()
             self.user_name = user_name[:6] if user_name else '<anon>'
             new_df = pd.DataFrame([{
                 'rank': 0,
@@ -104,10 +104,10 @@ class Run:
             total_calculated = sum(self.all_numbers)
         else:
             # TODO
-            fexit('TODO: unknown operation_char')
+            exit('TODO: unknown operation_char')
         total_provided = int(self.sequence.split('=')[1].strip())
         if total_calculated != total_provided:
-            fexit(cz('[r]FAIL:[c] Mismatch between [y]calculated total[c] and [y]provided total[c].'))
+            exit(cz('[r]FAIL:[c] Mismatch between [y]calculated total[c] and [y]provided total[c].'))
         total = total_calculated
         return total
     def prepare_fs(self):
@@ -145,7 +145,7 @@ class Run:
         sum_list = [current_sum]
         for number in self.all_numbers[1:]:
             if self.operation_char != '+':
-                fexit('TODO: unknown operation_char')
+                exit('TODO: unknown operation_char')
             current_sum += number
             sum_list.append(current_sum)
         numbers = self.all_numbers + sum_list
@@ -173,6 +173,8 @@ class Run:
             self.generate_sound(path, num2words(sound, lang=self.c.lang))
         self.mpv(path, speed)
     def mpv(self, path, speed):
+        if not fo.f_exist(path):
+            exit(cz(f'[r]ERROR:[c] MPV - File not exist: {path}'))
         if not speed:
             return False
         cmd.run(f'mpv {path} --speed={speed}', strict=False, verbose4fail=False)
@@ -228,16 +230,19 @@ class Run:
             if self.operation_char == '+':
                 total += number
             else:
-                fexit(f'TODO: unknown operation "{self.operation_char}"')
+                exit(f'TODO: unknown operation "{self.operation_char}"')
         # check stage result
         self.stage_passed = self.check_stage_result(total)
         if not self.stage_passed:
+            self.say_beep('wrong', 1)
             self.is_passed = False
             if self.user_errors < 9:
                 self.user_errors += 1
             total = self.run_stage()
         else:
             self.user_errors = 0
+            if self.c.check_method == 'input':
+                self.stage_row += f' ={total}'
             print(self.stage_row + self.get_delta_time())
         return total
     def announcement_stage(self):
@@ -259,42 +264,51 @@ class Run:
         if not self.stage_passed:
             self.say_text('continue-with', self.c.spd_stage_cont_txt)
             self.say_number(self.start_number, self.c.spd_stage_cont_num)
-        self.say_beep('start-beeps', speed_beeps)
+        self.say_beep('start', speed_beeps)
         # init start time
         if self.stage_number == 1:
             self.start_time = round(time.time(), 2)
     def check_stage_result(self, total):
         # if input
-        if self.is_exam or self.c.check_method == 'input':
-            fexit('TODO: check_method input')
-            return False
+        if self.c.check_method == 'input':
+            return self.check_answer(total)
         # if yes-no
-        total_str = f' ={total}'
-        output = self.get_filled_center(remove_colors(self.stage_row), remove_colors(total_str), 94-19) + total_str
-        self.stage_row += output
-        print(output)
+        self.stage_row = c_edgesjust(self.stage_row, f' ={total}', 75)
+        self.clear_lines(1)
+        print(self.stage_row)
         self.say_text('answer' if self.is_last_stage else 'stage-result', self.c.spd_result_txt)
         self.say_number(total, self.c.spd_result_num)
-        if self.is_last_stage: print(cz('   [y]<Space/Enter>[c]   FINISH'))
-        else:                  print(cz('   [y]<Space/Enter>[c]   Continue'))
-        print(cz('   [y]<a-Z>[c]           Restart the stage'))
-        print(cz('   [y]<Esc>[c]           Exit'))
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        tty.setraw(sys.stdin.fileno())
-        key = sys.stdin.read(1)
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        # menu
+        gonext = 'FINISH' if self.is_last_stage else 'continue'
+        menu  = f'   [y]<Space/Enter>[c]   {gonext}'
+        menu +=  '   [y]<a-Z>[c]           Restart the stage'
+        menu +=  '   [y]<Esc>[c]           Exit'
+        print(cz(menu))
+        # get key
+        key = self.getch()
+        self.clear_lines(4)
         if key in [' ', '\r', '\n']: # next stage
-            self.clean_output(4)
             return True
         elif key == '\x1b':  # Esc
-            fexit()
+            exit(cz('[r]exit.'))
         else: # restart stage
-            self.clean_output(4)
             return False
-    def get_filled_center(self, x, y, len_line, fill_char=' '):
-        len_center  = len_line - len(x) - len(y)
-        return len_center * fill_char
+    def check_answer(self, total):
+        print()
+        print(cz('   [y]<Please provide your answer>'))
+        self.echo()
+        result, valid = self.input2number(input(' =').strip())
+        self.noecho()
+        self.clear_lines(2)
+        if not valid:
+            return False
+        return True if result == total else False
+    def input2number(self, value):
+        try:
+            number = float(value)
+            return (int(number), True) if number.is_integer() else (number, True)
+        except ValueError:
+            return False, False
 
     # delta time
     def get_delta_time(self):

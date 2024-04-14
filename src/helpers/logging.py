@@ -35,7 +35,7 @@ def log(*args):
     elif status in [2,  'note' ]: color = Fore.YELLOW; marker = '[!]'
     elif status in [3,  'error']: color = Fore.RED;    marker = '[-]'
     elif status in [4,  'exit' ]: color = Fore.RED;    marker = '[e]'; need_exit = True
-    else: fexit(f'{log_err_pfx} Log error: unknown status ({status})')
+    else: exit(f'{log_err_pfx} Log error: unknown status ({status})')
     # enable/disable colors
     rst = Style.RESET_ALL
     if not enable_colors: color, rst = '', ''
@@ -87,7 +87,7 @@ def log(*args):
     # total
     total = f'{now} {marker} {path}{msg}{details}'
     log_out(total, filename)
-    if need_exit: fexit(total)
+    if need_exit: exit(total)
     return True
 
 def log_is_one_arg(details):

@@ -3,7 +3,6 @@ import re
 from collections import Counter
 from src.helpers.fo import Fo as fo
 from src.helpers.colors import *
-from src.helpers.fexit import fexit
 
 
 def analyze(path):
@@ -55,7 +54,7 @@ def get_operation(numbers_part):
     operation_chars = re.findall(r'\s([+\-*/])\s', numbers_part)
     operation = operation_chars[0] if operation_chars else None
     if not operation:
-        fexit('operation not defined')
+        exit('operation not defined')
     return operation
 def get_total(numbers, operation, total_provided):
     if operation == '+':
@@ -64,9 +63,9 @@ def get_total(numbers, operation, total_provided):
         first_number = numbers.pop(0)
         total_calculated = first_number - sum(numbers)
     else:
-        fexit(f'TODO: unknown operation ({operation})')
+        exit(f'TODO: unknown operation ({operation})')
     if total_calculated != total_provided:
-        fexit(cz('[r]FAIL:[c] Mismatch between [y]calculated total[c] and [y]provided total[c].'))
+        exit(cz('[r]FAIL:[c] Mismatch between [y]calculated total[c] and [y]provided total[c].'))
     return total_calculated
 
 # combinations

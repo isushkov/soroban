@@ -1,4 +1,3 @@
-import src.helpers.fexit
 from src.helpers.colors import *
 from src.helpers.fo import Fo as fo
 from src.helpers.cmd import Cmd as cmd
@@ -12,7 +11,7 @@ def create(args):
         return create_random(args.operations, args.length, args.range, args.name)
     if args.kind == 'cover-units':
         return create_cover_units(args.operations, args.range, args.name)
-    fexit(cz(f'[r]unknown "kind" to create the exercise: {args.kind}'))
+    exit(cz(f'[r]unknown "kind" to create the exercise: {args.kind}'))
 
 # arithmetic
 def create_arithmetic(first, length, name):
@@ -78,7 +77,7 @@ def generate_cover_units(digits_range, operations):
     if operations == '+':
         first_number = 0
     else:
-        fexit('TODO: unknown operations...')
+        exit('TODO: unknown operations...')
     result = [first_number]
     all_combinations = {(x, y) for x in range(0, 10) for y in range(1, 10)}
     while all_combinations:
@@ -88,7 +87,7 @@ def generate_cover_units(digits_range, operations):
         if operations == '+':
             first_number += second_number
         else:
-            fexit('TODO: unknown operations...')
+            exit('TODO: unknown operations...')
     return result
 def get_units(first_number, all_combinations):
     x = first_number % 10
@@ -121,11 +120,11 @@ def get_sequence(numbers, operations):
 def get_operations(operations):
     if operations == 'plus':
         return '+'
-    fexit('TODO: unknown operations...')
+    exit('TODO: unknown operations...')
 def get_total(numbers, operations):
     if operations == '+':
         return sum(numbers)
-    fexit('TODO: unknown operations...')
+    exit('TODO: unknown operations...')
 def get_range(digits_range):
     pre_x, post_x = digits_range.split('-')
     start, end = 10**(len(pre_x)-1), 10**len(post_x)-1
