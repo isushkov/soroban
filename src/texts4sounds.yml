@@ -11,8 +11,8 @@ stage-result:
   en: 'stage result is'
   ru: 'итог этапа'
 enter-stage-result:
-  en: 'enter stage result'
-  ru: 'введите итог этапа'
+  en: 'enter your stage result'
+  ru: 'введите ваш итог этапа'
 continue-with:
   en: 'continue with'
   ru: 'продолжайте от'
@@ -20,5 +20,5 @@ answer:
   en: 'final answer is'
   ru: 'окончательный ответ'
 enter-answer:
-  en: 'enter final answer'
-  ru: 'введите окончательный ответ'
+  en: 'enter your answer'
+  ru: 'введите ваш ответ'

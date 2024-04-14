@@ -16,51 +16,49 @@ class Tui:
     # restore
     def signal_handler(self, signum, frame):
         self.echo()
-        print("\nTUI-Signal handler..")
+        print('\nBye!')
         exit(0)
 
     # echo
     def noecho(self):
-        termios.tcsetattr(self.fd, termios.TCSADRAIN, self.term_noecho)
         self.cursor_hide()
+        self.term_noecho[3] = self.term_noecho[3] & ~termios.ECHO
+        termios.tcsetattr(self.fd, termios.TCSADRAIN, self.term_noecho)
     def echo(self):
-        termios.tcsetattr(self.fd, termios.TCSADRAIN, self.term_origin)
-        termios.tcflush(sys.stdin, termios.TCIFLUSH)
-        self.cursor_show()
+        try:
+            if self.fd >= 0:
+                termios.tcsetattr(self.fd, termios.TCSADRAIN, self.term_origin)
+                termios.tcflush(self.fd, termios.TCIFLUSH)
+            self.cursor_show()
+        except ValueError:
+            pass
+        except Exception as e:
+            print("TUI - Ignored exception in echo:", e)
     def cursor_hide(self):
         sys.stdout.write('\033[?25l')
-        sys.stdout.flush()
     def cursor_show(self):
         sys.stdout.write('\033[?25h')
-        sys.stdout.flush()
-
     # cursor
-    def getyx(self):
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        tty.setraw(sys.stdin.fileno())
-        sys.stdout.write("\033[6n")
+    def cursor_move(self, y=None, x=None):
+        if y is not None and x is not None:
+            sys.stdout.write(f'\033[{y};{x}H')
+        elif y is not None:
+            sys.stdout.write(f'\033[{y}d')
+        elif x is not None:
+            sys.stdout.write(f'\033[{x}G')
         sys.stdout.flush()
-        buf = ""
-        while True:
-            char = sys.stdin.read(1)
-            buf += char
-            if char == "R":
-                break
-        # \033[{row};{col}R
-        response = buf.strip("\033[").strip("R").split(";")
-        y,x = int(response[0]), int(response[1])
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        return (y,x)
-    def set(self, y,x):
-        sys.stdout.write(f'\033[{y};{x}H')
+    def cursor_shift(self, y=0, x=0):
+        if   y > 0: sys.stdout.write(f'\033[{y}B')
+        elif y < 0: sys.stdout.write(f'\033[{-y}A')
+        if   x > 0: sys.stdout.write(f'\033[{x}C')
+        elif x < 0: sys.stdout.write(f'\033[{-x}D')
         sys.stdout.flush()
-    def move(self, y,x):
-        current_y, current_x = self.getyx()
-        target_y = current_y + y if y is not None else current_y
-        target_x = current_x + x if x is not None else current_x
-        self.set(target_y, target_x)
-
+    def cursor_save(self):
+        sys.stdout.write('\033[s')
+        sys.stdout.flush()
+    def cursor_restore(self):
+        sys.stdout.write('\033[u')
+        sys.stdout.flush()
     # clear
     def clear(self, mode=False):
         modes = {False: '2J', 'end': 'K', 'start': '1K', 'line': '2K', 'down': 'J', 'up': '1J'}
@@ -68,17 +66,15 @@ class Tui:
         if char is None:
             raise Exception(f'clear: unknown mode - {mode}')
         sys.stdout.write(f'\033[{char}')
-        sys.stdout.flush()
-    def clear_lines(self, count_lines=1):
+    def clear_lines(self, count_lines):
         for _ in range(count_lines):
             sys.stdout.write('\x1b[1A')
             sys.stdout.write('\x1b[2K')
-        sys.stdout.flush()
-
-    # chars
+    # char
     def getch(self):
-        old_settings = termios.tcgetattr(self.fd)
-        tty.setraw(self.fd)
-        ch = sys.stdin.read(1)
-        termios.tcsetattr(self.fd, termios.TCSADRAIN, old_settings)
-        return ch
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        tty.setraw(sys.stdin.fileno())
+        key = sys.stdin.read(1)
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return key

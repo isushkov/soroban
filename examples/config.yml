@@ -1,30 +1,31 @@
 common:
   lang: en # en, ru, [TODO] <any> (may be ugly)
-  mode: training # [TODO] exam, training, [TODO] study_program
+  mode: training # exam, training, [TODO] study_program
   course_of_study_step: 1 # [TODO]
 exam:
   speed:
     outside_the_exercise:
-      speech_percents: 100 # 50 <-> 500, 0 (for disable)
+      speech_percents: 100 # 50 <-> 500, 0 (disable)
       signals_percents: 100
     throughout_the_exercise:
-      announcement_number_percents: 200
+      announce_number_percents: 200
       delay_between_numbers_ms: 3000 # 0 <-> 9999...
-      announcement_enter_answer_percents: 200
+      announce_enter_answer_percents: 200
 training:
   max_count_numbers_per_stage: 10 # 1 <-> 9999...
-  check_stage_result_method: yes-no # [TODO] input, yes-no
+  check_stage_result_method: yes-no # input, yes-no
   speed:
     outside_the_exercise:
       speech_percents: 100
       signals_percents: 100
     throughout_the_exercise:
-      announcement_stage_percents: 200
-      announcement_stage_continue_with_text_percents: 200
-      announcement_stage_continue_with_number_percents: 100
+      announce_stage_percents: 200
+      announce_stage_continue_with_text_percents: 200
+      announce_stage_continue_with_number_percents: 100
       signal_start_stage_percents: 200
-      announcement_number_percents: 100
+      announce_number_percents: 100
       delay_between_numbers_ms: 3000
-      announcement_stage_result_text_percents: 200
-      announcement_stage_result_number_percents: 100
-      announcement_enter_stage_result_percents: 200 # [TODO]
+      announce_stage_result_text_percents: 200
+      announce_stage_result_number_percents: 100
+      signal_wrong_stage_result_percents: 100
+      announce_enter_stage_result_percents: 100

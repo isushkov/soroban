@@ -11,19 +11,20 @@ class Config:
         # shared
         self.spd_speech = self.get_percent(self.mode, 'out', 'speech_percents')
         self.spd_signals = self.get_percent(self.mode, 'out', 'signals_percents')
-        self.spd_number = self.get_percent(self.mode, 'in', 'announcement_number_percents')
+        self.spd_number = self.get_percent(self.mode, 'in', 'announce_number_percents')
         self.spd_delay = self.get_delay(self.mode)
-        enter_result_key = 'announcement_enter_answer_percents' if self.mode == 'exam' else 'announcement_enter_stage_result_percents'
+        enter_result_key = 'announce_enter_answer_percents' if self.mode == 'exam' else 'announce_enter_stage_result_percents'
         self.spd_enter_result = self.get_percent(self.mode, 'in', enter_result_key)
         # training
         self.numbers_per_stage = self.get_number_per_stage()
         self.check_method = self.get_check_method()
-        self.spd_stage = self.get_percent('training', 'in', 'announcement_stage_percents')
-        self.spd_stage_cont_txt = self.get_percent('training', 'in', 'announcement_stage_continue_with_text_percents')
-        self.spd_stage_cont_num = self.get_percent('training', 'in', 'announcement_stage_continue_with_number_percents')
+        self.spd_stage = self.get_percent('training', 'in', 'announce_stage_percents')
+        self.spd_stage_cont_txt = self.get_percent('training', 'in', 'announce_stage_continue_with_text_percents')
+        self.spd_stage_cont_num = self.get_percent('training', 'in', 'announce_stage_continue_with_number_percents')
         self.spd_start = self.get_percent('training', 'in', 'signal_start_stage_percents')
-        self.spd_result_txt = self.get_percent('training', 'in', 'announcement_stage_result_text_percents')
-        self.spd_result_num = self.get_percent('training', 'in', 'announcement_stage_result_number_percents')
+        self.spd_result_txt = self.get_percent('training', 'in', 'announce_stage_result_text_percents')
+        self.spd_result_num = self.get_percent('training', 'in', 'announce_stage_result_number_percents')
+        self.spd_wrong = self.get_percent('training', 'in', 'signal_wrong_stage_result_percents')
 
     # config
     def config_error(self, key, val, replacement):

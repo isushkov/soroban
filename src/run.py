@@ -1,6 +1,7 @@
 from src.helpers.fo import Fo as fo
 from src.helpers.cmd import Cmd as cmd
 from src.helpers.colors import *
+from src.helpers.tui import Tui
 from src.config import Config
 import os
 import sys
@@ -27,12 +28,17 @@ class Run:
         self.operations = re.findall(r'\s([+\-*/])\s', self.sequence.split('=')[0])
         self.operation_char = self.operations[0] if self.operations else None # TODO: plus-minus
         self.total = self.get_total()
+        # config
         self.c = Config()
         self.is_exam = True if self.c.mode == 'exam' else False
+        if self.is_exam:
+            self.c.check_method = 'input'
+        # tui
         self.fd = sys.stdin.fileno()
         self.term_origin = termios.tcgetattr(self.fd)
         self.term_noecho = termios.tcgetattr(self.fd)
-        self.echo_off()
+        self.tui = Tui()
+        self.tui.noecho()
         # prepare fs
         self.records_columns = ['id', 'rank', 'name', 'exercise', 'is_exam', 'is_passed', 'time', 'time_seconds', 'date']
         self.prepare_fs()
@@ -47,11 +53,14 @@ class Run:
         # run stage
         # TODO: without stages
         self.is_passed = True
-        self.stage_passed = True
+        self.stage_succeed = True
         self.is_last_stage = False
         self.user_errors = 0
         self.get_ready()
-        self.stages = [self.all_numbers[i:i+self.c.numbers_per_stage] for i in range(1, len(self.all_numbers), self.c.numbers_per_stage)]
+        if self.is_exam:
+            self.stages = [self.all_numbers]
+        else:
+            self.stages = [self.all_numbers[i:i+self.c.numbers_per_stage] for i in range(1, len(self.all_numbers), self.c.numbers_per_stage)]
         for i, stage in enumerate(self.stages):
             self.stage_number = i+1
             self.stage_numbers = self.stages[i]
@@ -62,37 +71,9 @@ class Run:
         self.end_time = round(time.time(), 2)
         self.end_time_formated = self.format_time(self.end_time - self.start_time)
         self.date = datetime.fromtimestamp(self.end_time).strftime('%d.%m.%y')
-        print(cz(f'[g]Exercise was finished![c] your time is: [y]{self.end_time_formated}'))
-        self.say_beep('end-game-passed' if self.is_passed else 'end-game', self.c.spd_signals)
-        # update records
-        if self.is_exam and not self.is_passed:
-            print(cz('[y]NOTE:[c] You have [r]not passed the exam[c], the result will not be saved.'))
-            self.user_id = False
-            self.user_rank = False
-        else:
-            self.echo_on()
-            user_name = input('Please enter your name: ').strip()
-            self.echo_off()
-            self.user_name = user_name[:6] if user_name else '<anon>'
-            new_df = pd.DataFrame([{
-                'rank': 0,
-                'name': self.user_name,
-                'exercise': self.exercise,
-                'is_exam': 1 if self.is_exam else 0,
-                'is_passed': 1 if self.is_passed else 0,
-                'time': self.end_time_formated,
-                'time_seconds': round(self.end_time - self.start_time, 2),
-                'date': self.date
-            }])
-            self.df_records = self.df_records.dropna(axis=1, how='all')
-            self.df_records = pd.concat([self.df_records, new_df], ignore_index=True)
-            self.df_exercise = self.get_df_exercise()
-            self.user_id = self.df_records.index[-1]
-            self.user_rank = self.upd_rank()
-            # save
-            tmp_df = self.df_records.reset_index().rename(columns={'index': 'id'})
-            tmp_df.to_csv('data/_records.csv', index=False)
-        # leaderboard
+        self.announce_finish()
+        if self.is_new_record:
+            self.update_records()
         self.display_results()
         # TODO: would you like to repeat?
 
@@ -117,18 +98,11 @@ class Run:
             cmd.run('copy ./examples/config.yml ./config.yml')
         if not fo.f_exist('./data/_records.csv'):
             cmd.run(f'echo {",".join(self.records_columns)} > data/_records.csv')
-
-    # tui
-    def echo_off(self):
-        self.term_noecho[3] = self.term_noecho[3] & ~termios.ECHO
-        termios.tcsetattr(self.fd, termios.TCSADRAIN, self.term_noecho)
-    def echo_on(self):
-        termios.tcsetattr(self.fd, termios.TCSADRAIN, self.term_origin)
-        termios.tcflush(sys.stdin, termios.TCIFLUSH)
-    def clean_output(self, count_lines):
-        for _ in range(count_lines):
-            sys.stdout.write('\x1b[1A')
-            sys.stdout.write('\x1b[2K')
+    def input(self, msg=''):
+        self.tui.echo()
+        data = input(msg).strip()
+        self.tui.noecho()
+        return data
 
     # sounds
     def generate_sounds_texts(self):
@@ -220,7 +194,7 @@ class Run:
     # run stage
     def run_stage(self):
         total = self.start_number
-        self.announcement_stage()
+        self.announce_stage()
         for number in self.stage_numbers:
             output = f' {self.operation_char}{number}'.rjust(self.len_for_number)
             self.stage_row += output
@@ -232,27 +206,34 @@ class Run:
             else:
                 exit(f'TODO: unknown operation "{self.operation_char}"')
         # check stage result
-        self.stage_passed = self.check_stage_result(total)
-        if not self.stage_passed:
-            self.say_beep('wrong', 1)
+        self.stage_succeed = self.check_answer(total)
+        if not self.stage_succeed:
             self.is_passed = False
-            if self.user_errors < 9:
-                self.user_errors += 1
-            total = self.run_stage()
+            if not self.is_exam:
+                self.say_beep('wrong', self.c.spd_wrong)
+                if self.user_errors < 9:
+                    self.user_errors += 1
+                self.tui.clear_lines(1)
+                total = self.run_stage()
         else:
             self.user_errors = 0
-            if self.c.check_method == 'input':
-                self.stage_row += f' ={total}'
             print(self.stage_row + self.get_delta_time())
         return total
-    def announcement_stage(self):
+
+    def announce_stage(self):
         # print
-        stage_lenght = len(str(len(self.stages))) + 9
-        pfx = f'[r].x{self.user_errors+1}[x]:' if self.user_errors else ':'
-        self.stage_row = c_ljust(cz(f'[x]Stage{self.stage_number}{pfx}'), stage_lenght)
+        if not self.is_exam:
+            stage_lenght = len(str(len(self.stages))) + 9
+            stage_row =  f'[x]Stage{self.stage_number}'
+            if self.user_errors:
+                stage_row += f'[r].x{self.user_errors+1}[x]'
+            stage_row += ':'
+            self.stage_row = c_ljust(cz(stage_row), stage_lenght)
+        else:
+            self.stage_row = cz(f'[r]x{self.user_errors+1}[x]:') if self.user_errors else ''
         print(self.stage_row, end='', flush=True)
         # calc speed
-        if self.stage_number == 1 and self.stage_passed:
+        if self.stage_number == 1 and self.stage_succeed:
             speed = self.c.spd_speech
             speed_beeps = self.c.spd_signals
         else:
@@ -261,45 +242,30 @@ class Run:
         # say
         self.say_text('stage', speed)
         self.say_number(self.stage_number, speed)
-        if not self.stage_passed:
+        if not self.stage_succeed:
             self.say_text('continue-with', self.c.spd_stage_cont_txt)
             self.say_number(self.start_number, self.c.spd_stage_cont_num)
         self.say_beep('start', speed_beeps)
         # init start time
         if self.stage_number == 1:
             self.start_time = round(time.time(), 2)
-    def check_stage_result(self, total):
-        # if input
-        if self.c.check_method == 'input':
-            return self.check_answer(total)
-        # if yes-no
-        self.stage_row = c_edgesjust(self.stage_row, f' ={total}', 75)
-        self.clear_lines(1)
-        print(self.stage_row)
-        self.say_text('answer' if self.is_last_stage else 'stage-result', self.c.spd_result_txt)
-        self.say_number(total, self.c.spd_result_num)
-        # menu
-        gonext = 'FINISH' if self.is_last_stage else 'continue'
-        menu  = f'   [y]<Space/Enter>[c]   {gonext}'
-        menu +=  '   [y]<a-Z>[c]           Restart the stage'
-        menu +=  '   [y]<Esc>[c]           Exit'
-        print(cz(menu))
-        # get key
-        key = self.getch()
-        self.clear_lines(4)
-        if key in [' ', '\r', '\n']: # next stage
-            return True
-        elif key == '\x1b':  # Esc
-            exit(cz('[r]exit.'))
-        else: # restart stage
-            return False
     def check_answer(self, total):
+        if self.c.check_method == 'input':
+            return self.check_answer_input(total)
+        return self.check_answer_yesno(total)
+    def check_answer_input(self, total):
+        self.stage_row = c_edgesjust(self.stage_row, f' ={total}', 87)
         print()
-        print(cz('   [y]<Please provide your answer>'))
-        self.echo()
-        result, valid = self.input2number(input(' =').strip())
-        self.noecho()
-        self.clear_lines(2)
+        if self.is_last_stage:
+            msg = 'answer'
+            sound = 'enter-answer'
+        else:
+            msg = 'stage result'
+            sound = 'enter-stage-result'
+        print(cz(f'[y]Your {msg}: '), end='', flush=True)
+        self.say_text(sound, self.c.spd_enter_result)
+        result, valid = self.input2number(self.input())
+        self.tui.clear_lines(1)
         if not valid:
             return False
         return True if result == total else False
@@ -309,6 +275,27 @@ class Run:
             return (int(number), True) if number.is_integer() else (number, True)
         except ValueError:
             return False, False
+    def check_answer_yesno(self, total):
+        self.stage_row = c_edgesjust(self.stage_row, f' ={total}', 87)
+        self.tui.cursor_move(x=0)
+        print(self.stage_row)
+        self.say_text('answer' if self.is_last_stage else 'stage-result', self.c.spd_result_txt)
+        self.say_number(total, self.c.spd_result_num)
+        # menu
+        gonext = 'FINISH' if self.is_last_stage else 'Continue'
+        menu  = f'   [y]<Space/Enter>[c]   {gonext}\n'
+        menu +=  '   [y]<a-Z>[c]           Restart the stage\n'
+        menu +=  '   [y]<Esc>[c]           Exit'
+        print(cz(menu))
+        # get key
+        key = self.tui.getch()
+        self.tui.clear_lines(4)
+        if key in [' ', '\r', '\n']: # next stage
+            return True
+        elif key == '\x1b':  # Esc
+            exit(cz('[r]exit.'))
+        else: # restart stage
+            return False
 
     # delta time
     def get_delta_time(self):
@@ -364,6 +351,38 @@ class Run:
         return formatted_time
 
     # finish
+    def announce_finish(self):
+        self.is_new_record = True
+        if self.is_exam:
+            if self.is_passed:
+                print(cz(f'[g]Exam was passed! Your time is: [y]{self.end_time_formated}'))
+            else:
+                print(cz(f'[r]The exam was not passed[c]. Your time is: [y]{self.end_time_formated}'))
+                self.is_new_record = False
+        else:
+            print(cz(f'[g]Exercise was finished! Your time is: [y]{self.end_time_formated}'))
+        self.say_beep('end-game-passed' if self.is_passed else 'end-game', self.c.spd_signals)
+    def update_records(self):
+        user_name = self.input('Please enter your name: ')
+        self.user_name = user_name[:6] if user_name else '<anon>'
+        new_df = pd.DataFrame([{
+            'rank': 0,
+            'name': self.user_name,
+            'exercise': self.exercise,
+            'is_exam': 1 if self.is_exam else 0,
+            'is_passed': 1 if self.is_passed else 0,
+            'time': self.end_time_formated,
+            'time_seconds': round(self.end_time - self.start_time, 2),
+            'date': self.date
+        }])
+        self.df_records = self.df_records.dropna(axis=1, how='all')
+        self.df_records = pd.concat([self.df_records, new_df], ignore_index=True)
+        self.df_exercise = self.get_df_exercise()
+        self.user_id = self.df_records.index[-1]
+        self.user_rank = self.upd_rank()
+        # save
+        tmp_df = self.df_records.reset_index().rename(columns={'index': 'id'})
+        tmp_df.to_csv('data/_records.csv', index=False)
     def display_results(self):
         df = self.df_exercise
         df_exam = df.loc[(df['is_exam'] == 1)]
@@ -387,7 +406,10 @@ class Run:
             table.append(cz('[x]└─────────────────────────────┘'))
             return table
         # find user in df
-        is_user_here = False if df[df.index == self.user_id].empty else True
+        if self.is_new_record:
+            is_user_here = False if df[df.index == self.user_id].empty else True
+        else:
+            is_user_here = False
         # first_9
         is_user_found = False
         for i, row in df.head(table_size).iterrows():
