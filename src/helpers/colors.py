@@ -54,8 +54,9 @@ def c_rjust(text, width, fill_char=' ', fill_color=False):
     return text
 def c_edgesjust(text_left, text_right, width, fill_char=' ', fill_color=False):
     color = get_fill_color(fill_color)
-    len_center  = width - len(remove_colors(text_left)) - len(remove_colors(text_left))
+    len_center  = width - len(remove_colors(text_left)) - len(remove_colors(text_right))
     return text_left + (color+len_center*fill_char) + text_right
+
 def c_center(text, width, fill_char=' ', fill_color=False):
     text_length = len(remove_colors(text))
     total_padding = width - text_length

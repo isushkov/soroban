@@ -209,7 +209,11 @@ class Run:
         self.stage_succeed = self.check_answer(total)
         if not self.stage_succeed:
             self.is_passed = False
-            if not self.is_exam:
+            if self.is_exam:
+                self.tui.clear_lines(1)
+                print(self.stage_row + self.get_delta_time())
+                print(self.answer_line)
+            else:
                 self.say_beep('wrong', self.c.spd_wrong)
                 if self.user_errors < 9:
                     self.user_errors += 1
@@ -217,6 +221,7 @@ class Run:
                 total = self.run_stage()
         else:
             self.user_errors = 0
+            self.tui.clear_lines(1)
             print(self.stage_row + self.get_delta_time())
         return total
 
@@ -240,8 +245,9 @@ class Run:
             speed = self.c.spd_stage
             speed_beeps = self.c.spd_start
         # say
-        self.say_text('stage', speed)
-        self.say_number(self.stage_number, speed)
+        if not self.is_exam:
+            self.say_text('stage', speed)
+            self.say_number(self.stage_number, speed)
         if not self.stage_succeed:
             self.say_text('continue-with', self.c.spd_stage_cont_txt)
             self.say_number(self.start_number, self.c.spd_stage_cont_num)
@@ -254,17 +260,18 @@ class Run:
             return self.check_answer_input(total)
         return self.check_answer_yesno(total)
     def check_answer_input(self, total):
-        self.stage_row = c_edgesjust(self.stage_row, f' ={total}', 87)
+        self.stage_row = c_edgesjust(self.stage_row, f' ={total}', 75)
         print()
         if self.is_last_stage:
-            msg = 'answer'
+            msg = cz(f'[y]Your answer: ')
             sound = 'enter-answer'
         else:
-            msg = 'stage result'
+            msg = cz(f'[y]Your stage result: ')
             sound = 'enter-stage-result'
-        print(cz(f'[y]Your {msg}: '), end='', flush=True)
+        print(msg, end='', flush=True)
         self.say_text(sound, self.c.spd_enter_result)
         result, valid = self.input2number(self.input())
+        self.answer_line = msg + str(result)
         self.tui.clear_lines(1)
         if not valid:
             return False
@@ -274,9 +281,9 @@ class Run:
             number = float(value)
             return (int(number), True) if number.is_integer() else (number, True)
         except ValueError:
-            return False, False
+            return str(value), False
     def check_answer_yesno(self, total):
-        self.stage_row = c_edgesjust(self.stage_row, f' ={total}', 87)
+        self.stage_row = c_edgesjust(self.stage_row, f' ={total}', 75)
         self.tui.cursor_move(x=0)
         print(self.stage_row)
         self.say_text('answer' if self.is_last_stage else 'stage-result', self.c.spd_result_txt)
@@ -289,7 +296,7 @@ class Run:
         print(cz(menu))
         # get key
         key = self.tui.getch()
-        self.tui.clear_lines(4)
+        self.tui.clear_lines(3)
         if key in [' ', '\r', '\n']: # next stage
             return True
         elif key == '\x1b':  # Esc
@@ -355,12 +362,13 @@ class Run:
         self.is_new_record = True
         if self.is_exam:
             if self.is_passed:
-                print(cz(f'[g]Exam was passed! Your time is: [y]{self.end_time_formated}'))
+                msg = '[g]Exam was passed!'
             else:
-                print(cz(f'[r]The exam was not passed[c]. Your time is: [y]{self.end_time_formated}'))
+                msg = '[r]The exam was not passed.'
                 self.is_new_record = False
         else:
-            print(cz(f'[g]Exercise was finished! Your time is: [y]{self.end_time_formated}'))
+             msg = '[g]Exercise was finished!'
+        print(cz(f'{msg}[c] Your time is: [y]{self.end_time_formated}'))
         self.say_beep('end-game-passed' if self.is_passed else 'end-game', self.c.spd_signals)
     def update_records(self):
         user_name = self.input('Please enter your name: ')
@@ -447,36 +455,29 @@ class Run:
 
     def merge_tables(self, exam, training, repetitions):
         table = []
-        table.append(cz('[x]  ┌─ Leaderboard ───────────────────────────────────────────┐'))
-        table.append(cz('[x]  │                             ┌─────────────────────── Training ──────────────────────┐'))
+        table.append(cz('[x]  ┌─ Leaderboard ─────────────────────────────────────────────────────────────────────┐'))
+        table.append(cz('[x]  │                             ┌────────────────────── Training ─────────────────────┴─┐'))
         table.append(cz('[x]┌─── [g]EXAM PASSED[x] ─────────────┐─┴─ [b]Passed[x] ──────────────────┐─── With repetitions ──────┴─┐'))
-        # body
         max_length = max(len(exam), len(training), len(repetitions))
+        sep = ' '*30
         for i in range(max_length):
-            exm = exam[i] if i < len(exam) else ''
-            trg = training[i] if i < len(training) else ''
-            rep = repetitions[i] if i < len(repetitions) else ''
-            sep = ' '*30
-            # 100
-            if exm and not trg and not rep:
-                new_line = exm
-            # 101
-            if exm and not trg and rep:
-                new_line = exm + sep + rep
-            # 110
-            if exm and trg and not rep:
-                new_line = cz(exm + '[x]'+trg[6:])
-            # 111
-            if exm and trg and rep:
-                new_line = cz(exm + '[x]'+trg[6:] + '[x]'+rep[6:])
-            # 001
-            if not exm and not trg and rep:
-                new_line = sep + sep + rep
-            # 010
-            if not exm and trg and not rep:
-                new_line = sep + trg
-            # 011
-            if not exm and trg and rep:
-                new_line = cz(sep + trg + '[x]'+rep[6:])
+            exm = exam[i] if i < len(exam) else sep
+            trg = training[i] if i < len(training) else sep
+            rep = repetitions[i] if i < len(repetitions) else sep
+            # eettrr  eettrr
+            #   ttrr  eett
+            #     rr  ee
+            if exm.strip() and trg.strip():
+                trg = self.cut_line(trg)
+            if trg.strip() and rep.strip():
+                rep = self.cut_line(rep)
+            # eettrr
+            # ee  rr
+            #     rr
+            if not trg.strip() and rep.strip():
+                trg = trg[1:]
+            new_line = exm + trg + rep
             table.append(new_line)
         return table
+    def cut_line(self, line):
+        return cz('[x]'+line[6:])
