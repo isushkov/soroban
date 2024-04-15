@@ -5,10 +5,10 @@ common:
   # Step  Mode      Time  Command args
   #  1    training  4:00  run-new cover-units plus x-x
   #  2    exam      4:00  run-new cover-units plus x-x
-  #  5    training  4:00  run-new cover-units minus x-x
-  #  6    exam      4:00  run-new cover-units minus x-x
-  #  3    training  4:00  run-new cover-units plus xx-xx
-  #  4    exam      4:00  run-new cover-units plus xx-xx
+  #  3    training  4:00  run-new cover-units minus x-x
+  #  4    exam      4:00  run-new cover-units minus x-x
+  #  5    training  4:00  run-new cover-units plus xx-xx
+  #  6    exam      4:00  run-new cover-units plus xx-xx
   #  7    training  4:00  run-new cover-units minus xx-xx
   #  8    exam      4:00  run-new cover-units minus xx-xx
   #  9    training  8:00  run-new cover-units plus-minus-roudtrip xx-xx

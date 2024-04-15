@@ -51,7 +51,6 @@ class Run:
         self.best_time_passed = self.get_best_time(passed=True)
         self.best_time_repetitions = self.get_best_time(passed=False)
         # run stage
-        # TODO: without stages
         self.is_passed = True
         self.stage_succeed = True
         self.is_last_stage = False
@@ -64,6 +63,8 @@ class Run:
         for i, stage in enumerate(self.stages):
             self.stage_number = i+1
             self.stage_numbers = self.stages[i]
+            if self.is_exam:
+                self.stage_numbers.pop(0)
             if self.stage_number == len(self.stages):
                 self.is_last_stage = True
             self.start_number = self.run_stage()
@@ -316,24 +317,12 @@ class Run:
         delta_part =f'{sfx}{self.format_time(delta_time)}'
         return cz(f' [x]{self.format_time(user_time_spent)} {color}{delta_part}')
     def define_best_time(self):
-        # если это exam (всегда без ошибок)
         if self.is_exam:
-            # но рекорда еще нет
-            if not self.best_time_passed:
-                return False
-            return self.best_time_passed
-        # если это training ошибок пока не сделано
+            return self.best_time_passed if self.best_time_passed else False
         if not self.is_exam and self.is_passed:
-            # но рекорда еще нет
-            if not self.best_time_passed:
-                return False
-            return self.best_time_passed
-        # если это training, есть ошибки
+            return self.best_time_passed if self.best_time_passed else False
         if not self.is_exam and not self.is_passed:
-            # но рекорда еще нет
-            if not self.best_time_repetitions:
-                return False
-            return self.best_time_repetitions
+            return self.best_time_repetitions if self.best_time_repetitions else False
     def get_best_time_spent(self, best_time):
         if self.is_last_stage:
             return best_time
@@ -414,10 +403,7 @@ class Run:
             table.append(cz('[x]└─────────────────────────────┘'))
             return table
         # find user in df
-        if self.is_new_record:
-            is_user_here = False if df[df.index == self.user_id].empty else True
-        else:
-            is_user_here = False
+        is_user_here = self.is_new_record and not df[df.index == self.user_id].empty
         # first_9
         is_user_found = False
         for i, row in df.head(table_size).iterrows():
@@ -440,16 +426,13 @@ class Run:
         table.append(cz('[x]└─────────────────────────────┘'))
         return table
     def row2rec(self, row, row_color, is_user):
-        if is_user:
-            rank, name, time = self.user_rank, self.user_name, self.end_time_formated
-        else:
-            rank, name, time = row['rank'], row['name'], row['time']
-        if rank > 99:
-            rank = '99'
-        elif rank < 10:
-            rank = f'{rank} '
-        if len(name) < 6:
-            name = name.ljust(6)
+        rank, name, time = (
+            (self.user_rank, self.user_name, self.end_time_formated)
+            if is_user else
+            (row['rank'], row['name'], row['time'])
+        )
+        rank = '99' if rank > 99 else (f'{rank} ' if rank < 10 else str(rank))
+        name = name.ljust(6) if len(name) < 6 else name
         color = '[y]' if is_user else row_color
         return cz(f'[x]│ {color}{rank} {name} {time}[x] {self.date} │')
 
@@ -474,8 +457,8 @@ class Run:
             # eettrr
             # ee  rr
             #     rr
-            if not trg.strip() and rep.strip():
-                trg = trg[1:]
+            # if not trg.strip() and rep.strip():
+            #     trg = trg[1:]
             new_line = exm + trg + rep
             table.append(new_line)
         return table

@@ -7,7 +7,7 @@ class Config:
         # common
         self.lang = self.get_lang()
         self.mode = self.get_mode()
-        self.course_of_study_step = self.data['common']['course_of_study_step'] # TODO
+        # self.course_of_study_step = self.data['common']['course_of_study_step'] # TODO
         # shared
         self.spd_speech = self.get_percent(self.mode, 'out', 'speech_percents')
         self.spd_signals = self.get_percent(self.mode, 'out', 'signals_percents')
