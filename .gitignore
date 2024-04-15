@@ -6,6 +6,4 @@ sounds/**/
 data/*
 config.yml
 
-course-of-study.sh
-tests.sh
 mk.wiki

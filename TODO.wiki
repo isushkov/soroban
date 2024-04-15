@@ -1,0 +1,31 @@
+TODO: create:
+TODO:   вычетание:
+TODO:     random
+TODO:       не выходить в отрицательные
+TODO:       проверить и дописать анализатор
+TODO:         какие есть операции
+TODO:         есть ли нецелые
+TODO:         есть ли отрицательные
+TODO:   сложение-вычетание
+TODO:     ramdom
+TODO:   сложение<->вычетание
+TODO:     cover-units
+TODO:     ramdom
+TODO: exam - fix output
+
+TODO: study program
+TODO:   add delta time for target
+TODO:   would you like to continue(study)/repeat(exam,training)?
+
+TODO: умножение/деление/нецелые/отрицательные
+TODO: дополнительные возможности:
+TODO:   квадратные корни
+TODO:   другое?
+TODO:     прочитать книги
+
+TODO: backlog:
+TODO:   mental-mode:
+TODO:     в процессе работы отображать stage по одному числу - числа должны маргать
+TODO:     как готово вернуть всю строку
+TODO:   звуки паралельным процессом чтобы не блокировали скорость
+TODO:   добавить локаль для других языков через переводчик
