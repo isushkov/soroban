@@ -60,11 +60,13 @@ def main():
 
     args = parser.parse_args()
     if args.command == 'create':
-        create(args)
+        path = create(args)
+        analyze(path)
     elif args.command == 'analyze':
         analyze(args.path)
     elif args.command == 'run':
-        Run(args.path)
+        analyze(args.path)
+        Run(path)
     elif args.command == 'run-new':
         path = create(args)
         analyze(path)
