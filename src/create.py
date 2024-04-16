@@ -1,11 +1,14 @@
 from src.helpers.colors import *
 from src.helpers.fo import Fo as fo
 from src.helpers.cmd import Cmd as cmd
+# from src.params import Params
 import random
 import os
 from functools import reduce
 
+
 def create(args):
+    params = Params.parse(args.params)
     if args.kind == 'arithmetic':
         return create_arithmetic(args.first, args.length, args.name)
     if args.kind == 'random':
