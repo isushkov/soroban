@@ -1,16 +1,11 @@
+TODO: анализатор
+TODO:   какие есть операции
+TODO:   есть ли нецелые
+TODO:   до скольки запятых
+TODO:   есть ли отрицательные
 TODO: create:
-TODO:   вычетание:
-TODO:     random
-TODO:       не выходить в отрицательные
-TODO:       проверить и дописать анализатор
-TODO:         какие есть операции
-TODO:         есть ли нецелые
-TODO:         есть ли отрицательные
-TODO:   сложение-вычетание
-TODO:     ramdom
-TODO:   сложение<->вычетание
-TODO:     cover-units
-TODO:     ramdom
+TODO:   cover-units:
+TODO:     plus-minus
 TODO: exam - fix output
 
 TODO: study program
