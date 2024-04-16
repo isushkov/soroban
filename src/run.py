@@ -25,9 +25,12 @@ class Run:
         self.all_numbers = self.get_numbers()
         self.len_for_number = 2+len(str(max(self.all_numbers)))
         self.start_number = self.all_numbers[0]
-        self.operations = re.findall(r'\s([+\-*/])\s', self.sequence.split('=')[0])
-        self.operation_char = self.operations[0] if self.operations else None # TODO: plus-minus
-        self.total = self.get_total()
+        self.operands = [symbol for symbol in '+-/*' if symbol in self.sequence.split('=')[0]]
+        if len(self.operands) > 1:
+            print(cz(f'[y]TODO:[c] to many operands - "{self.operands}"'))
+            exit(1)
+        self.operand = self.operands[0] if self.operands else None
+        self.total = self.str2num(self.sequence.split('=')[1].strip())
         # config
         self.c = Config()
         self.is_exam = True if self.c.mode == 'exam' else False
@@ -79,19 +82,10 @@ class Run:
         # TODO: would you like to repeat?
 
     # preinit
+    def str2num(self, s):
+        return float(s) if '.' in s else int(s)
     def get_numbers(self):
         return [int(num) for num in re.findall(r'\d+', self.sequence.split('=')[0])]
-    def get_total(self):
-        if self.operation_char == '+':
-            total_calculated = sum(self.all_numbers)
-        else:
-            # TODO
-            exit('TODO: unknown operation_char')
-        total_provided = int(self.sequence.split('=')[1].strip())
-        if total_calculated != total_provided:
-            exit(cz('[r]FAIL:[c] Mismatch between [y]calculated total[c] and [y]provided total[c].'))
-        total = total_calculated
-        return total
     def prepare_fs(self):
         cmd.run(f'mkdir -p ./sounds/{self.c.lang}/numbers')
         cmd.run('mkdir -p ./data')
@@ -119,9 +113,13 @@ class Run:
         current_sum = self.all_numbers[0]
         sum_list = [current_sum]
         for number in self.all_numbers[1:]:
-            if self.operation_char != '+':
-                exit('TODO: unknown operation_char')
-            current_sum += number
+            if self.operand == '+':
+                current_sum += number
+            elif self.operand == '-':
+                current_sum -= number
+            else:
+                print(f'TODO: unknown operand "{self.operand}"')
+                exit(1)
             sum_list.append(current_sum)
         numbers = self.all_numbers + sum_list
         for i, number in enumerate(numbers):
@@ -149,7 +147,8 @@ class Run:
         self.mpv(path, speed)
     def mpv(self, path, speed):
         if not fo.f_exist(path):
-            exit(cz(f'[r]ERROR:[c] MPV - File not exist: {path}'))
+            print(cz(f'[r]ERROR:[c] MPV - File not exist: {path}'))
+            exit(1)
         if not speed:
             return False
         cmd.run(f'mpv {path} --speed={speed}', strict=False, verbose4fail=False)
@@ -197,15 +196,18 @@ class Run:
         total = self.start_number
         self.announce_stage()
         for number in self.stage_numbers:
-            output = f' {self.operation_char}{number}'.rjust(self.len_for_number)
+            output = f' {self.operand}{number}'.rjust(self.len_for_number)
             self.stage_row += output
             print(output, end='', flush=True)
             self.say_number(number, self.c.spd_number)
             time.sleep(self.c.spd_delay)
-            if self.operation_char == '+':
+            if self.operand == '+':
                 total += number
+            elif self.operand == '-':
+                total -= number
             else:
-                exit(f'TODO: unknown operation "{self.operation_char}"')
+                print(f'TODO: unknown operand "{self.operand}"')
+                exit(1)
         # check stage result
         self.stage_succeed = self.check_answer(total)
         if not self.stage_succeed:
@@ -301,7 +303,8 @@ class Run:
         if key in [' ', '\r', '\n']: # next stage
             return True
         elif key == '\x1b':  # Esc
-            exit(cz('[r]exit.'))
+            print(cz('[g]Exit.'))
+            exit(0)
         else: # restart stage
             return False
 

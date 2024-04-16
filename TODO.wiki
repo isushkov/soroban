@@ -6,11 +6,15 @@ TODO:   есть ли отрицательные
 TODO: create:
 TODO:   cover-units:
 TODO:     plus-minus
+TODO: run:
+TODO:   plus-minus
+TODO:   plus-minus-roundtrip
 TODO: exam - fix output
 
 TODO: study program
 TODO:   add delta time for target
 TODO:   would you like to continue(study)/repeat(exam,training)?
+TODO: вынести mode в параметры
 
 TODO: умножение/деление/нецелые/отрицательные
 TODO: дополнительные возможности:

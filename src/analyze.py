@@ -40,13 +40,15 @@ def parse_sequence(sequence):
     return operations
 # TODO: разрешить без total
 def validate_sequence(sequence):
-    if not re.match(r'^(\d*\.?\d+[+\-*/])+\d*\.?\d+=\d*\.?\d+$', sequence):
+    if not re.match(r'^\+?\d*\.?\d*(?:[+\-*/]\+?\d*\.?\d*)*=-?\d*\.?\d*$', sequence):
         print(cz('[r]FAIL:[c] Expression must be in [y]"num op num op ... = num"[c] format'))
-        print(cz('         with [y]"+-/*"[c] operators and numbers can be [y]integer[c] or [y]float[c].'))
+        print(cz('      with [y]"+-/*"[c] operators and numbers can be [y]integer[c] or [y]float[c].'))
+        exit(1)
     return sequence
 def validate_total(total, expression):
     if str2num(total) != eval(expression):
-        exit(cz('[r]FAIL:[c] Mismatch between [y]provided total[c] and [y]calculated total[c].'))
+        print(cz('[r]FAIL:[c] Mismatch between [y]provided total[c] and [y]calculated total[c].'))
+        exit(1)
 def parse_operations(operations):
     return [(op[0], op[1:]) if op[0] in '+-*/' else ('', op) for op in operations]
 def upd_first_operand(operations):
@@ -80,14 +82,16 @@ def get_density(operations):
                 found = density_neg.get(shift, Counter())
                 density_neg[shift] = upd_combs(shift, first_number, second_number, found)
             else:
-                exit(cz(f'[y]TODO:[c] operand "{operand}"'))
+                print(cz(f'[y]TODO:[c] operand "{operand}"'))
+                exit(1)
         # next
         if operand == '+':
             first_number += second_number
         elif operand == '-':
             first_number -= second_number
         else:
-            exit(cz(f'[y]TODO:[c] operand "{operand}"'))
+            print(cz(f'[y]TODO:[c] operand "{operand}"'))
+            exit(1)
     return max_shift, density_pos, density_neg
 def upd_combs(shift, first_number, second_number, found):
     comb = get_digits(shift, first_number, second_number)

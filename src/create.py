@@ -9,10 +9,11 @@ def create(args):
     if args.kind == 'arithmetic':
         return create_arithmetic(args.first, args.length, args.name)
     if args.kind == 'random':
-        return create_random(args.operations_kind, args.length, args.range, args.name)
+        return create_random(args.operations, args.length, args.range, args.name)
     if args.kind == 'cover-units':
-        return create_cover_units(args.operations_kind, args.range, args.name)
-    exit(cz(f'[r]unknown "kind" to create the exercise: {args.kind}'))
+        return create_cover_units(args.operations, args.range, args.name)
+    print(cz(f'[r]unknown "kind" to create the exercise: {args.kind}'))
+    exit(1)
 
 # arithmetic
 def create_arithmetic(first, length, name):
@@ -25,7 +26,7 @@ def create_arithmetic(first, length, name):
     expresion = get_expresion(numbers, operations_kind)
     total = sum(numbers)
     # save
-    data = f'{expresion} = {total}'
+    data = f'{expresion} ={total}'
     save_file(path, data)
     return path
 def generate_arithmetic(first, length):
@@ -52,13 +53,15 @@ def create_random(operations_kind, length, digits_range, name):
         expresion = get_expresion(numbers, operations_kind)
     if operations_kind == 'plus-minus':
         expresion = get_expresion(numbers, operations_kind)
+        total = eval(expresion)
     if operations_kind == 'plus-minus-roundtrip':
         expresion_plus = get_expresion(numbers, 'plus')
-        total = numbers.reverse().pop(0)
+        numbers.reverse()
+        total = numbers.pop(0)
         expresion_minus = get_expresion(numbers, 'minus')
         expresion = f'{expresion_plus} - {expresion_minus}'
     # save
-    data = f'{expresion} = {total}'
+    data = f'{expresion} ={total}'
     save_file(path, data)
     return path
 def generate_random(digits_range, length):
@@ -85,14 +88,16 @@ def create_cover_units(operations_kind, digits_range, name):
         expresion = get_expresion(numbers, operations_kind)
     # TODO: plus-minus
     if operations_kind == 'plus-minus':
-        exit(cz('[y]TODO:[c] cover-units plus-minus...'))
+        print(cz('[y]TODO:[c] cover-units plus-minus...'))
+        exit(1)
     if operations_kind == 'plus-minus-roundtrip':
         expresion_plus = get_expresion(numbers, 'plus')
-        total = numbers.reverse().pop(0)
+        numbers.reverse()
+        total = numbers.pop(0)
         expresion_minus = get_expresion(numbers, 'minus')
         expresion = f'{expresion_plus} - {expresion_minus}'
     # save
-    data = f'{expresion} = {total}'
+    data = f'{expresion} ={total}'
     save_file(path, data)
     return path
 def get_cover_units(digits_range):
@@ -123,9 +128,9 @@ def generate_second_number(digits_range, y):
 # common
 def get_expresion(numbers, operations_kind):
     if operations_kind == 'plus':
-        return f' +'.join(numbers)
+        return f' +'.join([str(i) for i in numbers])
     if operations_kind == 'minus':
-        return f' -'.join(numbers)
+        return f' -'.join([str(i) for i in numbers])
     # TODO: разрешить отрицательные
     if operations_kind == 'plus-minus':
         operators = ['+', '-']
@@ -139,7 +144,7 @@ def get_expresion(numbers, operations_kind):
             if summ < 0:
                 choice = '+'
                 summ = summ + num
-            result += f' {choice}{num}'
+            expresion += f' {choice}{num}'
         return expresion
 def get_range(digits_range):
     pre_x, post_x = digits_range.split('-')
