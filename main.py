@@ -5,11 +5,24 @@ import src.helpers.exit_handler
 from src.create import create
 from src.analyze import analyze
 from src.run import Run
+from src.helpers.colors import *
 
-def main():
-    help_params ="""params = "<sequence> <sequence> ..."
+def add_argument_customfilename(subparser):
+    subparser.add_argument('--path', type=str, default=None, help='Set the custom full file name of the created exercise (by default ./data/*.txt).')
+def add_argument_path(subparser):
+    subparser.add_argument('path', type=str, help="Path to file.")
+def add_stylemode_arguments(subparser):
+    subparser.add_argument('style', choices=['abacus', 'mental'], help='Calculate using an abacus or mentally.')
+    subparser.add_argument('mode', choices=['training', 'exam'], type=str, help="Training or exam.")
+def add_arithmetic_args(subparser):
+    subparser.add_argument('first',  type=float, help='First number of the progression.')
+    subparser.add_argument('diff',   type=float, help='The difference between the numbers.')
+    subparser.add_argument('length', type=int, help='The length of the progression.')
+    add_argument_customfilename(subparser)
+def add_randomcover_args(subparser):
+    help_params =r"""params = "<sequence> <sequence> ..."
 
-  определяет параметры для последовательностей из которых будет состоять выражение.
+  определяет параметры для последовательностей из которых будет состоять выражение.\n
   параметры должны быть указаны хотябы для одной последовательности.
   параметры для разных последовательностей разделяются пробельными символами.
   параметры для каждой последовательности состоят из двух секций:
@@ -42,11 +55,11 @@ def main():
   "n" (allow-negative, поумолчанию отлючено):
     если start-number >= 0 разрешить уходить в минус.
     если start-number  < 0 разрешить уходить меньше чем был start-number.
-  ".x%y" (float, поумолчанию отлючено):
+  ".x%%y" (float, поумолчанию отлючено):
     рандомно добавлять десятичные дроби с точностью до "x" знаков после запятой,
     где "x" любое натуральное число. поумолчанию - нет.
-    в конце можно указать вероятность в процентах через "%y",
-    где "y" натуральное число от 0 до 100 (по умолчанию %10).
+    в конце можно указать вероятность в процентах через "%%y",
+    где "y" натуральное число от 0 до 100 (по умолчанию %%10).
   "<" (roundtrip, поумолчанию отлючено):
     добавить вконец копию инвертированной версии получившегося выражения:
       - отзеркалить последовательность чисел
@@ -61,77 +74,50 @@ def main():
   "0,+,1-9,5:<",
   "0,+,1-9,5:n",
   "0,+,1-9,5:n.2",
-  "0,+,1-9,5:n.3%50",
-  "0,+,1-9,5:n.4%10<",
-  "0,+,1-99,100   +-,142-9345,5000:n.3%50 +2-1,2-13,12:<",
+  "0,+,1-9,5:n.3%%50",
+  "0,+,1-9,5:n.4%%10<",
+  "0,+,1-99,100   +-,142-9345,5000:n.3%%50 +2-1,2-13,12:<",
   "0,+,1-99:<     +-,1-999:n.2            *2/,1-9,10"
 """
+    subparser.add_argument('params', type=str, help=help_params)
+    add_argument_customfilename(subparser)
 
+def main():
     parser = argparse.ArgumentParser(description='Soroban exercise management system.')
-    это должно быть style=abacus или style=mental:
-    # <style>
-    style = parser.add_subparsers(dest='style', required=True, help='Use abacus or mentally.')
-    abacus = style.add_argument('abacus', help='Calculate using an abacus.')
-    mental = style.add_argument('mental', help='Calculate mentally.')
     # <command>
-    command = parser.add_subparsers(dest='command', required=True, help='Command to perform.')
-    create  = command.add_parser('create', help='Create a new exercise.')
-    analyze = command.add_parser('analyze', help='Analyze an exercise.')
-    run     = command.add_parser('run', help='Run an existing exercise.')
-    run_new = command.add_parser('run-new', help='Create, analyze and run a new exercise.')
-    # create <kind>
-    kind = create.add_subparsers(dest='kind', required=True, help='Type of exercise.')
-    arithmetic = kind.add_parser('arithmetic', help='An arithmetic progression.')
-    ramdom     = kind.add_parser('random', help='Generate numbers randomly.')
-    cover      = kind.add_parser('cover-units', help='Covering all possible combinations of the category of units.')
-    # create arithmetic [first,diff,length] (name)
-    arithmetic.add_argument('first',  type=float, help='First number of the progression.')
-    arithmetic.add_argument('diff',   type=float, help='The difference between the numbers.')
-    arithmetic.add_argument('length', type=int, help='The length of the progression.')
-    arithmetic.add_argument('--path', type=str, default=None, help='Set the custom full file name of the created exercise (by default ./data/*.txt).')
-    # create random [params] (name)
-    ramdom.add_argument('params', type=str, help=help_params)
-    random.add_argument('--path', type=str, default=None, help='Set the custom full file name of the created exercise (by default ./data/*.txt).')
-    # create cover [params] (name)
-    cover.add_argument('params', type=str, help=help_params)
-    cover.add_argument('--path', type=str, default=None, help='Set the custom filename of the created exercise (by default ./data/*.txt).')
-    # analyze [filiname]
-    analyze.add_argument('path', type=str, help="Path to file.")
-    # run <mode> [filiname]
-    # run.add_argument('mode', type=str, help="")
-    run.add_argument('path', type=str, help="Path to file.")
-    # run-new <mode> arithmetic [first,diff,length] (name)
-    # run-new <mode> random [params] (name)
-    # run-new <mode> cover [params] (name)
-
-
-
-    # 'cover-units' kind
-
-    # 'analyze' command
-    analyze.add_argument('path', help='Path to the file.')
-
-    # 'run' command
-    run.add_argument('path', help='Path to the file.')
-
-    # 'run-new' command
-    runnew_subparsers = run_new.add_subparsers(dest='kind', required=True, help='kind for creating exercise.')
-
-    # Reusing common parser for 'run-new' kinds
-    # 'arithmetic' kind specific
-
-    # 'random' kind specific
-    ramdom = runnew_subparsers.add_parser('random', parents=[parent_parser, common_parser], help='Generate numbers randomly.')
-    ramdom.add_argument('length', type=int, help='Amount of numbers.')
-
-    # 'cover-units' kind
-    runnew_subparsers.add_parser('cover-units', parents=[parent_parser, common_parser], help='Covering all possible combinations of the category of units.')
-
-
+    p_command = parser.add_subparsers(dest='command', required=True, help='Command to perform.')
+    p_create  = p_command.add_parser('create', help='Create a new exercise.')
+    p_analyze = p_command.add_parser('analyze', help='Analyze an exercise.')
+    p_run     = p_command.add_parser('run', help='Run an existing exercise.')
+    p_runnew  = p_command.add_parser('run-new', help='Create, analyze and run a new exercise.')
+    # create
+    p_create_kind = p_create.add_subparsers(dest='kind', required=True, help='Type of exercise.')
+    p_create_arithmetic = p_create_kind.add_parser('arithmetic', help='An arithmetic progression.')
+    p_create_random     = p_create_kind.add_parser('random', help='Generate numbers randomly.',
+                                                   formatter_class=argparse.RawTextHelpFormatter)
+    p_create_cover      = p_create_kind.add_parser('cover-units', help='Covering all possible combinations of the category of units.',
+                                                   formatter_class=argparse.RawTextHelpFormatter)
+    add_arithmetic_args(p_create_arithmetic)
+    add_randomcover_args(p_create_random)
+    add_randomcover_args(p_create_cover)
+    # analyze
+    add_argument_path(p_analyze)
+    # run
+    add_stylemode_arguments(p_run)
+    add_argument_path(p_run)
+    # run-new
+    add_stylemode_arguments(p_runnew)
+    p_runnew_kind = p_runnew.add_subparsers(dest='kind', required=True, help='Type of exercise.')
+    p_runnew_arithmetic = p_runnew_kind.add_parser('arithmetic', help='An arithmetic progression.')
+    p_runnew_random     = p_runnew_kind.add_parser('random', help='Generate numbers randomly.',
+                                                   formatter_class=argparse.RawTextHelpFormatter)
+    p_runnew_cover      = p_runnew_kind.add_parser('cover-units', help='Covering all possible combinations of the category of units.',
+                                                   formatter_class=argparse.RawTextHelpFormatter)
+    add_arithmetic_args(p_runnew_arithmetic)
+    add_randomcover_args(p_runnew_random)
+    add_randomcover_args(p_runnew_cover)
 
     args = parser.parse_args()
-    print(args)  # Display parsed arguments
-    exit()
     if args.command == 'create':
         path = create(args)
         analyze(path)

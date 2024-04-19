@@ -1,6 +1,7 @@
 import re
 import random
 from src.helpers.colors import *
+from decimal import Decimal, getcontext
 
 # sequences
 def parse_params(params):
@@ -17,8 +18,11 @@ def parse_sequence(sequence, is_first_seq):
         required_part, optional_part = sequence, ''
     required = parse_required(required_part, is_first_seq)
     optional = parse_optional(optional_part)
-    return required, optional
+    # hooks
+    check_precision(required['start_number'], optional['float'])
+    check_range_precision(required['range'], optional['float'])
 
+    return {'required': required, 'optional': optional}
 # required
 def parse_required(required_str, is_first_seq):
     parts = required_str.split(',')
@@ -42,7 +46,6 @@ def parse_required(required_str, is_first_seq):
             print(cz(f'[r]Invalid params for required options:[c] "{required_str}"'))
             exit(1)
     value_range = parse_range(value_range)
-    start_number = parse_start_number(start_number, value_range)
     operands = parse_operands(operands)
     length = int(length)
     return {
@@ -52,13 +55,19 @@ def parse_required(required_str, is_first_seq):
         'length': length
     }
 def parse_range(range_str):
-    print(range_str)
+    if range_str.count('-') > 1:
+        print(cz(f'[r]ParamsError:[c] The range string "{range_str}" contains more than one dash ("-").'))
+        exit(1)
     start, end = map(int, range_str.split('-'))
+    if end < 1:
+        print(cz('[y]Note:[c] Minimal value for the second number in the range of digits is "1".'))
+        print(cz('[y]Note:[c] The initial value was replaced to "1".'))
+        end = 1
+    if start > end:
+        print(cz('[y]Note:[c] The first number in the range of digits cannot be longer than the second.'))
+        print(cz('[y]Note:[c] The initial value was replaced to "1".'))
+        start = 1
     return (start, end)
-def parse_start_number(sn_str, value_range):
-    if sn_str == 'r':
-        return random.uniform(*value_range)
-    return float(sn_str)
 def parse_operands(op_str):
     ops = re.findall(r"([+\-*/])(\d*)", op_str)
     operands = {}
@@ -69,16 +78,34 @@ def parse_operands(op_str):
 # optional
 def parse_optional(optional_str):
     options = {}
-    if 'n' in optional_str:
-        options['allow_negative'] = True
-    if '<' in optional_str:
-        options['roundtrip'] = True
+    options['is_wnegative'] = True if 'n' in optional_str else False
+    options['is_roundtrip'] = True if '<' in optional_str else False
     float_match = re.search(r'\.(\d+)%?(\d+)?', optional_str)
     if float_match:
         precision = int(float_match.group(1))
         probability = int(float_match.group(2)) if float_match.group(2) else 10
         options['float'] = {'precision': precision, 'probability': probability}
+    else:
+        options['float'] = {'precision': False, 'probability': False}
     return options
+
+# hooks
+def check_precision(start_number, float_params):
+    if start_number == 'r':
+        return True
+    precision = float_params['precision']
+    d_start_number = Decimal(str(start_number))
+    try:
+        post_decimal_digits = abs(d_start_number.as_tuple().exponent)
+    except InvalidOperation:
+        post_decimal_digits = 0
+    if post_decimal_digits > precision:
+        print(cz(f'[r]ParamsError:[c] the number of decimal places in start number ({start_number}) exceeds the specified precision ({precision}).'))
+        exit(1)
+    return True
+def check_range_precision(required['range'], optional['float']):
+    if not optional
+    # range не может быть дробным если нет optional['float']
 
 def test():
     params_list = [

@@ -1,81 +1,164 @@
 from src.helpers.colors import *
 from src.helpers.fo import Fo as fo
 from src.helpers.cmd import Cmd as cmd
-# from src.params import Params
+from src.params import parse_params
 import random
-import os
-from functools import reduce
+from decimal import Decimal, getcontext, ROUND_HALF_UP
 
 
+# common
 def create(args):
-    params = Params.parse(args.params)
+    print(c_center(cz(f' [y]CREATING ({args.kind}) '), 94, '=', 'x'))
     if args.kind == 'arithmetic':
-        return create_arithmetic(args.first, args.length, args.name)
+        return create_arithmetic(args.path, args.first, args.diff, args.length)
+    params = parse_params(args.params)
     if args.kind == 'random':
-        return create_random(args.operations, args.length, args.range, args.name)
+        return create_random(args.path, params)
     if args.kind == 'cover-units':
-        return create_cover_units(args.operations, args.range, args.name)
+        return create_cover_units(args.path, params)
     print(cz(f'[r]unknown "kind" to create the exercise: {args.kind}'))
     exit(1)
+def num2str(num):
+    if isinstance(num, Decimal):
+        if num == num.to_integral_value():
+            return str(num.quantize(Decimal('1')))
+        return str(num)
+    if num == int(num):
+        return str(int(num))
+    return str(num)
+def do_math(operand, x,y):
+    map_operations = {
+        '+': lambda x, y: x + y,
+        '-': lambda x, y: x - y,
+        '*': lambda x, y: x * y,
+        '/': lambda x, y: x / y if y != 0 else (
+            print(cz(f'[r]Error:[c] Devision by zero.')),
+            sys.exit(1)
+        )[1]
+    }
+    return map_operations[operand](x,y)
+def parans2path(kind, params=False):
+    # if params:
+    # else:
+    #     p = ''
+
+    return f'./data/{kind}{p}.txt'
+def save_file(path, data):
+    cmd.run('mkdir -p ./data')
+    fo.str2txt(data, path)
+    print(cz(f'[g]Exercise was created:[c] {path}'))
+    print()
 
 # arithmetic
-def create_arithmetic(first, length, name):
-    print(c_center(cz(f' [y]CREATING (arithmetic-progression) '), 94, '=', 'x'))
-    print(cz(f'[g]first element:[c] {first}[g], length: [c]{length}'))
-    path = name2path(name) if name else name2path(f'arithmetic_{first}-{length}')
+def create_arithmetic(path, first, diff, length):
+    print(cz(f'[g]first element:[c] {first}[g], diff: [c]{diff}, length: [c]{length}'))
     # data
-    operations_kind = 'plus'
-    numbers = generate_arithmetic(first, length)
-    expresion = get_expresion(numbers, operations_kind)
-    total = sum(numbers)
-    # save
+    numbers = generate_arithmetic(first, diff, length)
+    expresion = get_arithmetic_expresion(numbers)
+    total = num2str(sum(numbers, Decimal(0)))
     data = f'{expresion} ={total}'
+    # save
+    path = path if path else parans2path(f'arithmetic_{first}_{diff}_{length}')
     save_file(path, data)
     return path
-def generate_arithmetic(first, length):
-    first_number = int(first)
-    numbers = [first_number]
-    for i in range(1, int(length) + 1):
-        numbers.append(first_number+i)
-    return numbers
+def generate_arithmetic(first, diff, length):
+    first = Decimal(str(first))
+    diff = Decimal(str(diff))
+    return [first + i * diff for i in range(length)]
+def get_arithmetic_expresion(numbers):
+    expresion = ''
+    for num in numbers:
+        operand = '+' if num >= 0 else '-'
+        if num == numbers[0]:
+            pfx = ''
+            if operand == '+':
+                operand = ''
+        else:
+            pfx = ' '
+        expresion += f'{pfx}{operand}{num2str(abs(num))}'
+    return expresion
 
 # random
-def create_random(operations_kind, length, digits_range, name):
-    print(c_center(cz(f' [y]CREATING (random type) '), 94, '=', 'x'))
-    print(cz(f'[g]length:[c] {length}[g], operations_kind:[c] {operations_kind}[g], digits_range:[c] {digits_range}'))
-    path = name2path(name) if name else name2path(f'random-{length}_{operations_kind}_{digits_range}')
+def create_random(path, params):
     # data
-    numbers = generate_random(digits_range, length)
-    if operations_kind == 'plus':
-        total = sum(numbers)
-        expresion = get_expresion(numbers, operations_kind)
-    if operations_kind == 'minus':
-        numbers.append(sum(numbers))
-        numbers.reverse()
-        total = numbers.pop(-1)
-        expresion = get_expresion(numbers, operations_kind)
-    if operations_kind == 'plus-minus':
-        expresion = get_expresion(numbers, operations_kind)
-        total = eval(expresion)
-    if operations_kind == 'plus-minus-roundtrip':
-        expresion_plus = get_expresion(numbers, 'plus')
-        numbers.reverse()
-        total = numbers.pop(0)
-        expresion_minus = get_expresion(numbers, 'minus')
-        expresion = f'{expresion_plus} - {expresion_minus}'
+    print(cz(f'[g]params:[c]'))
+    sequence = ''
+    for i,sequence_params in enumerate(params):
+        required = sequence_params['required']
+        optional = sequence_params['optional']
+        print(cz(f'  [g]sequence_{i}:[c]'))
+        print(cz(f'    [r]required:[c] {required}'))
+        print(cz(f'    [y]optional:[c] {optional}'))
+        sequence += create_random_sequence(required, optional)
     # save
-    data = f'{expresion} ={total}'
+    path = path if path else parans2path('random', params)
     save_file(path, data)
     return path
-def generate_random(digits_range, length):
-    numbers = []
-    start, end = get_range(digits_range)
-    for i in range(1, int(length) + 1):
-        numbers.append(random.randint(start, end))
-    return numbers
+
+def create_random_sequence(required, optional):
+    start_number_param, operands, range_params, max_length = required.values()
+    is_wnegative, is_roundtrip, float_params = optional.values()
+    # start_number
+    if start_number_param == 'r':
+        start_number = create_random_number(range_params, float_params)
+    else:
+        start_number = num2str(float(start_number_param))
+    # other
+    sequence = num2str(start_number)
+    total = Decimal(str(start_number))
+    length = 1
+    while length <= max_length:
+        operand, number, total = create_operation(total,operands,range_params,
+                                                  float_params, total, is_wnegative)
+        sequence += ' ' + operand + num2str(number)
+        length += 1
+    # roundtrip
+    if is_roundtrip:
+        elements = sequence.split()
+        elements.pop(0)
+        elements.reverse()
+        round_sequence = ' '.join([replace_operand(el) for el in elements])
+        sequence += round_sequence
+    return sequence
+
+def create_operation(start_number, operands, range_params, float_params, total, is_wnegative):
+    backup = (start_number, operands, range_params, float_params, total, is_wnegative)
+    operand = choose_operand(operands)
+    number = Decimal(str(create_random_number(range_params, float_params)))
+    total = do_math(operand, total, number)
+    # check conditions
+    is_ok = True
+    if not is_wnegative:
+        if start_number >= 0 and total < 0:
+            is_ok = False
+        if start_number < 0 and total < start_number:
+            is_ok = False
+    if not is_ok:
+        operand, number, total = create_operation(*backup)
+    return operand, number, total
+def choose_operand(operands):
+    operations, weights = zip(*operands.items())
+    operand = random.choices(operations, weights=weights, k=1)[0]
+    return operand
+def create_random_number(range_params, float_params):
+    if float_params['precision']:
+        number = random.uniform(*range_params)
+        return format(number, f".{float_params['precision']}f")
+    return random.randint(*range_params)
+def create_random_number(range_params, float_params):
+    # должны ли мы генерировать float
+    if float_params['precision']:
+        # когда мы должны генерировать float
+        if float_params['probability'] > random.randint(0, 100):
+            number = random.uniform(*range_params)
+            return format(number, f".{float_params['precision']}f")
+        return random.randint(*range_params)
+    return random.randint(*range_params)
+def replace_operand(op):
+    return {'+': '-', '-': '+', '*': '/', '/': '*'}.get(op, op)
 
 # cover-units
-def create_cover_units(operations_kind, digits_range, name):
+def create_cover(operations_kind, digits_range, name):
     print(c_center(cz(f' [y]CREATING (cover-units type) '), 94, '=', 'x'))
     print(cz(f'[g]operations_kind kind:[c] {operations_kind}[g], digits_range:[c] {digits_range}'))
     path = name2path(name) if name else name2path(f'cover-units_{operations_kind}_{digits_range}')
@@ -149,21 +232,3 @@ def get_expresion(numbers, operations_kind):
                 summ = summ + num
             expresion += f' {choice}{num}'
         return expresion
-def get_range(digits_range):
-    pre_x, post_x = digits_range.split('-')
-    start, end = 10**(len(pre_x)-1), 10**len(post_x)-1
-    if start > end:
-        print(cz('[y]Note:[c] The first number in the range of digits cannot be longer than the second.'))
-        print(cz('[y]Note:[c] The initial value was replaced to "x":'))
-        print(cz('[y]Note:[c]    [r]{digits_range}[c] -> [g]x-{post_x}'))
-        start = 1
-    return (start, end)
-def name2path(name):
-    base = os.path.basename(name)
-    validated_name = os.path.splitext(base)[0]
-    return f'./data/{name}.txt'
-def save_file(path, data):
-    cmd.run('mkdir -p ./data')
-    fo.str2txt(data, path)
-    print(cz(f'[g]Exercise was created:[c] {path}'))
-    print()
