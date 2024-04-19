@@ -1,8 +1,7 @@
 TODO: redo create:
-TODO:   random
 TODO:   cover-units
 TODO:   add tests
-TODO: upd analyze
+TODO: redo analyze:
 TODO:   total provided
 TODO:   total correct
 TODO:   какие есть операции
@@ -16,7 +15,7 @@ TODO:   add tests
 TODO: exam - fix output
 
 TODO: study program
-TODO:   add delta time for target
+TODO:   config.study.delta_time: for_best or for_target
 TODO:   would you like to continue(study)/repeat(exam,training)?
 
 TODO: умножение/деление/нецелые/отрицательные
