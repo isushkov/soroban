@@ -43,29 +43,33 @@ def parse_required(required_str, kind, is_first_seq):
         'length':       parse_length(length)
     }
 def parse_start_number(start_number):
-    if start_number is None: return start_number
-    if start_number == 'r':  return start_number
+    if start_number is None: return None
+    if start_number == 'sr': return 'r'
+    msg = f'Incorrect parameter <start-number> - "{start_number}".'
+    if bool(re.match(r'^s-?\d+(\.\d+)?$', start_number)):
+        start_number = start_number[1:]
+    else:
+        params_error(msg)
     try:
         return int(start_number)
     except ValueError:
         try:
             return float(start_number)
         except ValueError:
-            params_error(f'Incorrect start number - "{start_number}".')
+            params_error(msg)
 def parse_operands(op_str):
+    if not bool(re.fullmatch(r'^[+\-*/](\d+)?([+\-*/](\d+)?)*$', op_str)):
+        params_error(f'Incorrect parameter <operands> - "{op_str}".')
+        exit(1)
     ops = re.findall(r"([+\-*/])(\d*)", op_str)
     operands = {}
     for op, priority in ops:
         operands[op] = int(priority) if priority else 1
     return operands
 def parse_range(range_str):
-    if range_str.count('-') > 1:
-        params_error(f'The range string "{range_str}" contains more than one dash ("-").')
+    if not bool(re.fullmatch(r'^\d+-\d+$', range_str)):
+        params_error(f'Incorrect parameter <range> - "{range_str}".')
     start, end = map(int, range_str.split('-'))
-    if end < 1:
-        print(cz('[y]Note:[c] Minimal value for the second number in the range of digits is "1".'))
-        print(cz('[y]Note:[c] The initial value was replaced to "1".'))
-        end = 1
     if start > end:
         print(cz('[y]Note:[c] The first number in the range of digits cannot be longer than the second.'))
         print(cz('[y]Note:[c] The initial value was replaced to "1".'))
@@ -75,9 +79,12 @@ def parse_length(length):
     if length is None:
         return length
     try:
-        return int(length)
+        length = int(length)
+        if length < 2:
+            params_error(f'Incorrect parameter <length> ("{length}") - minimum is "2".')
+        return length
     except ValueError:
-        params_error(f'Incorrect length - "{length}".')
+        params_error(f'Incorrect parameter <length> - "{length}".')
 
 # optional
 def parse_optional(optional_str):
@@ -95,16 +102,16 @@ def parse_optional(optional_str):
 
 # hooks
 def check_precision(start_number, float_params):
-    if start_number == 'r':
-        return True
-    precision = float_params['precision']
+    if start_number is None: return True
+    if start_number == 'r':  return True
+    precision = float_params['precision'] if float_params['precision'] else 0
     d_start_number = Decimal(str(start_number))
     try:
         post_decimal_digits = abs(d_start_number.as_tuple().exponent)
     except InvalidOperation:
         post_decimal_digits = 0
     if post_decimal_digits > precision:
-        params_error(f'the number of decimal places in start number ({start_number}) exceeds the specified precision ({precision}).')
+        params_error(f'the number of decimal places in start-number ({start_number}) exceeds the specified precision ({precision}).')
     return True
 def check_range_precision(range_params, precision):
     converter = float if not precision else int
@@ -120,18 +127,18 @@ def params_error(msg):
 
 def test():
     params_list = [
-        "0,+,1-99,100",
-        "r,+-,142-9345,5000",
-        "34,+2-1,2-13,12",
-        "-34,-+2,0-9,5",
-        "0,+,1-9,5",
-        "0,+,1-9,5:<",
-        "0,+,1-9,5:n",
-        "0,+,1-9,5:n.2",
-        "0,+,1-9,5:n.3%50",
-        "0,+,1-9,5:n.4%10<",
-        "0,+,1-99,100   +-,142-9345,5000:n.3%50 +2-1,2-13,12:<",
-        "0,+,1-99:<     +-,1-999:n.2            *2/,1-9,10"
+        "s0,+,1-99,100",
+        "sr,+-,142-9345,5000",
+        "s34,+2-1,2-13,12",
+        "s-34,-+2,0-9,5",
+        "s0,+,1-9,5",
+        "s0,+,1-9,5:<",
+        "s0,+,1-9,5:n",
+        "s0,+,1-9,5:n.2",
+        "s0,+,1-9,5:n.3%50",
+        "s0,+,1-9,5:n.4%10<",
+        "s0,+,1-99,100   +-,142-9345,5000:n.3%50 +2-1,2-13,12:<",
+        "s0,+,1-99:<     +-,1-999:n.2            *2/,1-9,10"
     ]
     for params in params_list:
         print(cz(f'[y]>>>[c] "{params}"'))

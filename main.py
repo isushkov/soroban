@@ -7,10 +7,6 @@ from src.analyze import analyze
 from src.run import Run
 from src.helpers.colors import *
 
-def add_argument_customfilename(subparser):
-    subparser.add_argument('--path', type=str, default=None, help='Set the custom full file name of the created exercise (by default ./data/*.txt).')
-def add_argument_path(subparser):
-    subparser.add_argument('path', type=str, help="Path to file.")
 def add_stylemode_arguments(subparser):
     subparser.add_argument('style', choices=['abacus', 'mental'], help='Calculate using an abacus or mentally.')
     subparser.add_argument('mode', choices=['training', 'exam'], type=str, help="Training or exam.")
@@ -18,7 +14,10 @@ def add_arithmetic_args(subparser):
     subparser.add_argument('first',  type=float, help='First number of the progression.')
     subparser.add_argument('diff',   type=float, help='The difference between the numbers.')
     subparser.add_argument('length', type=int, help='The length of the progression.')
-    add_argument_customfilename(subparser)
+def add_argument_path(subparser):
+    subparser.add_argument('path', type=str, help="Path to file.")
+def add_argument_customfilename(subparser):
+    subparser.add_argument('--path', type=str, default=None, help='Set the custom full file name of the created exercise (by default ./data/*.txt).')
 def add_randomcover_args(subparser):
     help_params =r"""params = "<sequence> <sequence> ..."
 
@@ -35,8 +34,10 @@ def add_randomcover_args(subparser):
   обязательные параметры (кроме <lenght>), отделяются друг от друга запятыми,
   указываются в строгом порядке:
   <start-number> (указывавется только для первой последовательности):
-    любое число, влючая отрицательные и десятичные дроби.
-    r - выбрать рандомно из указанного ниже диапазона.
+    начальное число в формате "sX", где X - любое число,
+    влючая отрицательные и десятичные дроби или "r" - выбрать рандомно из указанного диапазона.
+    Если start-number дробное число - нужно указать в опициональных параметрах
+    точность знаков после запятой.
   <operands>:
     какие использовать операнды. варинаты: "+", "-", "*", "/".
     при указании нескольких операндов будут выбираться рандомно
@@ -44,6 +45,9 @@ def add_randomcover_args(subparser):
     после каждого операнда можно указать приоритет
     в виде любого натурального числа (по умолчанию 1).
   <range>:
+    Диапазон для генерации чисел в виде "x-y", где "x" и "y" любые натуральные числа.
+    Будет автоматически учтена точность знаков после запятой.
+    Не может быть отрицательным - этот эфект достигается за счет операндов и их приоритетов.
   <lenght> (для kind=cover необятельный)
     длина последовательности, где <lenght> любое натуральное число.
     для kind=cover необзятельный, после того как все комбинации будут
@@ -52,6 +56,10 @@ def add_randomcover_args(subparser):
 <optional>:
   необязательные параметры, друг от друга не отделяются,
   указываются в случайном порядке:
+  "<" (roundtrip, поумолчанию отлючено):
+    добавить вконец копию инвертированной версии получившегося выражения:
+      - отзеркалить последовательность чисел
+      - преобразовать + в -, * в / и наоборот
   "n" (allow-negative, поумолчанию отлючено):
     если start-number >= 0 разрешить уходить в минус.
     если start-number  < 0 разрешить уходить меньше чем был start-number.
@@ -60,27 +68,22 @@ def add_randomcover_args(subparser):
     где "x" любое натуральное число. поумолчанию - нет.
     в конце можно указать вероятность в процентах через "%%y",
     где "y" натуральное число от 0 до 100 (по умолчанию %%10).
-  "<" (roundtrip, поумолчанию отлючено):
-    добавить вконец копию инвертированной версии получившегося выражения:
-      - отзеркалить последовательность чисел
-      - преобразовать + в -, * в / и наоборот
 
 примеры использования:
-  "0,+,1-99,100",
-  "r,+-,142-9345,5000",
-  "34,+2-1,2-13,12",
-  "-34,-+2,0-9,5",
-  "0,+,1-9,5",
-  "0,+,1-9,5:<",
-  "0,+,1-9,5:n",
-  "0,+,1-9,5:n.2",
-  "0,+,1-9,5:n.3%%50",
-  "0,+,1-9,5:n.4%%10<",
-  "0,+,1-99,100   +-,142-9345,5000:n.3%%50 +2-1,2-13,12:<",
-  "0,+,1-99:<     +-,1-999:n.2            *2/,1-9,10"
+  "s0,+,1-99,100",
+  "sr,+-,142-9345,5000",
+  "s34,+2-1,2-13,12",
+  "s-34,-+2,0-9,5",
+  "s0,+,1-9,5",
+  "s0,+,1-9,5:<",
+  "s0,+,1-9,5:n",
+  "s0,+,1-9,5:n.2",
+  "s0,+,1-9,5:n.3%%50",
+  "s0,+,1-9,5:n.4%%10<",
+  "s0,+,1-99,100   +-,142-9345,5000:n.3%%50 +2-1,2-13,12:<",
+  "s0,+,1-99:<     +-,1-999:n.2            *2/,1-9,10"
 """
     subparser.add_argument('params', type=str, help=help_params)
-    add_argument_customfilename(subparser)
 
 def main():
     parser = argparse.ArgumentParser(description='Soroban exercise management system.')
@@ -100,6 +103,9 @@ def main():
     add_arithmetic_args(p_create_arithmetic)
     add_randomcover_args(p_create_random)
     add_randomcover_args(p_create_cover)
+    add_argument_customfilename(p_create_arithmetic)
+    add_argument_customfilename(p_create_random)
+    add_argument_customfilename(p_create_cover)
     # analyze
     add_argument_path(p_analyze)
     # run
@@ -116,8 +122,12 @@ def main():
     add_arithmetic_args(p_runnew_arithmetic)
     add_randomcover_args(p_runnew_random)
     add_randomcover_args(p_runnew_cover)
+    add_argument_customfilename(p_runnew_arithmetic)
+    add_argument_customfilename(p_runnew_random)
+    add_argument_customfilename(p_runnew_cover)
 
     args = parser.parse_args()
+
     if args.command == 'create':
         path = create(args)
         analyze(path)

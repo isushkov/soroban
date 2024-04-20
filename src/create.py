@@ -2,10 +2,9 @@ from src.helpers.colors import *
 from src.helpers.fo import Fo as fo
 from src.helpers.cmd import Cmd as cmd
 from src.params import parse_params
+from src.helper import *
 import random
-from decimal import Decimal, getcontext, ROUND_HALF_UP
-import ast
-import operator
+from decimal import Decimal
 
 
 # common
@@ -20,44 +19,6 @@ def create(args):
         return create_cover_units(args.path, params)
     print(cz(f'[r]unknown "kind" to create the exercise: {args.kind}'))
     exit(1)
-def num2str(num):
-    if isinstance(num, Decimal):
-        if num == num.to_integral_value():
-            return str(num.quantize(Decimal('1')))
-        return str(num)
-    try:
-        return str(int(num))
-    except ValueError:
-        return str(num)
-def do_math(operand, x,y):
-    map_operations = {
-        '+': lambda x, y: x + y,
-        '-': lambda x, y: x - y,
-        '*': lambda x, y: x * y,
-        '/': lambda x, y: x / y if y != 0 else (
-            print(cz(f'[r]Error:[c] Devision by zero.')),
-            sys.exit(1)
-        )[1]
-    }
-    return map_operations[operand](x,y)
-
-def safe_eval(expr):
-    operators = {
-        ast.Add: operator.add, ast.Sub: operator.sub,
-        ast.Mult: operator.mul, ast.Div: operator.truediv,
-        ast.Pow: operator.pow, ast.BitXor: operator.xor,
-        ast.USub: operator.neg
-    }
-    def eval_(node):
-        if isinstance(node, ast.Num):  # <number>
-            return node.n
-        elif isinstance(node, ast.BinOp):  # <left> <operator> <right>
-            return operators[type(node.op)](eval_(node.left), eval_(node.right))
-        elif isinstance(node, ast.UnaryOp):  # <operator> <operand> e.g., -1
-            return operators[type(node.op)](eval_(node.operand))
-        else:
-            raise TypeError(node)
-    return eval_(ast.parse(expr, mode='eval').body)
 def params2path(kind, params=False):
     if not params:
         return f'./data/{kind}.txt'
@@ -68,7 +29,7 @@ def params2path(kind, params=False):
         precision = float_params['precision']
         probability = float_params['probability']
         m = {'+':'p', '-':'m', '*':'M', '/':'D'}
-        start_number = str(start_number)
+        start_number = str(start_number) if start_number else 'x'
         operands = ''.join([f'{m[k]}{v}' for k,v in operands.items()])
         range_params = 'x'.join(str(i) for i in range_params)
         length = length if length else 0
@@ -117,31 +78,36 @@ def get_arithmetic_expresion(numbers):
 def create_random(path, params):
     # data
     expression = ''
+    is_first_seq = True
     for i,seq in enumerate(params):
+        if i == 1: is_first_seq = False
         required = seq['required']
         optional = seq['optional']
         print(cz(f'[g]sequence_{i}:[c]'))
         print(cz(f'  [r]required:[c] {required}'))
         print(cz(f'  [y]optional:[c] {optional}'))
-        expression += create_random_sequence(required, optional)
+        sequence = create_random_sequence(required, optional, is_first_seq, safe_eval(expression))
+        expression += sequence
     # save
     path = path if path else params2path('random', params)
-    total = safe_eval(expression)
-    data = f'{expression} = {total}'
+    data = f'{expression} = {safe_eval(expression)}'
     expression
     save_file(path, data)
     return path
-def create_random_sequence(required, optional):
+def create_random_sequence(required, optional, is_first_seq, total):
     start_number_param, operands, range_params, max_length = required.values()
     is_negative, is_roundtrip, float_params = optional.values()
     # start_number
-    if start_number_param == 'r':
-        start_number = create_random_number(range_params, float_params)
+    if is_first_seq:
+        if start_number_param == 'r':
+            start_number = create_random_number(range_params, float_params)
+        else:
+            start_number = num2str(start_number_param)
+        total = Decimal(str(start_number))
+        sequence = num2str(start_number)
     else:
-        start_number = num2str(float(start_number_param))
-    # other
-    sequence = num2str(start_number)
-    total = Decimal(str(start_number))
+        sequence = ''
+    # sequence
     length = 1
     while length <= max_length:
         operand, number, total = create_operation(total, operands, range_params,
@@ -150,11 +116,13 @@ def create_random_sequence(required, optional):
         length += 1
     # roundtrip
     if is_roundtrip:
+        sequence += ' '
         elements = sequence.split()
-        elements.pop(0)
+        if is_first_seq:
+            elements.pop(0)
         elements.reverse()
-        round_sequence = ' '.join([switch_operand(el) for el in elements])
-        sequence += round_sequence
+        reverse_sequence = ' '.join([switch_operand(el) for el in elements])
+        sequence += reverse_sequence
     return sequence
 def create_operation(start_number, operands, range_params, float_params, total, is_negative):
     backup = (start_number, operands, range_params, float_params, total, is_negative)
@@ -188,8 +156,9 @@ def create_random_number(range_params, float_params):
             return format(number, f".{float_params['precision']}f")
         return random.randint(*range_params)
     return random.randint(*range_params)
-def switch_operand(op):
-    return {'+': '-', '-': '+', '*': '/', '/': '*'}.get(op, op)
+def switch_operand(el):
+    op_old = [op for op in '+-*/' if op in el][0]
+    return el.replace(op_old, {'+':'-', '-':'+', '*':'/', '/':'*'}[op_old])
 
 # cover-units
 def create_cover(operations_kind, digits_range, name):

@@ -4,6 +4,7 @@ import sys
 from collections import Counter
 from src.helpers.fo import Fo as fo
 from src.helpers.colors import *
+from src.helper import *
 
 
 def analyze(path):
@@ -32,6 +33,7 @@ def analyze(path):
 
 def parse_sequence(sequence):
     expression, total = validate_sequence(re.sub(r'\s+', '', sequence)).split('=')
+    total = Decimal(str2num(total))
     validate_total(total, expression)
     operations = re.findall(r'[\+\-\*/]?[\d\.]+', expression)
     operations = parse_operations(operations)
@@ -46,7 +48,7 @@ def validate_sequence(sequence):
         exit(1)
     return sequence
 def validate_total(total, expression):
-    if str2num(total) != eval(expression):
+    if str2num(total) != safe_eval(expression):
         print(cz('[r]FAIL:[c] Mismatch between [y]provided total[c] and [y]calculated total[c].'))
         exit(1)
 def parse_operations(operations):
@@ -55,8 +57,6 @@ def upd_first_operand(operations):
     if operations[0][0] == '':
         operations[0] = ('+', operations[0][1])
     return operations
-def str2num(s):
-    return float(s) if '.' in s else int(s)
 
 # combinations
 def get_density(operations):
