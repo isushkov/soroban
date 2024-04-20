@@ -18,7 +18,7 @@ def num2str(num):
             print(num)
             exit(1)
 
-def str2num(s):
+def dec(s):
     return Decimal(str(s))
 
 def do_math(operand, x,y):
@@ -35,24 +35,34 @@ def do_math(operand, x,y):
 
 def safe_eval(expr):
     operators = {
-        ast.Add: operator.add, ast.Sub: operator.sub,
-        ast.Mult: operator.mul, ast.Div: operator.truediv,
-        ast.Pow: operator.pow, ast.BitXor: operator.xor,
-        ast.USub: operator.neg
+        ast.Add: lambda x, y: x + y,
+        ast.Sub: lambda x, y: x - y,
+        ast.Mult: lambda x, y: x * y,
+        ast.Div: lambda x, y: x / y,
+        ast.Pow: lambda x, y: x ** y,
+        ast.BitXor: lambda x, y: x ^ y,
+        ast.USub: lambda x: -x
     }
     def eval_(node):
-        if isinstance(node, ast.Num):  # <number>
+        if isinstance(node, ast.Num):
             return Decimal(str(node.n))
-        elif isinstance(node, ast.BinOp):  # <left> <operator> <right>
-            return operators[type(node.op)](eval_(node.left), eval_(node.right))
-        elif isinstance(node, ast.UnaryOp):  # <operator> <operand> e.g., -1
-            return operators[type(node.op)](eval_(node.operand))
+        elif isinstance(node, ast.BinOp):
+            left = eval_(node.left)
+            right = eval_(node.right)
+            if isinstance(left, Decimal) and isinstance(right, Decimal):
+                return operators[type(node.op)](left, right)
+            else:
+                raise TypeError("Non-decimal operation attempted.")
+        elif isinstance(node, ast.UnaryOp):
+            operand = eval_(node.operand)
+            if isinstance(operand, Decimal):
+                return operators[type(node.op)](operand)
+            else:
+                raise TypeError("Non-decimal unary operation attempted.")
+        elif isinstance(node, ast.Expr):
+            return eval_(node.value)
         else:
             raise TypeError("Unsupported type: {}".format(type(node)))
-    expr = re.sub(r'\s+', '', expr)
-    parts = re.findall(r'[-+]?\d+', expr)
-    if parts:
-        if str2num(parts[0]) < 0:
-            expr = '0' + expr
-        return eval_(ast.parse(expr, mode='eval').body)
-    return 0
+    parsed_expr = ast.parse(expr, mode='eval').body
+    result = eval_(parsed_expr)
+    return result if isinstance(result, Decimal) else Decimal(result)
