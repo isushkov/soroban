@@ -41,6 +41,7 @@ def safe_eval(expr):
         ast.Div: lambda x, y: x / y,
         ast.Pow: lambda x, y: x ** y,
         ast.BitXor: lambda x, y: x ^ y,
+        ast.UAdd: lambda x: x,
         ast.USub: lambda x: -x
     }
     def eval_(node):
@@ -49,20 +50,15 @@ def safe_eval(expr):
         elif isinstance(node, ast.BinOp):
             left = eval_(node.left)
             right = eval_(node.right)
-            if isinstance(left, Decimal) and isinstance(right, Decimal):
-                return operators[type(node.op)](left, right)
-            else:
-                raise TypeError("Non-decimal operation attempted.")
+            return operators[type(node.op)](left, right)
         elif isinstance(node, ast.UnaryOp):
             operand = eval_(node.operand)
-            if isinstance(operand, Decimal):
-                return operators[type(node.op)](operand)
-            else:
-                raise TypeError("Non-decimal unary operation attempted.")
+            return operators[type(node.op)](operand)
         elif isinstance(node, ast.Expr):
             return eval_(node.value)
         else:
             raise TypeError("Unsupported type: {}".format(type(node)))
+    expr = expr.strip()
     parsed_expr = ast.parse(expr, mode='eval').body
     result = eval_(parsed_expr)
     return result if isinstance(result, Decimal) else Decimal(result)

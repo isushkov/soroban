@@ -1,147 +1,138 @@
 import re
 import random
+from src.helper import *
 from src.helpers.colors import *
-from decimal import Decimal, getcontext
 
-# sequences
-def parse_params(params, kind):
+
+# common
+def parse_params(params):
     sequences = re.split(r'\s+', params.strip())
-    parsed_sequences = []
-    for seq in sequences:
-        is_first_seq = True if seq == sequences[0] else False
-        parsed_sequences.append(parse_sequence(seq.strip(), kind, is_first_seq))
-    return parsed_sequences
-def parse_sequence(sequence, kind, is_first_seq):
-    if ':' in sequence:
-        required_part, optional_part = sequence.split(':')
-    else:
-        required_part, optional_part = sequence, ''
-    required = parse_required(required_part, kind, is_first_seq)
-    optional = parse_optional(optional_part)
-    # hooks
-    check_precision(required['start_number'], optional['float'])
-    check_range_precision(required['range'], optional['float']['precision'])
-    return {'required': required, 'optional': optional}
-
-# required
-def parse_required(required_str, kind, is_first_seq):
-    parts = required_str.split(',')
-    expected_lengths = {
-        'random': (4 if is_first_seq else 3),
-        'cover':  (3 if is_first_seq else 2)
-    }
-    expected_length = expected_lengths.get(kind, None)
-    if len(parts) != expected_length:
-        params_error(f'Expected {expected_length} parts, got {len(parts)}: "{required_str}"')
-    if not is_first_seq: parts.insert(0, None) # fill start_number
-    if kind == 'cover':  parts.append(None)    # fill length
-    start_number, operands, value_range, length = parts
-    return {
-        'start_number': parse_start_number(start_number),
-        'operands':     parse_operands(operands),
-        'range':        parse_range(value_range),
-        'length':       parse_length(length)
-    }
-def parse_start_number(start_number):
-    if start_number is None: return None
-    if start_number == 'sr': return 'r'
-    msg = f'Incorrect parameter <start-number> - "{start_number}".'
-    if bool(re.match(r'^s-?\d+(\.\d+)?$', start_number)):
-        start_number = start_number[1:]
-    else:
+    params = []
+    if len(sequences) < 2:
+        msg = f'A [y]<start-number>[c] and at least one [y]<sequence>[c] must be specified - got [r]{sequences}[c].'
         params_error(msg)
-    try:
-        return int(start_number)
-    except ValueError:
-        try:
-            return float(start_number)
-        except ValueError:
+    # start_param
+    start_param = sequences.pop(0)
+    params.append(parse_start_param(start_param.strip()))
+    # sequences
+    for seq in sequences:
+        params.append(parse_sequence(seq.strip()))
+    return params
+def parse_start_param(start_param):
+    msg = f'Invalid [y]<start-number>[c] - got [r]{start_param}[c].'
+    validate(start_param, r'^s(-?\d+(\.\d+)?|r)$', msg)
+    return start_param[1:]
+def parse_sequence(sequence):
+    kind, sequence = parse_kind(sequence)
+    semicolons = sequence.count(':')
+    if semicolons > 1:
+        msg = f'Invalid [y]<sequence>[c] - got [r]{sequence}[c].'
+        params_error(msg)
+    req, opt = (sequence.split(':')) if semicolons == 1 else (sequence, '')
+    if kind == 'a': required, optional = parse_sequence_arithmetic(req, opt)
+    if kind == 'r': required, optional = parse_sequence_randcover('r', req, opt)
+    if kind == 'c': required, optional = parse_sequence_randcover('c', req, opt)
+    return {
+        'kind': kind,
+        'required': required,
+        'optional': optional
+    }
+def parse_kind(sequence):
+    kind = sequence[0]
+    sequence = sequence[1:]
+    if not kind in ['a', 'r', 'c']:
+        params_error(f'[y]<kind>[c] can only be "a", "r", "c" - got [r]{kind}[c]')
+    return kind, sequence
+
+# arithmetic
+def parse_sequence_arithmetic(req, opt):
+    # required
+    if req.count(',') != 1:
+        params_error(f'Invalid [y]<required>[c] - got [r]{req}[c]')
+    diff, length = req.split(',')
+    required = {
+        'diff': validate(diff, r'^-?[1-9]\d*(\.\d+)?$', f'Invalid [y]<diff>[c] - got [r]{diff}[c]'),
+        'length': validate(length, r'^[1-9]\d*$', f'Invalid [y]<length>[c] - got [r]{length}[c]')
+    }
+    # optional
+    optional = {'roundtrip': parse_roundtrip(opt)}
+    validate_optional(opt, ['<'])
+    return required, optional
+
+# random/cover
+def parse_sequence_randcover(kind, req, opt):
+    # required
+    msg = f'Invalid [y]<required>[c] - got [r]{req}[c].'
+    commas = req.count(',')
+    if kind == 'r':
+        if commas != 2:
             params_error(msg)
-def parse_operands(op_str):
-    if not bool(re.fullmatch(r'^[+\-*/](\d+)?([+\-*/](\d+)?)*$', op_str)):
-        params_error(f'Incorrect parameter <operands> - "{op_str}".')
-        exit(1)
-    ops = re.findall(r"([+\-*/])(\d*)", op_str)
+        operands_param, range_param, length = req.split(',')
+        length = validate(length, r'^[1-9]\d*$', f'Invalid [y]<length>[c] - got [r]{length}[c]')
+    if kind == 'c':
+        if commas == 1:
+            operands_param, range_param = req.split(',')
+            length = False
+        elif commas == 2:
+            operands_param, range_param, length = req.split(',')
+            length = validate(length, r'^[1-9]\d*$', f'Invalid [y]<length>[c] - got [r]{length}[c]')
+        else:
+            params_error(msg)
+    required = {
+        'operands': parse_operands(operands_param),
+        'range': parse_range(range_param),
+        'length': length
+    }
+    # optional
+    decimal, decimal_str = parse_decimal(opt)
+    optional = {
+        'allow_negative': parse_negative(opt),
+        'decimal': decimal,
+        'roundtrip': parse_roundtrip(opt)
+    }
+    validate_optional(opt, ['n', decimal_str, '<'])
+    return required, optional
+
+# shared
+def parse_operands(operands_param):
+    # проверка на общий вид без учета уникальности операндов
+    msg = f'Invalid [y]<operands>[c] - got [r]{operands_param}[c].'
+    validate(operands_param, r'^[+\-*/]([1-9]\d*)?([+\-*/]([1-9]\d*)?)*$', msg)
+    ops = re.findall(r"([+\-*/])(\d*)", operands_param, re.IGNORECASE)
     operands = {}
     for op, priority in ops:
+        if op in operands:
+            params_error(f'Invalid <operands> - duplicate operator "{op}".')
         operands[op] = int(priority) if priority else 1
     return operands
-def parse_range(range_str):
-    if not bool(re.fullmatch(r'^\d+-\d+$', range_str)):
-        params_error(f'Incorrect parameter <range> - "{range_str}".')
-    start, end = map(int, range_str.split('-'))
-    if start > end:
-        print(cz('[y]Note:[c] The first number in the range of digits cannot be longer than the second.'))
-        print(cz('[y]Note:[c] The initial value was replaced to "1".'))
-        start = 1
-    return (start, end)
-def parse_length(length):
-    if length is None:
-        return length
-    try:
-        length = int(length)
-        if length < 2:
-            params_error(f'Incorrect parameter <length> ("{length}") - minimum is "2".')
-        return length
-    except ValueError:
-        params_error(f'Incorrect parameter <length> - "{length}".')
-
-# optional
-def parse_optional(optional_str):
-    options = {}
-    options['is_negative']  = True if 'n' in optional_str else False
-    options['is_roundtrip'] = True if '<' in optional_str else False
-    float_match = re.search(r'\.(\d+)(?:%(\d+))?', optional_str)
+def parse_range(range_param):
+    msg = f'Invalid [y]<range>[c] - got [r]{range_param}[c].'
+    validate(range_param, r'^[1-9]\d*-[1-9]\d*$', msg)
+    return range_param.split('-')
+def parse_negative(opt):
+    return True if 'n' in opt else False
+def parse_decimal(opt):
+    float_match = re.search(r'\.([1-9]\d*)(?:%([1-9][0-9]?|100))?', opt, re.IGNORECASE)
     if float_match:
         precision = int(float_match.group(1))
         probability = int(float_match.group(2)) if float_match.group(2) else 10
-        options['float'] = {'precision': precision, 'probability': probability}
+        decimal = {'precision': precision, 'probability': probability}
+        decimal_str = float_match.group(0)
     else:
-        options['float'] = {'precision': False, 'probability': False}
-    return options
-
-# hooks
-def check_precision(start_number, float_params):
-    if start_number is None: return True
-    if start_number == 'r':  return True
-    precision = float_params['precision'] if float_params['precision'] else 0
-    d_start_number = Decimal(str(start_number))
-    try:
-        post_decimal_digits = abs(d_start_number.as_tuple().exponent)
-    except InvalidOperation:
-        post_decimal_digits = 0
-    if post_decimal_digits > precision:
-        params_error(f'the number of decimal places in start-number ({start_number}) exceeds the specified precision ({precision}).')
-    return True
-def check_range_precision(range_params, precision):
-    converter = float if not precision else int
-    try:
-        converted_range = tuple(converter(x) for x in range_params)
-        return converted_range
-    except ValueError:
-        params_error(f'invalid range: {range_params}')
-
+        decimal = {'precision': False, 'probability': False}
+        decimal_str = ''
+    return decimal, decimal_str
+def parse_roundtrip(opt):
+    return True if '<' in opt else False
+def validate_optional(opt, values):
+    for v in values:
+        opt = opt.replace(v, '')
+    if opt:
+        params_error(f'Invalid [y]<optional>[c] - got [r]{opt}[c]')
+def validate(string, pattern, msg):
+    if not bool(re.fullmatch(pattern, string, re.IGNORECASE)):
+        params_error(msg)
+    return string
 def params_error(msg):
     print(cz(f'[r]ParamsError:[c] {msg}'))
-    exit(1)
-
-def test():
-    params_list = [
-        "s0,+,1-99,100",
-        "sr,+-,142-9345,5000",
-        "s34,+2-1,2-13,12",
-        "s-34,-+2,0-9,5",
-        "s0,+,1-9,5",
-        "s0,+,1-9,5:<",
-        "s0,+,1-9,5:n",
-        "s0,+,1-9,5:n.2",
-        "s0,+,1-9,5:n.3%50",
-        "s0,+,1-9,5:n.4%10<",
-        "s0,+,1-99,100   +-,142-9345,5000:n.3%50 +2-1,2-13,12:<",
-        "s0,+,1-99:<     +-,1-999:n.2            *2/,1-9,10"
-    ]
-    for params in params_list:
-        print(cz(f'[y]>>>[c] "{params}"'))
-        parsed_params = parse_params(params)
-        for seq in parsed_params:
-            print(seq)
+    exit(2)

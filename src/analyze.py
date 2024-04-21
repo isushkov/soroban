@@ -33,12 +33,12 @@ def analyze(path):
 
 def parse_sequence(sequence):
     expression, total = validate_sequence(re.sub(r'\s+', '', sequence)).split('=')
-    total = Decimal(str2num(total))
+    total = dec(total)
     validate_total(total, expression)
     operations = re.findall(r'[\+\-\*/]?[\d\.]+', expression)
     operations = parse_operations(operations)
     operations = upd_first_operand(operations)
-    operations = [(operator, str2num(val)) for operator, val in operations]
+    operations = [(operator, dec(val)) for operator, val in operations]
     return operations
 # TODO: разрешить без total
 def validate_sequence(sequence):
@@ -48,7 +48,7 @@ def validate_sequence(sequence):
         exit(1)
     return sequence
 def validate_total(total, expression):
-    if str2num(total) != safe_eval(expression):
+    if dec(total) != safe_eval(expression):
         print(cz('[r]FAIL:[c] Mismatch between [y]provided total[c] and [y]calculated total[c].'))
         exit(1)
 def parse_operations(operations):

@@ -1,5 +1,8 @@
+TODO: переделать параметры:
+TODO:   tests
 TODO: create cover-units:
 TODO:   redo
+TODO:     для kind=cover после того как все комбинации подобраны - генерировать числа рандомно.
 TODO:   tests
 TODO: analyze:
 TODO:   redo
@@ -15,10 +18,10 @@ TODO: run,run-new
 TODO:   redo
 TODO:   tests
 TODO: exam - fix output
-
 TODO: study program
 TODO:   config.study.delta_time: for_best or for_target
 TODO:   would you like to continue(study)/repeat(exam,training)?
+TODO: check todo-tests
 
 TODO: умножение/деление/нецелые/отрицательные
 TODO: дополнительные возможности:
