@@ -1,8 +1,3 @@
-from src.helpers.fo import Fo as fo
-from src.helpers.cmd import Cmd as cmd
-from src.helpers.colors import *
-from src.helpers.tui import Tui
-from src.config import Config
 import os
 import sys
 import tty
@@ -11,13 +6,18 @@ import select
 import re
 import time
 from datetime import datetime
-import pandas as pd
 from gtts import gTTS
 from num2words import num2words
+import pandas as pd
+from src.config import Config
+from src.helpers.fo import Fo as fo
+from src.helpers.cmd import Cmd as cmd
+from src.helpers.tui import Tui
+import src.helpers.colors as c
 
 class Run:
     def __init__(self, path):
-        print(c_center(cz(f' [y]RUNNING {path} '), 94, '=', 'x'))
+        print(c.center(c.z(f' [y]RUNNING {path} '), 94, '=', 'x'))
         # preinit
         self.path = path
         self.exercise = os.path.splitext(os.path.basename(path))[0]
@@ -27,7 +27,7 @@ class Run:
         self.start_number = self.all_numbers[0]
         self.operands = [symbol for symbol in '+-/*' if symbol in self.sequence.split('=')[0]]
         if len(self.operands) > 1:
-            print(cz(f'[y]TODO:[c] to many operands - "{self.operands}"'))
+            print(c.z(f'[y]TODO:[c] to many operands - "{self.operands}"'))
             exit(1)
         self.operand = self.operands[0] if self.operands else None
         self.total = self.str2num(self.sequence.split('=')[1].strip())
@@ -135,7 +135,7 @@ class Run:
         progress = int((i + 1) / total * 62)
         done = '#' * progress
         in_progress = ('.'*(62 - progress))
-        print(cz(f'[x]>>> {msg} [{done}{in_progress}]'), end='\r', flush=True)
+        print(c.z(f'[x]>>> {msg} [{done}{in_progress}]'), end='\r', flush=True)
     def say_beep(self, sound, speed):
         self.mpv(f'sounds/{sound}.mp3', speed)
     def say_text(self, sound, speed):
@@ -147,7 +147,7 @@ class Run:
         self.mpv(path, speed)
     def mpv(self, path, speed):
         if not fo.f_exist(path):
-            print(cz(f'[r]ERROR:[c] MPV - File not exist: {path}'))
+            print(c.z(f'[r]ERROR:[c] MPV - File not exist: {path}'))
             exit(1)
         if not speed:
             return False
@@ -186,7 +186,7 @@ class Run:
     # ready
     def get_ready(self):
         color = '[r]' if self.is_exam else '[g]'
-        print(cz(f'{color}{self.c.mode.upper()}. [y]Get ready.[x] Start number:[c] {self.start_number}'))
+        print(c.z(f'{color}{self.c.mode.upper()}. [y]Get ready.[x] Start number:[c] {self.start_number}'))
         self.say_text('get-ready', self.c.spd_speech)
         self.say_text('start-number', self.c.spd_speech)
         self.say_number(self.start_number, self.c.spd_speech)
@@ -236,9 +236,9 @@ class Run:
             if self.user_errors:
                 stage_row += f'[r].x{self.user_errors+1}[x]'
             stage_row += ':'
-            self.stage_row = c_ljust(cz(stage_row), stage_lenght)
+            self.stage_row = c.ljust(c.z(stage_row), stage_lenght)
         else:
-            self.stage_row = cz(f'[r]x{self.user_errors+1}[x]:') if self.user_errors else ''
+            self.stage_row = c.z(f'[r]x{self.user_errors+1}[x]:') if self.user_errors else ''
         print(self.stage_row, end='', flush=True)
         # calc speed
         if self.stage_number == 1 and self.stage_succeed:
@@ -263,13 +263,13 @@ class Run:
             return self.check_answer_input(total)
         return self.check_answer_yesno(total)
     def check_answer_input(self, total):
-        self.stage_row = c_edgesjust(self.stage_row, f' ={total}', 75)
+        self.stage_row = c.edgesjust(self.stage_row, f' ={total}', 75)
         print()
         if self.is_last_stage:
-            msg = cz(f'[y]Your answer: ')
+            msg = c.z(f'[y]Your answer: ')
             sound = 'enter-answer'
         else:
-            msg = cz(f'[y]Your stage result: ')
+            msg = c.z(f'[y]Your stage result: ')
             sound = 'enter-stage-result'
         print(msg, end='', flush=True)
         self.say_text(sound, self.c.spd_enter_result)
@@ -286,7 +286,7 @@ class Run:
         except ValueError:
             return str(value), False
     def check_answer_yesno(self, total):
-        self.stage_row = c_edgesjust(self.stage_row, f' ={total}', 75)
+        self.stage_row = c.edgesjust(self.stage_row, f' ={total}', 75)
         self.tui.cursor_move(x=0)
         print(self.stage_row)
         self.say_text('answer' if self.is_last_stage else 'stage-result', self.c.spd_result_txt)
@@ -296,14 +296,14 @@ class Run:
         menu  = f'   [y]<Space/Enter>[c]   {gonext}\n'
         menu +=  '   [y]<a-Z>[c]           Restart the stage\n'
         menu +=  '   [y]<Esc>[c]           Exit'
-        print(cz(menu))
+        print(c.z(menu))
         # get key
         key = self.tui.getch()
         self.tui.clear_lines(3)
         if key in [' ', '\r', '\n']: # next stage
             return True
         elif key == '\x1b':  # Esc
-            print(cz('[g]Exit.'))
+            print(c.z('[g]Exit.'))
             exit(0)
         else: # restart stage
             return False
@@ -318,7 +318,7 @@ class Run:
         delta_time = round(best_time_spent - user_time_spent, 2)
         sfx, color = ('+', '[g]') if delta_time >= 0 else ('', '[r]')
         delta_part =f'{sfx}{self.format_time(delta_time)}'
-        return cz(f' [x]{self.format_time(user_time_spent)} {color}{delta_part}')
+        return c.z(f' [x]{self.format_time(user_time_spent)} {color}{delta_part}')
     def define_best_time(self):
         if self.is_exam:
             return self.best_time_passed if self.best_time_passed else False
@@ -360,7 +360,7 @@ class Run:
                 self.is_new_record = False
         else:
              msg = '[g]Exercise was finished!'
-        print(cz(f'{msg}[c] Your time is: [y]{self.end_time_formated}'))
+        print(c.z(f'{msg}[c] Your time is: [y]{self.end_time_formated}'))
         self.say_beep('end-game-passed' if self.is_passed else 'end-game', self.c.spd_signals)
     def update_records(self):
         user_name = self.input('Please enter your name: ')
@@ -402,8 +402,8 @@ class Run:
         table = []
         table_size=9
         if df.empty:
-            table.append(cz('[x]│ None                        │'))
-            table.append(cz('[x]└─────────────────────────────┘'))
+            table.append(c.z('[x]│ None                        │'))
+            table.append(c.z('[x]└─────────────────────────────┘'))
             return table
         # find user in df
         is_user_here = self.is_new_record and not df[df.index == self.user_id].empty
@@ -416,7 +416,7 @@ class Run:
                 continue
             table.append(self.row2rec(row, row_color, is_user=False))
         # if records is more than table_size
-        empty_record = cz('[x]│ .. ...         ... ........ │')
+        empty_record = c.z('[x]│ .. ...         ... ........ │')
         rows_count = df.shape[0]
         if rows_count > table_size:
             table.append(empty_record)
@@ -426,7 +426,7 @@ class Run:
             # if there records with rank worse than user rank
             if rows_count > self.user_rank:
                 table.append(empty_record)
-        table.append(cz('[x]└─────────────────────────────┘'))
+        table.append(c.z('[x]└─────────────────────────────┘'))
         return table
     def row2rec(self, row, row_color, is_user):
         rank, name, time = (
@@ -437,13 +437,13 @@ class Run:
         rank = '99' if rank > 99 else (f'{rank} ' if rank < 10 else str(rank))
         name = name.ljust(6) if len(name) < 6 else name
         color = '[y]' if is_user else row_color
-        return cz(f'[x]│ {color}{rank} {name} {time}[x] {self.date} │')
+        return c.z(f'[x]│ {color}{rank} {name} {time}[x] {self.date} │')
 
     def merge_tables(self, exam, training, repetitions):
         table = []
-        table.append(cz('[x]  ┌─ Leaderboard ─────────────────────────────────────────────────────────────────────┐'))
-        table.append(cz('[x]  │                             ┌────────────────────── Training ─────────────────────┴─┐'))
-        table.append(cz('[x]┌─── [g]EXAM PASSED[x] ─────────────┐─┴─ [b]Passed[x] ──────────────────┐─── With repetitions ──────┴─┐'))
+        table.append(c.z('[x]  ┌─ Leaderboard ─────────────────────────────────────────────────────────────────────┐'))
+        table.append(c.z('[x]  │                             ┌────────────────────── Training ─────────────────────┴─┐'))
+        table.append(c.z('[x]┌─── [g]EXAM PASSED[x] ─────────────┐─┴─ [b]Passed[x] ──────────────────┐─── With repetitions ──────┴─┐'))
         max_length = max(len(exam), len(training), len(repetitions))
         sep = ' '*30
         for i in range(max_length):
@@ -466,4 +466,4 @@ class Run:
             table.append(new_line)
         return table
     def cut_line(self, line):
-        return cz('[x]'+line[6:])
+        return c.z('[x]'+line[6:])

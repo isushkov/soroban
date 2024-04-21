@@ -1,8 +1,7 @@
 import re
 import random
-from src.helper import *
-from src.helpers.colors import *
-
+import src.helper as h
+import src.helpers.colors as c
 
 # common
 def parse_params(params):
@@ -134,5 +133,5 @@ def validate(string, pattern, msg):
         params_error(msg)
     return string
 def params_error(msg):
-    print(cz(f'[r]ParamsError:[c] {msg}'))
+    print(c.z(f'[r]ParamsError:[c] {msg}'))
     exit(2)

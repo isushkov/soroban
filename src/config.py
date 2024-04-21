@@ -1,5 +1,5 @@
 from src.helpers.fo import Fo as fo
-from src.helpers.colors import *
+import src.helpers.colors as c
 
 class Config:
     def __init__(self):
@@ -28,15 +28,15 @@ class Config:
 
     # config
     def config_error(self, key, val, replacement):
-        print(cz(f'[y]CONFIG ERROR:[c] Invalid config value [r]"{key}: {val}"'))
-        print(cz(f'[y]CONFIG ERROR:[c] Was replaced by [g]"{replacement}"'))
+        print(c.z(f'[y]CONFIG ERROR:[c] Invalid config value [r]"{key}: {val}"'))
+        print(c.z(f'[y]CONFIG ERROR:[c] Was replaced by [g]"{replacement}"'))
         return replacement
     def get_lang(self):
         val = self.data['common']['lang']
         if len(val) != 2:
             return self.config_error('.common.lang', val, 'en')
         if val not in ['en', 'ru']:
-            print(cz('[y]NOTE:[c] Lang [y]{val}[c] Will be generated automatically. May be ugly or not working at all.'))
+            print(c.z('[y]NOTE:[c] Lang [y]{val}[c] Will be generated automatically. May be ugly or not working at all.'))
         return val
     def get_mode(self):
         val = self.data['common']['mode']

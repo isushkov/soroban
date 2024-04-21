@@ -2,22 +2,21 @@ import random
 import re
 import sys
 from collections import Counter
+import src.helper as h
+import src.helpers.colors as c
 from src.helpers.fo import Fo as fo
-from src.helpers.colors import *
-from src.helper import *
-
 
 def analyze(path):
-    print(c_center(cz(f' [y]ANALYZE {path} '), 94, '=', 'x'))
+    print(c.center(c.z(f' [y]ANALYZE {path} '), 94, '=', 'x'))
     operations = parse_sequence(fo.txt2str(path))
-    print(cz(f'[g]Lenght sequence:[c]  {len(operations)}'))
+    print(c.z(f'[g]Lenght sequence:[c]  {len(operations)}'))
     max_shift, density_pos, density_neg = get_density(operations)
     # tables
     tables = []
     for shift in range(max_shift):
         tables.append(get_table(shift, density_pos.get(shift), density_neg.get(shift)))
     table_merged = merge_tables(tables)
-    output_lenght = len(remove_colors(table_merged.split('\n')[0]))
+    output_lenght = len(c.remove_colors(table_merged.split('\n')[0]))
     # table total
     density_total_pos = Counter()
     density_total_neg = Counter()
@@ -33,23 +32,23 @@ def analyze(path):
 
 def parse_sequence(sequence):
     expression, total = validate_sequence(re.sub(r'\s+', '', sequence)).split('=')
-    total = dec(total)
+    total = h.dec(total)
     validate_total(total, expression)
     operations = re.findall(r'[\+\-\*/]?[\d\.]+', expression)
     operations = parse_operations(operations)
     operations = upd_first_operand(operations)
-    operations = [(operator, dec(val)) for operator, val in operations]
+    operations = [(operator, h.dec(val)) for operator, val in operations]
     return operations
 # TODO: разрешить без total
 def validate_sequence(sequence):
     if not re.match(r'^\+?\d*\.?\d*(?:[+\-*/]\+?\d*\.?\d*)*=-?\d*\.?\d*$', sequence):
-        print(cz('[r]FAIL:[c] Expression must be in [y]"num op num op ... = num"[c] format'))
-        print(cz('      with [y]"+-/*"[c] operators and numbers can be [y]integer[c] or [y]float[c].'))
+        print(c.z('[r]FAIL:[c] Expression must be in [y]"num op num op ... = num"[c] format'))
+        print(c.z('      with [y]"+-/*"[c] operators and numbers can be [y]integer[c] or [y]float[c].'))
         exit(1)
     return sequence
 def validate_total(total, expression):
-    if dec(total) != safe_eval(expression):
-        print(cz('[r]FAIL:[c] Mismatch between [y]provided total[c] and [y]calculated total[c].'))
+    if h.dec(total) != h.safe_eval(expression):
+        print(c.z('[r]FAIL:[c] Mismatch between [y]provided total[c] and [y]calculated total[c].'))
         exit(1)
 def parse_operations(operations):
     return [(op[0], op[1:]) if op[0] in '+-*/' else ('', op) for op in operations]
@@ -82,16 +81,16 @@ def get_density(operations):
                 found = density_neg.get(shift, Counter())
                 density_neg[shift] = upd_combs(shift, first_number, second_number, found)
             else:
-                print(cz(f'[y]TODO:[c] operand "{operand}"'))
-                exit(1)
+                print(c.z(f'[y]TODO:[c] operand "{operand}"'))
+                exit(2)
         # next
         if operand == '+':
             first_number += second_number
         elif operand == '-':
             first_number -= second_number
         else:
-            print(cz(f'[y]TODO:[c] operand "{operand}"'))
-            exit(1)
+            print(c.z(f'[y]TODO:[c] operand "{operand}"'))
+            exit(2)
     return max_shift, density_pos, density_neg
 def upd_combs(shift, first_number, second_number, found):
     comb = get_digits(shift, first_number, second_number)
@@ -117,7 +116,7 @@ def merge_tables(tables):
 def align_table(table, output_lenght):
     result = ''
     for line in table:
-        result += ' ' + c_center(line, output_lenght) + '\n'
+        result += ' ' + c.center(line, output_lenght) + '\n'
     return result
 
 def get_table(shift, density_pos, density_neg):
@@ -130,18 +129,18 @@ def get_table(shift, density_pos, density_neg):
         2:     '─[ Hundreds ]',
     }
     title = shift2title.get(shift, f'──[ 10 ^{shift} ]──')
-    table.append(cz(f'[x]     ┌───{title}───┐     '))
-    table.append(cz( '[x] ┌───┴─[ - ]─┬───┬─[ + ]─┴───┐ '))
+    table.append(c.z(f'[x]     ┌───{title}───┐     '))
+    table.append(c.z( '[x] ┌───┴─[ - ]─┬───┬─[ + ]─┴───┐ '))
     # rows
     # rows
     for y in range(9, -1, -1):
         row_middle = f' │ {y} │ '
         row_left   = get_density_row(y, density_neg, range(9, 0, -1))
         row_right  = get_density_row(y, density_pos, range(1, 10))
-        table.append(cz('[x] │ [c]' + row_left + '[x]' + row_middle + '[c]' + row_right + '[x] │ '))
+        table.append(c.z('[x] │ [c]' + row_left + '[x]' + row_middle + '[c]' + row_right + '[x] │ '))
     # footer
-    table.append(cz('[x] ├───────────┼───┼───────────┤ '))
-    table.append(cz('[x] └─987654321─┘   └─123456789─┘ '))
+    table.append(c.z('[x] ├───────────┼───┼───────────┤ '))
+    table.append(c.z('[x] └─987654321─┘   └─123456789─┘ '))
     return table
 def get_density_row(y, density, rng):
     row = ''
@@ -150,13 +149,13 @@ def get_density_row(y, density, rng):
         row += get_count_str(count)
     return row
 def get_count_str(count):
-    if count == 0: return cz('[c] ')
-    if count == 1: return cz('[g]x')
-    if count <= 9: return cz(f'[y]{count}')
-    if count > 9: return cz('[r]*')
+    if count == 0: return c.z('[c] ')
+    if count == 1: return c.z('[g]x')
+    if count <= 9: return c.z(f'[y]{count}')
+    if count > 9: return c.z('[r]*')
     return str(count)
 # output
 def print_header(output_lenght):
     result  = '\n'
-    result += c_center(cz('[x]COMBINATION DENSITY[c]'), output_lenght) + '\n'
+    result += c.center(c.z('[x]COMBINATION DENSITY[c]'), output_lenght) + '\n'
     print(result)

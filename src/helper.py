@@ -1,7 +1,8 @@
 import re
-from decimal import Decimal
 import ast
 import operator
+from decimal import Decimal
+import src.helpers.colors as c
 
 def num2str(num):
     if isinstance(num, Decimal):
@@ -14,20 +15,20 @@ def num2str(num):
         try:
             return str(num)
         except ValueError:
-            print(cz(f'[r]ERROR:[c] num2str()'))
+            print(c.z(f'[r]ERROR:[c] num2str()'))
             print(num)
             exit(1)
 
 def dec(s):
     return Decimal(str(s))
 
-def do_math(operand, x,y):
+def do_math(x, operand, y):
     map_operations = {
         '+': lambda x, y: x + y,
         '-': lambda x, y: x - y,
         '*': lambda x, y: x * y,
         '/': lambda x, y: x / y if y != 0 else (
-            print(cz(f'[r]Error:[c] Devision by zero.')),
+            print(c.z(f'[r]Error:[c] Devision by zero.')),
             sys.exit(1)
         )[1]
     }
