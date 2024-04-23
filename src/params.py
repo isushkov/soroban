@@ -8,8 +8,7 @@ def parse_params(params):
     sequences = re.split(r'\s+', params.strip())
     params = []
     if len(sequences) < 2:
-        msg = f'A [y]<start-number>[c] and at least one [y]<sequence>[c] must be specified - got [r]{sequences}[c].'
-        params_error(msg)
+        params_error('params', ' '.join(sequences), 'a [y]<start-number>[c] and at least one [y]<sequence>[c] must be specified')
     # start_param
     start_param = sequences.pop(0)
     params.append(parse_start_param(start_param.strip()))
@@ -18,17 +17,15 @@ def parse_params(params):
         params.append(parse_sequence(seq.strip()))
     return params
 def parse_start_param(start_param):
-    msg = f'Invalid [y]<start-number>[c] - got [r]{start_param}[c].'
-    validate(start_param, r'^s(-?\d+(\.\d+)?|r)$', msg)
+    validate(start_param, r'^s(-?\d+(\.\d+)?|r)$', 'start-number')
     return start_param[1:]
 def parse_sequence(sequence):
     kind, sequence = parse_kind(sequence)
     semicolons = sequence.count(':')
     if semicolons > 1:
-        msg = f'Invalid [y]<sequence>[c] - got [r]{sequence}[c].'
-        params_error(msg)
+        params_error('sequence', sequence)
     req, opt = (sequence.split(':')) if semicolons == 1 else (sequence, '')
-    if kind == 'a': required, optional = parse_sequence_arithmetic(req, opt)
+    if kind == 'p': required, optional = parse_sequence_progression(req, opt)
     if kind == 'r': required, optional = parse_sequence_randcover('r', req, opt)
     if kind == 'c': required, optional = parse_sequence_randcover('c', req, opt)
     return {
@@ -39,44 +36,52 @@ def parse_sequence(sequence):
 def parse_kind(sequence):
     kind = sequence[0]
     sequence = sequence[1:]
-    if not kind in ['a', 'r', 'c']:
-        params_error(f'[y]<kind>[c] can only be "a", "r", "c" - got [r]{kind}[c]')
+    if not kind in ['p', 'r', 'c']:
+        params_error('kind', kind, 'can only be "a", "r", "c"')
     return kind, sequence
 
-# arithmetic
-def parse_sequence_arithmetic(req, opt):
+# progression
+def parse_sequence_progression(req, opt):
     # required
     if req.count(',') != 1:
-        params_error(f'Invalid [y]<required>[c] - got [r]{req}[c]')
-    diff, length = req.split(',')
+        params_error('required', req)
+    delta, length = req.split(',')
+    if len(delta) < 2:
+        params_error('required', req)
+    operand = delta[0]
+    diff = validate(delta[1:], r'^[1-9]\d*(\.\d+)?$', 'diff')
     required = {
-        'diff': validate(diff, r'^-?[1-9]\d*(\.\d+)?$', f'Invalid [y]<diff>[c] - got [r]{diff}[c]'),
-        'length': validate(length, r'^[1-9]\d*$', f'Invalid [y]<length>[c] - got [r]{length}[c]')
+        'operands': { validate(operand, r'^[+-/*]$', 'operand', 'progression can have only one operand'): 1 },
+        'range': (diff, diff),
+        'length': validate(length, r'^[1-9]\d*$', 'length')
     }
     # optional
-    optional = {'roundtrip': parse_roundtrip(opt)}
-    validate_optional(opt, ['<'])
+    optional = {
+        'negative_allowed': parse_negative(opt),
+        'decimal': { 'precision': False, 'probability': False },
+        'roundtrip': parse_roundtrip(opt)
+    }
+    validate_optional(opt, ['n', '<'])
     return required, optional
 
 # random/cover
 def parse_sequence_randcover(kind, req, opt):
     # required
-    msg = f'Invalid [y]<required>[c] - got [r]{req}[c].'
     commas = req.count(',')
     if kind == 'r':
         if commas != 2:
-            params_error(msg)
+            params_error('required', req)
         operands_param, range_param, length = req.split(',')
-        length = validate(length, r'^[1-9]\d*$', f'Invalid [y]<length>[c] - got [r]{length}[c]')
+        length = validate(length, r'^[1-9]\d*$', 'length')
     if kind == 'c':
         if commas == 1:
             operands_param, range_param = req.split(',')
             length = False
         elif commas == 2:
             operands_param, range_param, length = req.split(',')
-            length = validate(length, r'^[1-9]\d*$', f'Invalid [y]<length>[c] - got [r]{length}[c]')
+            length = validate(length, r'^[1-9]\d*$', 'length')
         else:
-            params_error(msg)
+            params_error('required', req)
     required = {
         'operands': parse_operands(operands_param),
         'range': parse_range(range_param),
@@ -85,7 +90,7 @@ def parse_sequence_randcover(kind, req, opt):
     # optional
     decimal, decimal_str = parse_decimal(opt)
     optional = {
-        'allow_negative': parse_negative(opt),
+        'negative_allowed': parse_negative(opt),
         'decimal': decimal,
         'roundtrip': parse_roundtrip(opt)
     }
@@ -95,18 +100,16 @@ def parse_sequence_randcover(kind, req, opt):
 # shared
 def parse_operands(operands_param):
     # проверка на общий вид без учета уникальности операндов
-    msg = f'Invalid [y]<operands>[c] - got [r]{operands_param}[c].'
-    validate(operands_param, r'^[+\-*/]([1-9]\d*)?([+\-*/]([1-9]\d*)?)*$', msg)
+    validate(operands_param, r'^[+\-*/]([1-9]\d*)?([+\-*/]([1-9]\d*)?)*$', 'operands')
     ops = re.findall(r"([+\-*/])(\d*)", operands_param, re.IGNORECASE)
     operands = {}
     for op, priority in ops:
         if op in operands:
-            params_error(f'Invalid <operands> - duplicate operator "{op}".')
+            params_error('operands', operands, f'duplicate operator "{op}"')
         operands[op] = int(priority) if priority else 1
     return operands
 def parse_range(range_param):
-    msg = f'Invalid [y]<range>[c] - got [r]{range_param}[c].'
-    validate(range_param, r'^[1-9]\d*-[1-9]\d*$', msg)
+    validate(range_param, r'^[1-9]\d*-[1-9]\d*$', 'range')
     return range_param.split('-')
 def parse_negative(opt):
     return True if 'n' in opt else False
@@ -124,14 +127,16 @@ def parse_decimal(opt):
 def parse_roundtrip(opt):
     return True if '<' in opt else False
 def validate_optional(opt, values):
+    opt_orig = opt
     for v in values:
         opt = opt.replace(v, '')
     if opt:
-        params_error(f'Invalid [y]<optional>[c] - got [r]{opt}[c]')
-def validate(string, pattern, msg):
+        params_error('optional', opt_orig, f'unknown chears "{opt}"')
+def validate(string, pattern, errtitle, errmsg=False):
     if not bool(re.fullmatch(pattern, string, re.IGNORECASE)):
-        params_error(msg)
+        params_error(errtitle, string, errmsg)
     return string
-def params_error(msg):
-    print(c.z(f'[r]ParamsError:[c] {msg}'))
+def params_error(errtitle, errval, errmsg=False):
+    message = '' if not errmsg else f'{errmsg} - '
+    print(c.z(f'[r]ParamsError - Invalid <{errtitle}>:[c] {message}got [r]"{errval}"[c].'))
     exit(2)
