@@ -1,23 +1,36 @@
-import random
 import re
-import sys
 from collections import Counter
 import src.helper as h
 import src.helpers.colors as c
 from src.helpers.fo import Fo as fo
 
+# validation.
+# density:
+#   найти самую длинную дробную чать, посчитать количество знаков.
+#   умножить каждое число на 10^max_f, чтобы избавиться от дробей.
+#   посчитать density.
+# render:
+#   сместить названия таблиц на 10^(-max_fract_digits).
 def analyze(path):
     print(c.center(c.z(f' [y]ANALYZE {path} '), 94, '=', 'x'))
-    operations = parse_sequence(fo.txt2str(path))
-    print(c.z(f'[g]Lenght sequence:[c]  {len(operations)}'))
-    max_shift, density_pos, density_neg = get_density(operations)
-    # tables
+    # validation
+    sequence, total = fo.txt2str(path).split('=')
+    sequence = h.validate_sequence(sequence, 'analyze sequence', exit_policy=2)
+    total_is_valid = validate_total(total)
+    # density
+    min_i, min_f, max_i, max_f = find_min_max_digits(sequence)
+    density_pos, density_neg = get_density(sequence, max_f)
+    # render
+
+    # TODO: не по три а на всю ширину, выранвнивая по левому краю
+    # TODO: сепаратор
+    # digits
     tables = []
-    for shift in range(max_shift):
-        tables.append(get_table(shift, density_pos.get(shift), density_neg.get(shift)))
+    for d in range(max_i + max_f):
+        tables.append(get_table(d, density_pos.get(d), density_neg.get(d)))
     table_merged = merge_tables(tables)
     output_lenght = len(c.remove_colors(table_merged.split('\n')[0]))
-    # table total
+    # total
     density_total_pos = Counter()
     density_total_neg = Counter()
     for counter in density_pos.values():
@@ -25,84 +38,91 @@ def analyze(path):
     for counter in density_neg.values():
         density_total_neg += counter
     table_total = align_table(get_table('total', density_total_pos, density_total_neg), output_lenght)
-    # print
     print_header(output_lenght)
     print(table_merged)
     print(table_total)
+    # info
+    info = {
+        'start_number': sequence.split()[0],
+        'count_numbers': len(sequence.split()),
+        'existed_operands': ' '.join(list(set(split_operation(op)[0] for op in sequence.split())))
+        'range_digits': render_range(min_i,min_f,max_i,max_f),
+        'decimal_exist': render_yn(max_f),
+        # 'decimal_precision': calc_decimal_precision(operations),
+        # 'negative_results_exist': render_yn(calc_negative_results(operations)),
+        'total_provided': render_yn(total),
+        'total_valid': render_yn(total_is_valid),
+        'total_correct': render_yn(check_total(total, sequence))
+    }
+    print(info)
 
-def parse_sequence(sequence):
-    expression, total = validate_sequence(re.sub(r'\s+', '', sequence)).split('=')
-    total = h.dec(total)
-    validate_total(total, expression)
-    operations = re.findall(r'[\+\-\*/]?[\d\.]+', expression)
-    operations = parse_operations(operations)
-    operations = upd_first_operand(operations)
-    operations = [(operator, h.dec(val)) for operator, val in operations]
-    return operations
-# TODO: разрешить без total
-def validate_sequence(sequence):
-    if not re.match(r'^\+?\d*\.?\d*(?:[+\-*/]\+?\d*\.?\d*)*=-?\d*\.?\d*$', sequence):
-        print(c.z('[r]FAIL:[c] Expression must be in [y]"num op num op ... = num"[c] format'))
-        print(c.z('      with [y]"+-/*"[c] operators and numbers can be [y]integer[c] or [y]float[c].'))
-        exit(1)
-    return sequence
-def validate_total(total, expression):
-    if h.dec(total) != h.safe_eval(expression):
-        print(c.z('[r]FAIL:[c] Mismatch between [y]provided total[c] and [y]calculated total[c].'))
-        exit(1)
-def parse_operations(operations):
-    return [(op[0], op[1:]) if op[0] in '+-*/' else ('', op) for op in operations]
-def upd_first_operand(operations):
-    if operations[0][0] == '':
-        operations[0] = ('+', operations[0][1])
-    return operations
-
-# combinations
-def get_density(operations):
-    max_shift = 0
+# validate
+def validate_total(total):
+    total = h.validate_sequence(total, 'analyze total', exit_policy=1)
+    msg = c.z(f'[y]NOTE:[c] total is invalid - [r]"{total}"')
+    if not total:
+        print(msg); return False
+    if not bool(re.match(r'^-?\d+(\.\d+)?$', total)):
+        print(msg); return False
+    return False
+# density
+def find_min_max_digits(sequence):
+    numbers = re.findall(r'[+\-*/]?(\d+(\.\d+)?)', sequence)
+    min_i, min_f, max_i, max_f = float('inf'), float('inf'), 0, 0
+    for number, decimal_part in numbers:
+        if '.' in number:
+            integ_part, fract_part = number.split('.')
+            min_f = min(min_f, len(fract_part))
+            max_f = max(max_f, len(fract_part))
+        else:
+            integ_part = number
+        min_i = min(min_i, len(integ_part))
+        max_i = max(max_i, len(integ_part))
+    if min_f == float('inf'):
+        min_f = 0
+    return min_i, min_f, max_i, max_f
+def get_density(sequence, max_f):
     density_pos = {}
     density_neg = {}
-    first_number = operations[0][1]
+    operations = sequence.split()
     # для каждой пары чисел
-    for i,operation in enumerate(operations):
-        if i == 0:
-            continue
-        operand = operations[i][0]
-        second_number = operations[i][1]
-        # для каждого разряда. всего разрядов - длина второго слогаемого
-        second_number_lenght = len(str(second_number))
-        if second_number_lenght > max_shift:
-            max_shift = second_number_lenght
-        for shift in range(second_number_lenght):
-            if operand == '+':
-                found = density_pos.get(shift, Counter())
-                density_pos[shift] = upd_combs(shift, first_number, second_number, found)
-            elif operand == '-':
-                found = density_neg.get(shift, Counter())
-                density_neg[shift] = upd_combs(shift, first_number, second_number, found)
-            else:
-                print(c.z(f'[y]TODO:[c] operand "{operand}"'))
-                exit(2)
-        # next
-        if operand == '+':
-            first_number += second_number
-        elif operand == '-':
-            first_number -= second_number
-        else:
-            print(c.z(f'[y]TODO:[c] operand "{operand}"'))
+    total = h.dec(operations[0])
+    for operation in operations[1:]:
+        operand, number_str = split_operation(operation)
+        # TODO: * / *- /-
+        if operand not in ['+', '-']:
+            print(c.z(f'[y]TODO:[c] calculate density for operand "{operand}"'))
             exit(2)
-    return max_shift, density_pos, density_neg
-def upd_combs(shift, first_number, second_number, found):
-    comb = get_digits(shift, first_number, second_number)
-    found[comb] += 1 # сколько раз встретилась комбинация
-    return found
-def get_digits(shift, first_number, second_number):
-    divisor = 10 ** shift
-    digit_first  = (first_number // divisor) % 10
-    digit_second = (second_number // divisor) % 10
-    return digit_first, digit_second
+        # сдвигаем число право на максимальное количество запятых
+        number = h.dec(number_str) * (10 ** max_f)
+        if operand == '+': density = density_pos
+        if operand == '-': density = density_neg
+        # для каждого разряда. всего разрядов - длина второго слогаемого
+        for d in range(len(str(number))):
+            d_density = density.get(d, Counter())
+            density[d] = upd_density(d_density, d, total, number)
+        # next
+        if operand == '+': density_pos = density
+        if operand == '-': density_neg = density
+        total = h.do_math(total, operand, number)
+    return density_pos, density_neg
+def split_operation(operation):
+    match = re.match(r'([*/+-]*)\s*(-?\d+(?:\.\d+)?)', operation)
+    if not match:
+        return '', operation
+    operand, number_str = match.groups()
+    return operand, number_str
+def upd_density(d_density, d, total, number):
+    y,x = get_yx(total, number, d)
+    d_density[(y,x)] += 1 # сколько раз встретилась комбинация
+    return d_density
+def get_yx(total, number, d):
+    divisor = 10 ** d
+    y = (total // divisor) % 10
+    x = (number // divisor) % 10
+    return y,x
 
-# output
+# render
 def merge_tables(tables):
     result = ''
     num_lines = len(tables[0]) if tables else 0
@@ -118,8 +138,7 @@ def align_table(table, output_lenght):
     for line in table:
         result += ' ' + c.center(line, output_lenght) + '\n'
     return result
-
-def get_table(shift, density_pos, density_neg):
+def get_table(d, density_pos, density_neg):
     table = []
     # title
     shift2title = {
@@ -128,10 +147,9 @@ def get_table(shift, density_pos, density_neg):
         1:     '──[ Tens ]───',
         2:     '─[ Hundreds ]',
     }
-    title = shift2title.get(shift, f'──[ 10 ^{shift} ]──')
+    title = shift2title.get(d, f'──[ 10 ^{d} ]──')
     table.append(c.z(f'[x]     ┌───{title}───┐     '))
     table.append(c.z( '[x] ┌───┴─[ - ]─┬───┬─[ + ]─┴───┐ '))
-    # rows
     # rows
     for y in range(9, -1, -1):
         row_middle = f' │ {y} │ '
@@ -154,8 +172,15 @@ def get_count_str(count):
     if count <= 9: return c.z(f'[y]{count}')
     if count > 9: return c.z('[r]*')
     return str(count)
-# output
 def print_header(output_lenght):
     result  = '\n'
     result += c.center(c.z('[x]COMBINATION DENSITY[c]'), output_lenght) + '\n'
     print(result)
+def render_yn(val):
+    return c.z('[g]YES') if val else c.z('[r]NO')
+def check_total(total, sequence):
+    return True if h.dec(total) == h.safe_eval(sequence) else False
+def render_range(min_i,min_f,max_i,max_f):
+    d_min = '.' if min_f else ''
+    d_max = '.' if max_f else ''
+    return c.z(f"{'x'*min_i}{d_min}{'x'*min_f}[x]-[c]{'x'*max_i}{d_max}{'x'*max_f}")

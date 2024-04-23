@@ -1,19 +1,7 @@
 analyze:
-  redo
-    tables
-      add decimal
-      fix
-    add info:
-      start_number
-      count_numbers
-      operands_exist
-      decimal_exist_w/o_start_number
-      decimal_precision_w/o_start_number
-      range_numbers_w/o_operand
-      range_numbers_w/__operand
-      negative_exist
-      total_exist
-      total_correct
+  density decimal
+  tables fix
+  add info
   tests
 run:
   redo
