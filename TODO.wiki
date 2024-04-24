@@ -1,17 +1,21 @@
-study program
-  config.study.delta_time: for_best or for_target
+study program:
+  delta_time: +for_target
   would you like to continue(study)/repeat(exam,training)?
-exam - fix output
 upd readme
-remake progressions
+todo:
+  analyze:
+    fix treminal size tables
+    fix decimal table
+  exam - fix output
+  remake progressions
 
-умножение/деление/нецелые/отрицательные
-дополнительные возможности:
-  квадратные корни
-  другое?
-    прочитать книги
-
-mental-mode:
-  в процессе работы отображать stage по одному числу - числа должны маргать
-  как готово вернуть всю строку
-добавить локаль для других языков через переводчик
+backlog:
+  умножение/деление/нецелые/отрицательные
+  дополнительные возможности:
+    квадратные корни
+    другое?
+      прочитать книги
+  mental-mode:
+    в процессе работы отображать stage по одному числу - числа должны маргать
+    как готово вернуть всю строку
+  добавить локаль для других языков через переводчик

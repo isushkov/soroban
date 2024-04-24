@@ -3,14 +3,9 @@ from collections import Counter
 import src.helper as h
 import src.helpers.colors as c
 from src.helpers.fo import Fo as fo
+import shutil
 
-# validation.
 # density:
-#   найти самую длинную дробную чать, посчитать количество знаков.
-#   умножить каждое число на 10^max_f, чтобы избавиться от дробей.
-#   посчитать density.
-# render:
-#   сместить названия таблиц на 10^(-max_fract_digits).
 def analyze(path):
     print(c.center(c.z(f' [y]ANALYZE {path} '), 94, '=', 'x'))
     # validation
@@ -18,65 +13,46 @@ def analyze(path):
     sequence = h.validate_sequence(sequence, 'analyze sequence', exit_policy=2)
     total_is_valid = validate_total(total)
     # density
+    #   - найти самую длинную дробную чать, посчитать количество знаков.
+    #   - умножить каждое число на 10^max_f, чтобы избавиться от дробей.
+    #   - посчитать density.
     min_i, min_f, max_i, max_f = find_min_max_digits(sequence)
     density_pos, density_neg = get_density(sequence, max_f)
+    # tables:
+    #   - сместить названия таблиц на 10^(-max_fract_digits).
+    tables_fract = get_tables(max_f, density_pos, density_neg, is_fract=True)
+    tables_integ = get_tables(max_i, density_pos, density_neg, is_fract=False)
+    tables_final = [
+        get_table_total(density_pos, density_neg),
+        get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid)
+    ]
     # render
-
-    # TODO: не по три а на всю ширину, выранвнивая по левому краю
-    # TODO: сепаратор
-    # 10^-x
-    tables = []
-    for d in range(max_f-1, -1, -1):
-        tables.append(get_table(d, density_pos.get(d), density_neg.get(d), is_fract=True))
-    # 10^x
-    for d in range(max_i):
-        tables.append(get_table(d, density_pos.get(d), density_neg.get(d) ))
-    table_merged = merge_tables(tables)
-    output_lenght = len(c.remove_colors(table_merged.split('\n')[0]))
-    # total
-    density_total_pos = Counter()
-    density_total_neg = Counter()
-    for counter in density_pos.values():
-        density_total_pos += counter
-    for counter in density_neg.values():
-        density_total_neg += counter
-    table_total = align_table(get_table('total', density_total_pos, density_total_neg), output_lenght)
-    print_header(output_lenght)
-    print(table_merged)
-    print(table_total)
-    # info
-    d_min = '.' if min_f else ''
-    d_max = '.' if max_f else ''
-    info = c.z(f'') + \
-           c.z(f'   [x]Start number:     [c]{sequence.split()[0]}                                                      \n') + \
-           c.z(f'   [x]Count numbers:    [c]{len(sequence.split())}                                                    \n') + \
-           c.z(f'   [x]Existed operands: [c]{" ".join(list(set(h.split_operation(op)[0] for op in sequence.split()))).strip()} \n') + \
-           c.z(f'   [x]Range digits:     [c]{"x"*min_i}{d_min}{"x"*min_f}[x]-[c]{"x"*max_i}{d_max}{"x"*max_f}          \n') + \
-           c.z(f'   [x]Negative results: [c]{render_yn(find_negative_results(sequence))}                               \n') + \
-           c.z(f'   [x]Decimal exist:    [c]{render_yn(max_f)}                                                         \n') + \
-           c.z(f'   [x]Total provided:   [c]{render_yn(total)}                                                         \n') + \
-           c.z(f'   [x]Total valid:      [c]{render_yn(total_is_valid)}                                                \n') + \
-           c.z(f'   [x]Total correct:    [c]{render_yn(check_total(total, sequence))}                                  \n') + \
-           c.z(f'')
-    print(info)
-def find_negative_results(sequence):
-    operations = sequence.split()
-    total = h.safe_eval(operations[0])
-    for operation in operations[1:]:
-        total += h.safe_eval(operation)
-        if total < 0:
-            return True
-    return False
+    sep = ' '*3
+    tab = ' '*3
+    width, _ = shutil.get_terminal_size()
+    r_fract  = render_tables(sep, tables_fract, width, tab=tab)
+    r_integ  = render_tables(sep, tables_integ, width, tab=tab)
+    r_final  = render_tables(sep, tables_final, width, tab=tab)
+    width_tables = len(c.remove_colors(r_integ.splitlines()[0])) - len(sep)
+    r_header  = render_header(sep, width_tables)
+    r_sepline = render_sepline(sep, width_tables)
+    print(r_header)
+    print(r_fract);
+    if r_fract: print(r_sepline)
+    print(r_integ)
+    if r_fract: print(r_sepline)
+    print(r_final)
 
 # validate
 def validate_total(total):
     total = h.validate_sequence(total, 'analyze total', exit_policy=1)
-    msg = c.z(f'[y]NOTE:[c] total is invalid - [r]"{total}"')
+    msg = c.z(f"[y]NOTE:[c] total is invalid - [r]'{total}'")
     if not total:
         print(msg); return False
     if not bool(re.match(r'^-?\d+(\.\d+)?$', total)):
         print(msg); return False
     return True
+
 # density
 def find_min_max_digits(sequence):
     numbers = re.findall(r'[+\-*/]?(\d+(\.\d+)?)', sequence)
@@ -103,74 +79,75 @@ def get_density(sequence, max_f):
         operand, number_str = h.split_operation(operation)
         # TODO: * / *- /-
         if operand not in ['+', '-']:
-            print(c.z(f'[y]TODO:[c] calculate density for operand "{operand}"'))
+            print(c.z(f"[y]TODO:[c] calculate density for operand '{operand}'"))
             exit(2)
         # сдвигаем число право на максимальное количество запятых
         number = h.dec(number_str) * (10 ** max_f)
         if operand == '+': density = density_pos
         if operand == '-': density = density_neg
         # для каждого разряда. всего разрядов - длина второго слогаемого
-        for d in range(len(str(number))):
-            d_density = density.get(d, Counter())
-            density[d] = upd_density(d_density, d, total, number)
+        for digit in range(len(str(number))):
+            d_density = density.get(digit, Counter())
+            density[digit] = upd_density(d_density, digit, total, number)
         # next
         if operand == '+': density_pos = density
         if operand == '-': density_neg = density
         total = h.do_math(total, operand, number)
     return density_pos, density_neg
-def upd_density(d_density, d, total, number):
-    y,x = get_yx(total, number, d)
+def upd_density(d_density, digit, total, number):
+    y,x = get_yx(total, number, digit)
     d_density[(y,x)] += 1 # сколько раз встретилась комбинация
     return d_density
-def get_yx(total, number, d):
-    divisor = 10 ** d
+def get_yx(total, number, digit):
+    divisor = 10 ** digit
     y = (total // divisor) % 10
     x = (number // divisor) % 10
     return y,x
 
-# render
-def merge_tables(tables):
-    result = ''
-    num_lines = len(tables[0]) if tables else 0
-    # проходим по группам по три таблицы
-    for g in range(0, len(tables), 3):
-        group = tables[g:g+3]  # получаем текущую группу из максимум трёх таблиц
-        for i in range(num_lines):
-            merged_line = ''.join(table[i] for table in group)
-            result += '  ' + merged_line + '\n'
-    return result
-def align_table(table, output_lenght):
-    result = ''
-    for line in table:
-        result += ' ' + c.center(line, output_lenght) + '\n'
-    return result
-def get_table(d, density_pos, density_neg, is_fract=False):
+# tables
+def get_tables(max_d, density_pos, density_neg, is_fract=False):
+    tables = []
+    for digit in range(0, max_d):
+        tables.append(get_table(digit, density_pos.get(digit), density_neg.get(digit), is_fract))
+    return tables
+def get_table_total(density_pos, density_neg):
+    density_total_pos = Counter()
+    density_total_neg = Counter()
+    for counter in density_pos.values():
+        density_total_pos += counter
+    for counter in density_neg.values():
+        density_total_neg += counter
+    return get_table('total', density_total_pos, density_total_neg)
+
+def get_table(digit, density_pos, density_neg, is_fract=False):
     table = []
     # title
-    shift2title = {
-        0:     '──[ Units ]──',
-        1:     '──[ Tens ]───',
-        2:     '[ Hundreds ]─',
-    }
-    if d == 'total':
+    if digit == 'total':
         title = '──[ TOTAL ]──'
     else:
         if is_fract:
-            title = f'──[ 0.1^{d+1} ]──'
+            title = f'──[ 0.1^{digit+1} ]──'
         else:
-            title = shift2title.get(d, f'──[ 10 ^{d} ]──')
-    table.append(c.z(f'[x]     ┌───{title}───┐     '))
-    table.append(c.z( '[x] ┌───┴─[ - ]─┬───┬─[ + ]─┴───┐ '))
+            shift2title = {0:'──[ Units ]──', 1:'──[ Tens ]───', 2:'[ Hundreds ]─'}
+            title = shift2title.get(digit, f'──[ 10 ^{digit} ]──')
+    table.append(c.z(f'[x]   ┌───{title}───┐     '))
+    table.append(c.z( '[x]┌───┴─[ - ]─┬───┬─[ + ]─┴───┐'))
     # rows
     for y in range(9, -1, -1):
         row_middle = f' │ {y} │ '
         row_left   = get_density_row(y, density_neg, range(9, 0, -1))
         row_right  = get_density_row(y, density_pos, range(1, 10))
-        table.append(c.z('[x] │ [c]' + row_left + '[x]' + row_middle + '[c]' + row_right + '[x] │ '))
+        table.append(c.z(f"[x]│ [c]{row_left}[x]{row_middle}[c]{row_right}[x] │"))
     # footer
-    table.append(c.z('[x] ├───────────┼───┼───────────┤ '))
-    table.append(c.z('[x] └─987654321─┘   └─123456789─┘ '))
+    table.append(c.z('[x]├───────────┼───┼───────────┤'))
+    table.append(c.z('[x]└─987654321─┘   └─123456789─┘'))
     return table
+
+
+
+
+
+
 def get_density_row(y, density, rng):
     row = ''
     for x in rng:
@@ -183,15 +160,72 @@ def get_count_str(count):
     if count <= 9: return c.z(f'[y]{count}')
     if count > 9: return c.z('[r]*')
     return str(count)
-def print_header(output_lenght):
-    result  = '\n'
-    result += c.center(c.z('[x]COMBINATION DENSITY[c]'), output_lenght) + '\n'
-    print(result)
-def render_yn(val):
-    return c.z(f'[g]{"YES" if val else "NO"}')
-def check_total(total, sequence):
-    return True if h.dec(total) == h.safe_eval(sequence) else False
-def render_range(min_i,min_f,max_i,max_f):
+def get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid):
     d_min = '.' if min_f else ''
     d_max = '.' if max_f else ''
-    return c.z(f"{'x'*min_i}{d_min}{'x'*min_f}[x]-[c]{'x'*max_i}{d_max}{'x'*max_f}")
+    start_number      = sequence.split()[0]
+    count_numbers     = len(sequence.split())
+    existed_operands  = ' '.join(list(set(h.split_operation(op)[0] for op in sequence.split()))).strip()
+    range_digits      = f"{'x'*min_i}{d_min}{'x'*min_f}[x]-[c]{'x'*max_i}{d_max}{'x'*max_f}"
+    negative_results  = 'YES' if find_negative_results(sequence) else 'NO'
+    decimal_exist     = 'YES' if max_f else 'NO'
+    total_provided    = 'YES' if total else 'NO'
+    total_valid       = 'YES' if total_is_valid else 'NO'
+    total_correct     = 'YES' if check_total(total, sequence) else 'NO'
+    return [
+        c.z(f''),
+        c.z(f''),
+        c.z(f'[x]Start number:     [c]{start_number}'),
+        c.z(f'[x]Count numbers:    [c]{count_numbers}'),
+        c.z(f'[x]Existed operands: [c]{existed_operands}'),
+        c.z(f'[x]Range digits:     [c]{range_digits}'),
+        c.z(f'[x]Negative results: [c]{negative_results}'),
+        c.z(f'[x]Decimal exist:    [c]{decimal_exist}'),
+        c.z(f'[x]Total provided:   [c]{total_provided}'),
+        c.z(f'[x]Total valid:      [c]{total_valid}'),
+        c.z(f'[x]Total correct:    [c]{total_correct}'),
+        c.z(f'')
+    ]
+def check_total(total, sequence):
+    return True if h.dec(total) == h.safe_eval(sequence) else False
+def find_negative_results(sequence):
+    operations = sequence.split()
+    total = h.safe_eval(operations[0])
+    for operation in operations[1:]:
+        total += h.safe_eval(operation)
+        if total < 0:
+            return True
+    return False
+# render
+def render_tables(sep, tables, term_width, tab=' '*3):
+    if not tables:
+        return ''
+    # Определяем максимальное количество строк среди всех таблиц
+    max_rows = max(len(table) for table in tables)
+    # Ширина одной таблицы с учетом сепаратора
+    table_width = max(len(c.remove_colors(table[0])) for table in tables) + len(sep)
+    tables_per_row = (term_width - len(tab)) // table_width
+    if tables_per_row == 0:
+        tables_per_row = 1
+    result = ''
+    # Обрабатываем каждую строку максимального количества строк среди таблиц
+    for row_index in range(max_rows):
+        # Разделяем вывод на строки по tables_per_row таблиц в каждой
+        for start in range(0, len(tables), tables_per_row):
+            end = min(start + tables_per_row, len(tables))
+            line_parts = []
+            for i in range(start, end):
+                # Добавляем строки таблицы, если строка существует
+                if row_index < len(tables[i]):
+                    line_parts.append(tables[i][row_index])
+                else:
+                    # Добавляем пустое место, если строк в таблице меньше
+                    line_parts.append(' ' * len(tables[i][0]))
+            result += tab + sep.join(line_parts).rstrip() + '\n'
+    return result
+def render_header(sep, width):
+    header = '\n'
+    header += sep + c.center(c.z('[x]COMBINATION DENSITY[c]'), width)
+    return header
+def render_sepline(sep, width):
+    return sep + c.z(f"[x]{'.'*width}[c]") + '\n'
