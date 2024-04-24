@@ -45,7 +45,7 @@ def analyze(path):
     info = {
         'start_number': sequence.split()[0],
         'count_numbers': len(sequence.split()),
-        'existed_operands': ' '.join(list(set(split_operation(op)[0] for op in sequence.split())))
+        'existed_operands': ' '.join(list(set(h.split_operation(op)[0] for op in sequence.split()))),
         'range_digits': render_range(min_i,min_f,max_i,max_f),
         'decimal_exist': render_yn(max_f),
         # 'decimal_precision': calc_decimal_precision(operations),
@@ -78,8 +78,8 @@ def find_min_max_digits(sequence):
             integ_part = number
         min_i = min(min_i, len(integ_part))
         max_i = max(max_i, len(integ_part))
-    if min_f == float('inf'):
-        min_f = 0
+    if min_f == float('inf'): min_f = 0
+    if min_f == float('inf'): min_i = 0
     return min_i, min_f, max_i, max_f
 def get_density(sequence, max_f):
     density_pos = {}
@@ -88,7 +88,7 @@ def get_density(sequence, max_f):
     # для каждой пары чисел
     total = h.dec(operations[0])
     for operation in operations[1:]:
-        operand, number_str = split_operation(operation)
+        operand, number_str = h.split_operation(operation)
         # TODO: * / *- /-
         if operand not in ['+', '-']:
             print(c.z(f'[y]TODO:[c] calculate density for operand "{operand}"'))
@@ -106,12 +106,6 @@ def get_density(sequence, max_f):
         if operand == '-': density_neg = density
         total = h.do_math(total, operand, number)
     return density_pos, density_neg
-def split_operation(operation):
-    match = re.match(r'([*/+-]*)\s*(-?\d+(?:\.\d+)?)', operation)
-    if not match:
-        return '', operation
-    operand, number_str = match.groups()
-    return operand, number_str
 def upd_density(d_density, d, total, number):
     y,x = get_yx(total, number, d)
     d_density[(y,x)] += 1 # сколько раз встретилась комбинация
@@ -177,7 +171,7 @@ def print_header(output_lenght):
     result += c.center(c.z('[x]COMBINATION DENSITY[c]'), output_lenght) + '\n'
     print(result)
 def render_yn(val):
-    return c.z('[g]YES') if val else c.z('[r]NO')
+    return c.z(f'[g]{"YES" if val else "NO"}')
 def check_total(total, sequence):
     return True if h.dec(total) == h.safe_eval(sequence) else False
 def render_range(min_i,min_f,max_i,max_f):
