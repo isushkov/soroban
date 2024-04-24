@@ -211,12 +211,14 @@ def create_operation_cover(operand, range_params, decimal_params, negative_allow
         # выбрать рандомную пару из оставшихся, извлечь "y"
         forced_y = random.choice(list(combs))[0]
         # посчитать единицы и заменить их в number
-        if operand == '+': x = abs(forced_y - y)
-        if operand == '-': x = abs(y - forced_y)
-        forced_number = replace_units(number, x)
+        if operand == '+': forced_x = abs(forced_y - y)
+        if operand == '-': forced_x = abs(y - forced_y)
+        forced_number = replace_units(number, forced_x)
         # добавляем получившееся значение в sequence
         forced_operation = f' {operand}{h.del_sign(forced_number)}'
-        total = h.do_math(total, operand, number)
+        # total = h.do_math(total, operand, number)
+        if operand == '+': total += forced_number
+        if operand == '-': total -= forced_number
         # create_operation_cover снова для уже подходящего total
         operation, combs, total = create_operation_cover(operand, range_params, decimal_params, negative_allowed, total, combs)
         two_operations = forced_operation + operation

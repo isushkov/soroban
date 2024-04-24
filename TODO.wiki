@@ -1,29 +1,11 @@
-analyze:
-  density decimal
-  tables fix
-  add info
-  tests
-run:
-  redo
-  tests
-exam - fix output
 study program
   config.study.delta_time: for_best or for_target
   would you like to continue(study)/repeat(exam,training)?
+exam - fix output
 upd readme
-redo progressions */
+remake progressions
 
 умножение/деление/нецелые/отрицательные
-  как быть с этим?: *(-1), /(-1), *-1, /-1
-  create cover */
-  create cover decimal
-  create cover negative
-  analyze */
-  analyze decimal
-  analyze negative
-  run */
-  run decimal
-  run negative
 дополнительные возможности:
   квадратные корни
   другое?

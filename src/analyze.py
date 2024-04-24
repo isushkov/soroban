@@ -24,10 +24,13 @@ def analyze(path):
 
     # TODO: не по три а на всю ширину, выранвнивая по левому краю
     # TODO: сепаратор
-    # digits
+    # 10^-x
     tables = []
-    for d in range(max_i + max_f):
-        tables.append(get_table(d, density_pos.get(d), density_neg.get(d)))
+    for d in range(max_f-1, -1, -1):
+        tables.append(get_table(d, density_pos.get(d), density_neg.get(d), is_fract=True))
+    # 10^x
+    for d in range(max_i):
+        tables.append(get_table(d, density_pos.get(d), density_neg.get(d) ))
     table_merged = merge_tables(tables)
     output_lenght = len(c.remove_colors(table_merged.split('\n')[0]))
     # total
@@ -42,19 +45,28 @@ def analyze(path):
     print(table_merged)
     print(table_total)
     # info
-    info = {
-        'start_number': sequence.split()[0],
-        'count_numbers': len(sequence.split()),
-        'existed_operands': ' '.join(list(set(h.split_operation(op)[0] for op in sequence.split()))),
-        'range_digits': render_range(min_i,min_f,max_i,max_f),
-        'decimal_exist': render_yn(max_f),
-        # 'decimal_precision': calc_decimal_precision(operations),
-        # 'negative_results_exist': render_yn(calc_negative_results(operations)),
-        'total_provided': render_yn(total),
-        'total_valid': render_yn(total_is_valid),
-        'total_correct': render_yn(check_total(total, sequence))
-    }
+    d_min = '.' if min_f else ''
+    d_max = '.' if max_f else ''
+    info = c.z(f'') + \
+           c.z(f'   [x]Start number:     [c]{sequence.split()[0]}                                                      \n') + \
+           c.z(f'   [x]Count numbers:    [c]{len(sequence.split())}                                                    \n') + \
+           c.z(f'   [x]Existed operands: [c]{" ".join(list(set(h.split_operation(op)[0] for op in sequence.split()))).strip()} \n') + \
+           c.z(f'   [x]Range digits:     [c]{"x"*min_i}{d_min}{"x"*min_f}[x]-[c]{"x"*max_i}{d_max}{"x"*max_f}          \n') + \
+           c.z(f'   [x]Negative results: [c]{render_yn(find_negative_results(sequence))}                               \n') + \
+           c.z(f'   [x]Decimal exist:    [c]{render_yn(max_f)}                                                         \n') + \
+           c.z(f'   [x]Total provided:   [c]{render_yn(total)}                                                         \n') + \
+           c.z(f'   [x]Total valid:      [c]{render_yn(total_is_valid)}                                                \n') + \
+           c.z(f'   [x]Total correct:    [c]{render_yn(check_total(total, sequence))}                                  \n') + \
+           c.z(f'')
     print(info)
+def find_negative_results(sequence):
+    operations = sequence.split()
+    total = h.safe_eval(operations[0])
+    for operation in operations[1:]:
+        total += h.safe_eval(operation)
+        if total < 0:
+            return True
+    return False
 
 # validate
 def validate_total(total):
@@ -64,7 +76,7 @@ def validate_total(total):
         print(msg); return False
     if not bool(re.match(r'^-?\d+(\.\d+)?$', total)):
         print(msg); return False
-    return False
+    return True
 # density
 def find_min_max_digits(sequence):
     numbers = re.findall(r'[+\-*/]?(\d+(\.\d+)?)', sequence)
@@ -132,16 +144,21 @@ def align_table(table, output_lenght):
     for line in table:
         result += ' ' + c.center(line, output_lenght) + '\n'
     return result
-def get_table(d, density_pos, density_neg):
+def get_table(d, density_pos, density_neg, is_fract=False):
     table = []
     # title
     shift2title = {
-      'total': '──[ TOTAL ]──',
         0:     '──[ Units ]──',
         1:     '──[ Tens ]───',
-        2:     '─[ Hundreds ]',
+        2:     '[ Hundreds ]─',
     }
-    title = shift2title.get(d, f'──[ 10 ^{d} ]──')
+    if d == 'total':
+        title = '──[ TOTAL ]──'
+    else:
+        if is_fract:
+            title = f'──[ 0.1^{d+1} ]──'
+        else:
+            title = shift2title.get(d, f'──[ 10 ^{d} ]──')
     table.append(c.z(f'[x]     ┌───{title}───┐     '))
     table.append(c.z( '[x] ┌───┴─[ - ]─┬───┬─[ + ]─┴───┐ '))
     # rows
