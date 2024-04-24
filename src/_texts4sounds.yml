@@ -22,3 +22,21 @@ answer:
 enter-answer:
   en: 'enter your answer'
   ru: 'введите ваш ответ'
+'+':
+  en: 'plus'
+  ru: 'плюс'
+'-':
+  en: 'minus'
+  ru: 'минус'
+'*':
+  en: 'multiply by'
+  ru: 'умножить на'
+'/':
+  en: 'divide by'
+  ru: 'разделить на'
+'*-':
+  en: 'multiply by minus'
+  ru: 'умножить на минус'
+'/-':
+  en: 'divide by minus'
+  ru: 'разделить на минус'

@@ -78,9 +78,7 @@ def get_density(sequence, max_f):
     for operation in operations[1:]:
         operand, number_str = h.split_operation(operation)
         # TODO: * / *- /-
-        if operand not in ['+', '-']:
-            print(c.z(f"[y]TODO:[c] calculate density for operand '{operand}'"))
-            exit(2)
+        if operand not in ['+', '-']: todo(f'density for "{operand}"')
         # сдвигаем число право на максимальное количество запятых
         number = h.dec(number_str) * (10 ** max_f)
         if operand == '+': density = density_pos

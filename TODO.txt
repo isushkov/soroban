@@ -1,0 +1,36 @@
+study program:
+  ...
+delta_time:
+  for exam/training:
+    best-user, best-all
+  for study:
+    target, best-user, best-all
+
+analyze:
+  fix treminal size tables
+  --spoilers
+exam - fix output
+redo params:
+  fix help output
+  "<first_sequence>,<sequence>,<sequence>,..."
+  decimal.precision -> range.procision
+  redo progressions
+would you like to continue(study)/repeat(exam,training)?
+
+todo:
+  decimal:
+    analyze: fix decimal tables
+  отрицательные
+  умножение/деление
+
+  дополнительные возможности:
+    квадратные корни
+    другое?
+      прочитать книги
+
+  mental-mode:
+    в процессе работы отображать stage по одному числу - числа должны маргать
+    как готово вернуть всю строку
+
+  upd readme
+  добавить локаль для других языков через переводчик

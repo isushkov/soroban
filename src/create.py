@@ -6,9 +6,9 @@ from src.helpers.fo import Fo as fo
 from src.helpers.cmd import Cmd as cmd
 
 # init
-def create(args):
+def create(path, params):
     print(c.center(c.z(f' [y]CREATING '), 94, '=', 'x'))
-    params = parse_params(args.params)
+    params = parse_params(params)
     start_param = params.pop(0)
     sequence = create_sequence_start(start_param, params[0]) + '\n'
     names = []
@@ -27,7 +27,7 @@ def create(args):
         names.append(seq_params2part_name(kind, seq_params))
     # save
     data = f'{sequence}= {h.safe_eval(sequence)}'
-    path = args.path if args.path else f"./data/x{start_param}_{'_'.join(names)}.txt"
+    path = path if path else f"./data/x{start_param}_{'_'.join(names)}.txt"
     save_file(path, data)
     return path
 # common
@@ -160,13 +160,9 @@ def create_sequence_cover(seq_params, total):
     operands, range_params, length = seq_params['required'].values()
     negative_allowed, decimal_params, _ = seq_params['optional'].values()
     # TODO: cover-units decimal
-    if decimal_params['precision']:
-        print(c.z('[y]TODO:[c] cover-units for decimal'))
-        exit(2)
+    if decimal_params['precision']: todo('cover-units for decimal')
     # TODO: cover-units for "*/"
-    if '*' in operands or '/' in operands:
-        print(c.z('[y]TODO:[c] cover-units for */'))
-        exit(2)
+    if '*' in operands or '/' in operands: todo('cover-units for "*/"')
     combs_tmp = {(y,x) for y in range(0, 10) for x in range(1, 10)}
     combs_pos = combs_tmp if '+' in operands else {}
     combs_neg = combs_tmp if '-' in operands else {}

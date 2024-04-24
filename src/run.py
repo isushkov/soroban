@@ -10,14 +10,17 @@ from gtts import gTTS
 from num2words import num2words
 import pandas as pd
 from src.config import Config
+import src.helper as h
 from src.helpers.fo import Fo as fo
 from src.helpers.cmd import Cmd as cmd
 from src.helpers.tui import Tui
 import src.helpers.colors as c
 
 class Run:
-    def __init__(self, path):
-        print(c.center(c.z(f' [y]RUNNING {path} '), 94, '=', 'x'))
+    def __init__(self, path_param, user_name_param):
+        self.conf = Config()
+        self.user_name = user_name_param or conf.user_name
+        print(c.center(c.z(f' [y]RUNNING {self.user_name}:[c] {path} '), 94, '=', 'x'))
         # preinit
         self.path = path
         self.exercise = os.path.splitext(os.path.basename(path))[0]
@@ -25,17 +28,13 @@ class Run:
         self.all_numbers = self.get_numbers()
         self.len_for_number = 2+len(str(max(self.all_numbers)))
         self.start_number = self.all_numbers[0]
+        # TODO check
         self.operands = [symbol for symbol in '+-/*' if symbol in self.sequence.split('=')[0]]
-        if len(self.operands) > 1:
-            print(c.z(f'[y]TODO:[c] to many operands - "{self.operands}"'))
-            exit(1)
         self.operand = self.operands[0] if self.operands else None
         self.total = self.str2num(self.sequence.split('=')[1].strip())
-        # config
-        self.c = Config()
-        self.is_exam = True if self.c.mode == 'exam' else False
+        self.is_exam = True if self.conf.mode == 'exam' else False
         if self.is_exam:
-            self.c.check_method = 'input'
+            self.conf.check_method = 'input'
         # tui
         self.fd = sys.stdin.fileno()
         self.term_origin = termios.tcgetattr(self.fd)
@@ -62,7 +61,7 @@ class Run:
         if self.is_exam:
             self.stages = [self.all_numbers]
         else:
-            self.stages = [self.all_numbers[i:i+self.c.numbers_per_stage] for i in range(1, len(self.all_numbers), self.c.numbers_per_stage)]
+            self.stages = [self.all_numbers[i:i+self.conf.numbers_per_stage] for i in range(1, len(self.all_numbers), self.conf.numbers_per_stage)]
         for i, stage in enumerate(self.stages):
             self.stage_number = i+1
             self.stage_numbers = self.stages[i]
@@ -87,26 +86,21 @@ class Run:
     def get_numbers(self):
         return [int(num) for num in re.findall(r'\d+', self.sequence.split('=')[0])]
     def prepare_fs(self):
-        cmd.run(f'mkdir -p ./sounds/{self.c.lang}/numbers')
+        cmd.run(f'mkdir -p ./sounds/{self.conf.lang}/numbers')
         cmd.run('mkdir -p ./data')
         if not fo.f_exist('config.yml'):
             cmd.run('copy ./examples/config.yml ./config.yml')
         if not fo.f_exist('./data/_records.csv'):
             cmd.run(f'echo {",".join(self.records_columns)} > data/_records.csv')
-    def input(self, msg=''):
-        self.tui.echo()
-        data = input(msg).strip()
-        self.tui.noecho()
-        return data
 
     # sounds
     def generate_sounds_texts(self):
-        texts = fo.yml2dict('./src/texts4sounds.yml')
+        texts = fo.yml2dict('./src/_texts4sounds.yml')
         total = len(texts)
         for i,sound in enumerate(texts):
-            path = f'sounds/{self.c.lang}/{sound}.mp3'
+            path = f'sounds/{self.conf.lang}/{sound}.mp3'
             if not fo.f_exist(path):
-                self.generate_sound(path, texts[sound][self.c.lang])
+                self.generate_sound(path, texts[sound][self.conf.lang])
             self.progress_bar('generate speech (texts)  ', total, i)
         print()
     def generate_sounds_numbers(self):
@@ -123,13 +117,13 @@ class Run:
             sum_list.append(current_sum)
         numbers = self.all_numbers + sum_list
         for i, number in enumerate(numbers):
-            path = f'sounds/{self.c.lang}/numbers/{number}.mp3'
+            path = f'sounds/{self.conf.lang}/numbers/{number}.mp3'
             if not fo.f_exist(path):
-                self.generate_sound(path, num2words(number, lang=self.c.lang))
+                self.generate_sound(path, num2words(number, lang=self.conf.lang))
             self.progress_bar('generate speech (numbers)', len(numbers), i)
         print()
     def generate_sound(self, path, text):
-        tts = gTTS(text=text, lang=self.c.lang)
+        tts = gTTS(text=text, lang=self.conf.lang)
         tts.save(path)
     def progress_bar(self, msg, total, i):
         progress = int((i + 1) / total * 62)
@@ -139,11 +133,11 @@ class Run:
     def say_beep(self, sound, speed):
         self.mpv(f'sounds/{sound}.mp3', speed)
     def say_text(self, sound, speed):
-        self.mpv(f'sounds/{self.c.lang}/{sound}.mp3', speed)
+        self.mpv(f'sounds/{self.conf.lang}/{sound}.mp3', speed)
     def say_number(self, sound, speed):
-        path = f'sounds/{self.c.lang}/numbers/{sound}.mp3'
+        path = f'sounds/{self.conf.lang}/numbers/{sound}.mp3'
         if not fo.f_exist(path):
-            self.generate_sound(path, num2words(sound, lang=self.c.lang))
+            self.generate_sound(path, num2words(sound, lang=self.conf.lang))
         self.mpv(path, speed)
     def mpv(self, path, speed):
         if not fo.f_exist(path):
@@ -186,21 +180,26 @@ class Run:
     # ready
     def get_ready(self):
         color = '[r]' if self.is_exam else '[g]'
-        print(c.z(f'{color}{self.c.mode.upper()}. [y]Get ready.[x] Start number:[c] {self.start_number}'))
-        self.say_text('get-ready', self.c.spd_speech)
-        self.say_text('start-number', self.c.spd_speech)
-        self.say_number(self.start_number, self.c.spd_speech)
+        print(c.z(f'{color}{self.conf.mode.upper()}. [y]Get ready.[x] Start number:[c] {self.start_number}'))
+        self.say_text('get-ready', self.conf.spd_speech)
+        self.say_text('start-number', self.conf.spd_speech)
+        self.say_number(self.start_number, self.conf.spd_speech)
 
     # run stage
     def run_stage(self):
         total = self.start_number
         self.announce_stage()
         for number in self.stage_numbers:
-            output = f' {self.operand}{number}'.rjust(self.len_for_number)
+            # output
+            op = '' if (self.operand == '+' and not self.conf.show_plus) else self.operand
+            output = f' {op}{number}'.rjust(self.len_for_number)
             self.stage_row += output
             print(output, end='', flush=True)
-            self.say_number(number, self.c.spd_number)
-            time.sleep(self.c.spd_delay)
+            # say operand
+            self.say_text(self.operand, self.conf.spd_plus if self.operand == '+' else self.conf.spd_number)
+            # say number
+            self.say_number(number, self.conf.spd_number)
+            time.sleep(self.conf.spd_delay)
             if self.operand == '+':
                 total += number
             elif self.operand == '-':
@@ -217,7 +216,7 @@ class Run:
                 print(self.stage_row + self.get_delta_time())
                 print(self.answer_line)
             else:
-                self.say_beep('wrong', self.c.spd_wrong)
+                self.say_beep('wrong', self.conf.spd_wrong)
                 if self.user_errors < 9:
                     self.user_errors += 1
                 self.tui.clear_lines(1)
@@ -242,24 +241,24 @@ class Run:
         print(self.stage_row, end='', flush=True)
         # calc speed
         if self.stage_number == 1 and self.stage_succeed:
-            speed = self.c.spd_speech
-            speed_beeps = self.c.spd_signals
+            speed = self.conf.spd_speech
+            speed_beeps = self.conf.spd_signals
         else:
-            speed = self.c.spd_stage
-            speed_beeps = self.c.spd_start
+            speed = self.conf.spd_stage
+            speed_beeps = self.conf.spd_start
         # say
         if not self.is_exam:
             self.say_text('stage', speed)
             self.say_number(self.stage_number, speed)
         if not self.stage_succeed:
-            self.say_text('continue-with', self.c.spd_stage_cont_txt)
-            self.say_number(self.start_number, self.c.spd_stage_cont_num)
+            self.say_text('continue-with', self.conf.spd_stage_cont_txt)
+            self.say_number(self.start_number, self.conf.spd_stage_cont_num)
         self.say_beep('start', speed_beeps)
         # init start time
         if self.stage_number == 1:
             self.start_time = round(time.time(), 2)
     def check_answer(self, total):
-        if self.c.check_method == 'input':
+        if self.conf.check_method == 'input':
             return self.check_answer_input(total)
         return self.check_answer_yesno(total)
     def check_answer_input(self, total):
@@ -272,7 +271,7 @@ class Run:
             msg = c.z(f'[y]Your stage result: ')
             sound = 'enter-stage-result'
         print(msg, end='', flush=True)
-        self.say_text(sound, self.c.spd_enter_result)
+        self.say_text(sound, self.conf.spd_enter_result)
         result, valid = self.input2number(self.input())
         self.answer_line = msg + str(result)
         self.tui.clear_lines(1)
@@ -289,8 +288,8 @@ class Run:
         self.stage_row = c.edgesjust(self.stage_row, f' ={total}', 75)
         self.tui.cursor_move(x=0)
         print(self.stage_row)
-        self.say_text('answer' if self.is_last_stage else 'stage-result', self.c.spd_result_txt)
-        self.say_number(total, self.c.spd_result_num)
+        self.say_text('answer' if self.is_last_stage else 'stage-result', self.conf.spd_result_txt)
+        self.say_number(total, self.conf.spd_result_num)
         # menu
         gonext = 'FINISH' if self.is_last_stage else 'Continue'
         menu  = f'   [y]<Space/Enter>[c]   {gonext}\n'
@@ -329,7 +328,7 @@ class Run:
     def get_best_time_spent(self, best_time):
         if self.is_last_stage:
             return best_time
-        prev_stages_count_numbers_done = self.c.numbers_per_stage * (self.stage_number - 1)
+        prev_stages_count_numbers_done = self.conf.numbers_per_stage * (self.stage_number - 1)
         this_stage_count_numbers_done = len(self.stage_numbers)
         count_numbers_done = prev_stages_count_numbers_done + this_stage_count_numbers_done
         best_time_per_number = round(best_time / (len(self.all_numbers) - 1), 2)
@@ -361,10 +360,12 @@ class Run:
         else:
              msg = '[g]Exercise was finished!'
         print(c.z(f'{msg}[c] Your time is: [y]{self.end_time_formated}'))
-        self.say_beep('end-game-passed' if self.is_passed else 'end-game', self.c.spd_signals)
+        self.say_beep('end-game-passed' if self.is_passed else 'end-game', self.conf.spd_signals)
     def update_records(self):
-        user_name = self.input('Please enter your name: ')
-        self.user_name = user_name[:6] if user_name else '<anon>'
+        if not self.user_name:
+            self.tui.echo()
+            self.user_name = input('Please enter your name: ').strip()[:6] or '<anon>'
+            self.tui.noecho()
         new_df = pd.DataFrame([{
             'rank': 0,
             'name': self.user_name,

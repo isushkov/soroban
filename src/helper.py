@@ -156,3 +156,8 @@ def safe_eval(sequence, precision=2):
         else:
             raise TypeError(f"{e} Unsupported type")
     return dec(eval_(tree), precision)
+
+# other
+def todo(msg):
+    print(c.z(f'[y]TODO:[c] {msg}..'))
+    exit(2)
