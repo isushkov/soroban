@@ -6,9 +6,10 @@ from src.helpers.fo import Fo as fo
 from src.helpers.cmd import Cmd as cmd
 
 # init
-def create(path, params):
+def create(arg_path, arg_params):
+    prepare_fs()
     print(c.center(c.z(f' [y]CREATING '), 94, '=', 'x'))
-    params = parse_params(params)
+    params = parse_params(arg_params)
     start_param = params.pop(0)
     sequence = create_sequence_start(start_param, params[0]) + '\n'
     names = []
@@ -27,10 +28,12 @@ def create(path, params):
         names.append(seq_params2part_name(kind, seq_params))
     # save
     data = f'{sequence}= {h.safe_eval(sequence)}'
-    path = path if path else f"./data/x{start_param}_{'_'.join(names)}.txt"
+    path = arg_path if arg_path else f"./data/x{start_param}_{'_'.join(names)}.txt"
     save_file(path, data)
     return path
 # common
+def prepare_fs():
+    cmd.run('mkdir -p ./data')
 def render_kind(kind):
     return {'p':'progression', 'r':'random', 'c':'covered'}[kind]
 def seq_params2part_name(kind, seq_params):

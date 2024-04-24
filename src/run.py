@@ -17,22 +17,25 @@ from src.helpers.tui import Tui
 import src.helpers.colors as c
 
 class Run:
-    def __init__(self, path_param, user_name_param):
+    def __init__(self, arg_path, arg_mode, arg_user_name):
+        # args/conf/fs
         self.conf = Config()
-        self.user_name = user_name_param or conf.user_name
-        print(c.center(c.z(f' [y]RUNNING {self.user_name}:[c] {path} '), 94, '=', 'x'))
-        # preinit
-        self.path = path
-        self.exercise = os.path.splitext(os.path.basename(path))[0]
+        self.path = arg_path
+        self.mode = arg_mode or self.conf.mode
+        self.user_name = arg_user_name or conf.user_name
+        self.records_columns = ['id', 'rank', 'name', 'exercise', 'is_exam', 'is_passed', 'time', 'time_seconds', 'date']
+        self.prepare_fs()
+        self.exercise = os.path.splitext(os.path.basename(self.path))[0]
         self.sequence = fo.txt2str(self.path)
         self.all_numbers = self.get_numbers()
         self.len_for_number = 2+len(str(max(self.all_numbers)))
         self.start_number = self.all_numbers[0]
+        print(c.center(c.z(f' [y]RUNNING {self.user_name}:[c] {self.path} '), 94, '=', 'x'))
         # TODO check
         self.operands = [symbol for symbol in '+-/*' if symbol in self.sequence.split('=')[0]]
         self.operand = self.operands[0] if self.operands else None
         self.total = self.str2num(self.sequence.split('=')[1].strip())
-        self.is_exam = True if self.conf.mode == 'exam' else False
+        self.is_exam = True if self.mode == 'exam' else False
         if self.is_exam:
             self.conf.check_method = 'input'
         # tui
@@ -41,9 +44,6 @@ class Run:
         self.term_noecho = termios.tcgetattr(self.fd)
         self.tui = Tui()
         self.tui.noecho()
-        # prepare fs
-        self.records_columns = ['id', 'rank', 'name', 'exercise', 'is_exam', 'is_passed', 'time', 'time_seconds', 'date']
-        self.prepare_fs()
         # generate sounds
         self.generate_sounds_texts()
         self.generate_sounds_numbers()
@@ -81,18 +81,10 @@ class Run:
         # TODO: would you like to repeat?
 
     # preinit
-    def str2num(self, s):
-        return float(s) if '.' in s else int(s)
-    def get_numbers(self):
-        return [int(num) for num in re.findall(r'\d+', self.sequence.split('=')[0])]
     def prepare_fs(self):
         cmd.run(f'mkdir -p ./sounds/{self.conf.lang}/numbers')
-        cmd.run('mkdir -p ./data')
-        if not fo.f_exist('config.yml'):
-            cmd.run('copy ./examples/config.yml ./config.yml')
-        if not fo.f_exist('./data/_records.csv'):
-            cmd.run(f'echo {",".join(self.records_columns)} > data/_records.csv')
-
+        if not fo.f_exist('./src/__records.csv'):
+            cmd.run(f'echo {",".join(self.records_columns)} > ./src/__records.csv')
     # sounds
     def generate_sounds_texts(self):
         texts = fo.yml2dict('./src/_texts4sounds.yml')
@@ -180,7 +172,7 @@ class Run:
     # ready
     def get_ready(self):
         color = '[r]' if self.is_exam else '[g]'
-        print(c.z(f'{color}{self.conf.mode.upper()}. [y]Get ready.[x] Start number:[c] {self.start_number}'))
+        print(c.z(f'{color}{self.mode.upper()}. [y]Get ready.[x] Start number:[c] {self.start_number}'))
         self.say_text('get-ready', self.conf.spd_speech)
         self.say_text('start-number', self.conf.spd_speech)
         self.say_number(self.start_number, self.conf.spd_speech)

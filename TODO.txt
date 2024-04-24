@@ -1,3 +1,4 @@
+fix help output
 study program:
   ...
 delta_time:
@@ -11,7 +12,6 @@ analyze:
   --spoilers
 exam - fix output
 redo params:
-  fix help output
   "<first_sequence>,<sequence>,<sequence>,..."
   decimal.precision -> range.procision
   redo progressions

@@ -1,8 +1,12 @@
 from src.helpers.fo import Fo as fo
 import src.helpers.colors as c
+from src.helpers.fo import Fo as fo
+from src.helpers.cmd import Cmd as cmd
 
 class Config:
-    def __init__(self, mode=False):
+    def __init__(self):
+        # args/fs
+        self.prepare_fs()
         self.data = fo.yml2dict('config.yml')
         # common
         self.lang = self.get_lang()
@@ -30,7 +34,13 @@ class Config:
         self.spd_result_num = self.get_percent('training', 'in', 'announce_stage_result_number_percents')
         self.spd_wrong = self.get_percent('training', 'in', 'signal_wrong_stage_result_percents')
 
+    # args/fs
+    def prepare_fs():
+        if not fo.f_exist('config.yml'):
+            cmd.run('copy ./examples/config.yml ./config.yml')
     # common
+    if not fo.f_exist('./src/__study.csv'):
+        cmd.run(f'echo {",".join(self.records_columns)} > ./src/__study.csv')
     def config_error(self, key, val, replacement):
         print(c.z(f'[y]CONFIG ERROR:[c] Invalid config value [r]"{key}: {val}"'))
         print(c.z(f'[y]CONFIG ERROR:[c] Was replaced by [g]"{replacement}"'))
