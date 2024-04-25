@@ -12,8 +12,8 @@ class Config:
         self.lang = self.get_lang()
         self.mode = mode if mode else self.get_mode()
         self.user_name = self.get_user_name()
-        self.study_switch_t2e = self.get_study_switch('training2exam')
-        self.study_switch_e2t = self.get_study_switch('exam2training')
+        self.t2e = self.get_study_switch('training2exam')
+        self.e2t = self.get_study_switch('exam2training')
         # shared
         self.spd_speech = self.get_percent(self.mode, 'out', 'speech_percents')
         self.spd_signals = self.get_percent(self.mode, 'out', 'signals_percents')
@@ -42,8 +42,8 @@ class Config:
     if not fo.f_exist('./src/__study.csv'):
         cmd.run(f'echo {",".join(self.records_columns)} > ./src/__study.csv')
     def config_error(self, key, val, replacement):
-        print(c.z(f'[y]CONFIG ERROR:[c] Invalid config value [r]"{key}: {val}"'))
-        print(c.z(f'[y]CONFIG ERROR:[c] Was replaced by [g]"{replacement}"'))
+        c.p(f'[y]CONFIG ERROR:[c] Invalid config value [r]"{key}: {val}"')
+        c.p(f'[y]CONFIG ERROR:[c] Was replaced by [g]"{replacement}"')
         return replacement
     def get_percent(self, mode, direction, key):
         direction = 'throughout_the_exercise' if direction == 'in' else 'outside_the_exercise'
@@ -65,7 +65,7 @@ class Config:
         if len(val) != 2:
             return self.config_error('.common.lang', val, 'en')
         if val not in ['en', 'ru']:
-            print(c.z('[y]NOTE:[c] Lang [y]{val}[c] Will be generated automatically. May be ugly or not working at all.'))
+            c.p('[y]NOTE:[c] Lang [y]{val}[c] Will be generated automatically. May be ugly or not working at all.')
         return val
     def get_mode(self):
         val = self.data['common']['mode']
@@ -76,7 +76,7 @@ class Config:
         user_name = self.data['common'].get('user_name')
         return user_name.strip()[:6] if user_name else False
     def self.get_study_switch(self, kind):
-        key, default = 'training2exam', 1 if kind == 'training2exam' else 'exam2training', 3
+        key, default = ('training2exam', 1) if kind == 'training2exam' else ('exam2training', 3)
         switch = self.data['common']['study_program']['switch_mode_policy'][key]
         if switch <= 1:
             return self.config_error(f'.common.study_program.switch_mode_policy.{key}', switch, default)

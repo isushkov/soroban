@@ -72,7 +72,8 @@ def main():
         analyze(path)
     elif args.command == 'analyze':
         analyze(args.path)
-    else:
+    elif args.command in ['run', 'run-new']:
+        # TODO: recursion - would you like to repeat?
         user_name = (args.user_name.strip()[:6] or False) if args.user_name else False
         if args.style == 'mental':
             h.todo('style mental')

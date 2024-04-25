@@ -20,7 +20,7 @@ def num2str(num):
         try:
             return str(num)
         except ValueError:
-            print(c.z(f'[r]ERROR:[c] num2str(): {num}'))
+            c.p(f'[r]ERROR:[c] num2str(): {num}')
             exit(1)
 # seq <-> seq
 def add_sign(num_str):
@@ -114,7 +114,7 @@ def do_math(x, operand, y, precision=2):
         '-': lambda x, y: x - y,
         '*': lambda x, y: x * y,
         '/': lambda x, y: x / y if y != 0 else (
-            print(c.z(f'[r]Error:[c] Devision by zero.')),
+            c.p(f'[r]Error:[c] Devision by zero.'))
             sys.exit(1)
         )[1]
     }
@@ -159,5 +159,5 @@ def safe_eval(sequence, precision=2):
 
 # other
 def todo(msg):
-    print(c.z(f'[y]TODO:[c] {msg}..'))
+    c.p(f'[y]TODO:[c] {msg}..')
     exit(2)

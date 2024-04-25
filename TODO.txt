@@ -1,23 +1,32 @@
-fix help output
-study program:
-  ...
-delta_time:
-  for exam/training:
-    best-user, best-all
-  for study:
-    target, best-user, best-all
-
+study program.
 analyze:
+  range_results
   fix treminal size tables
-  --spoilers
-exam - fix output
+run:
+  delta_time:
+    simple:
+      training:
+        passed:          best-user, best-other
+        repeat:          best-user, best-other
+      exam:              best-user, best-other
+    study:
+       training:
+         passed: target, best-user, best-other
+         repeat:         best-user, best-other
+       exam:     target, best-user, best-other
+  upd output:
+    exam - fix output
+
 redo params:
   "<first_sequence>,<sequence>,<sequence>,..."
   decimal.precision -> range.procision
   redo progressions
-would you like to continue(study)/repeat(exam,training)?
+main - would you like to continue
+tests:
+  python-tests?
 
 todo:
+  analyze --spoilers
   decimal:
     analyze: fix decimal tables
   отрицательные

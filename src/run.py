@@ -10,6 +10,7 @@ from gtts import gTTS
 from num2words import num2words
 import pandas as pd
 from src.config import Config
+import src.csv as csv
 import src.helper as h
 from src.helpers.fo import Fo as fo
 from src.helpers.cmd import Cmd as cmd
@@ -48,7 +49,7 @@ class Run:
         self.generate_sounds_texts()
         self.generate_sounds_numbers()
         # get records data
-        self.df_records = self.get_df_records()
+        self.df_records = csv.get_records()
         self.df_exercise = self.get_df_exercise()
         self.best_time_passed = self.get_best_time(passed=True)
         self.best_time_repetitions = self.get_best_time(passed=False)
@@ -78,9 +79,9 @@ class Run:
         if self.is_new_record:
             self.update_records()
         self.display_results()
-        # TODO: would you like to repeat?
+        return is_passed, end_time
 
-    # preinit
+    # args/conf/fs
     def prepare_fs(self):
         cmd.run(f'mkdir -p ./sounds/{self.conf.lang}/numbers')
         if not fo.f_exist('./src/__records.csv'):
@@ -121,7 +122,7 @@ class Run:
         progress = int((i + 1) / total * 62)
         done = '#' * progress
         in_progress = ('.'*(62 - progress))
-        print(c.z(f'[x]>>> {msg} [{done}{in_progress}]'), end='\r', flush=True)
+        c.p(f'[x]>>> {msg} [{done}{in_progress}]'), end='\r', flush=True
     def say_beep(self, sound, speed):
         self.mpv(f'sounds/{sound}.mp3', speed)
     def say_text(self, sound, speed):
@@ -133,22 +134,13 @@ class Run:
         self.mpv(path, speed)
     def mpv(self, path, speed):
         if not fo.f_exist(path):
-            print(c.z(f'[r]ERROR:[c] MPV - File not exist: {path}'))
+            c.p(f'[r]ERROR:[c] MPV - File not exist: {path}')
             exit(1)
         if not speed:
             return False
         cmd.run(f'mpv {path} --speed={speed}', strict=False, verbose4fail=False)
 
     # dfs
-    def get_df_records(self):
-        try:
-            df = pd.read_csv('data/_records.csv')
-            df = df.rename(columns=lambda x: x.strip())
-            df = df.apply(lambda col: col.apply(lambda x: x.strip() if isinstance(x, str) else x))
-            df.set_index('id', inplace=True)
-            return df
-        except FileNotFoundError:
-            return pd.DataFrame(columns=self.records_columns).set_index('id')
     def get_best_time(self, passed):
         df = self.df_exercise[(self.df_exercise['is_exam'] == self.is_exam) & (self.df_exercise['is_passed'] == passed)]
         if df.empty:
@@ -172,7 +164,7 @@ class Run:
     # ready
     def get_ready(self):
         color = '[r]' if self.is_exam else '[g]'
-        print(c.z(f'{color}{self.mode.upper()}. [y]Get ready.[x] Start number:[c] {self.start_number}'))
+        c.p(f'{color}{self.mode.upper()}. [y]Get ready.[x] Start number:[c] {self.start_number}')
         self.say_text('get-ready', self.conf.spd_speech)
         self.say_text('start-number', self.conf.spd_speech)
         self.say_number(self.start_number, self.conf.spd_speech)
@@ -287,14 +279,14 @@ class Run:
         menu  = f'   [y]<Space/Enter>[c]   {gonext}\n'
         menu +=  '   [y]<a-Z>[c]           Restart the stage\n'
         menu +=  '   [y]<Esc>[c]           Exit'
-        print(c.z(menu))
+        c.p(menu)
         # get key
         key = self.tui.getch()
         self.tui.clear_lines(3)
         if key in [' ', '\r', '\n']: # next stage
             return True
         elif key == '\x1b':  # Esc
-            print(c.z('[g]Exit.'))
+            c.p('[g]Exit.')
             exit(0)
         else: # restart stage
             return False
@@ -351,7 +343,7 @@ class Run:
                 self.is_new_record = False
         else:
              msg = '[g]Exercise was finished!'
-        print(c.z(f'{msg}[c] Your time is: [y]{self.end_time_formated}'))
+        c.p(f'{msg}[c] Your time is: [y]{self.end_time_formated}')
         self.say_beep('end-game-passed' if self.is_passed else 'end-game', self.conf.spd_signals)
     def update_records(self):
         if not self.user_name:

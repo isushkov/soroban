@@ -164,9 +164,11 @@ def get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid):
     start_number      = sequence.split()[0]
     count_numbers     = len(sequence.split())
     existed_operands  = ' '.join(list(set(h.split_operation(op)[0] for op in sequence.split()))).strip()
-    range_digits      = f"{'x'*min_i}{d_min}{'x'*min_f}[x]-[c]{'x'*max_i}{d_max}{'x'*max_f}"
-    negative_results  = 'YES' if find_negative_results(sequence) else 'NO'
     decimal_exist     = 'YES' if max_f else 'NO'
+    negative_results  = 'YES' if find_negative_results(sequence) else 'NO'
+    range_numbers     = f"{'x'*min_i}{d_min}{'x'*min_f}[x]-[c]{'x'*max_i}{d_max}{'x'*max_f}"
+    # TODO
+    range_results     =
     total_provided    = 'YES' if total else 'NO'
     total_valid       = 'YES' if total_is_valid else 'NO'
     total_correct     = 'YES' if check_total(total, sequence) else 'NO'
@@ -176,9 +178,10 @@ def get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid):
         c.z(f'[x]Start number:     [c]{start_number}'),
         c.z(f'[x]Count numbers:    [c]{count_numbers}'),
         c.z(f'[x]Existed operands: [c]{existed_operands}'),
-        c.z(f'[x]Range digits:     [c]{range_digits}'),
-        c.z(f'[x]Negative results: [c]{negative_results}'),
         c.z(f'[x]Decimal exist:    [c]{decimal_exist}'),
+        c.z(f'[x]Negative results: [c]{negative_results}'),
+        c.z(f'[x]Range numbers:    [c]{range_numbers}'),
+        c.z(f'[x]Range results:    [c]{range_results}'),
         c.z(f'[x]Total provided:   [c]{total_provided}'),
         c.z(f'[x]Total valid:      [c]{total_valid}'),
         c.z(f'[x]Total correct:    [c]{total_correct}'),

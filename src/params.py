@@ -138,5 +138,25 @@ def validate(string, pattern, errtitle, errmsg=False):
     return string
 def params_error(errtitle, errval, errmsg=False):
     message = '' if not errmsg else f'{errmsg} - '
-    print(c.z(f'[r]ParamsError - Invalid <{errtitle}>:[c] {message}got [r]"{errval}"[c].'))
+    c.p(f'[r]ParamsError - Invalid <{errtitle}>:[c] {message}got [r]"{errval}"[c].')
     exit(2)
+
+# params2basename
+def params2basename(params):
+    names = []
+    for seq_params in params:
+        kind = seq_params['kind']
+        names.append(seq_params2seq_name(kind, seq_params))
+    return 'x'+params[0]+'_'+'_'.join(names)
+def seq_params2seq_name(kind, seq_params):
+    m = {'+':'A', '-':'S', '*':'M', '/':'D'}
+    operands = ''.join([f'{m[k]}{v}' for k,v in seq_params['required']['operands'].items()])
+    range_params = 'x'.join(str(i) for i in seq_params['required']['range'])
+    length = int(seq_params['required']['length'])
+    decimal_params = seq_params['optional']['decimal']
+    precision = 1 if decimal_params['precision'] else 0
+    probability = 1 if decimal_params['probability'] else 0
+    negative = f"{1 if seq_params['optional']['negative_allowed'] else 0}"
+    decimal = f'{precision}x{probability}'
+    roundtrip = f"{1 if seq_params['optional']['roundtrip'] else 0}"
+    return f'{kind}{operands}g{range_params}l{length}-n{negative}d{decimal}r{roundtrip}'
