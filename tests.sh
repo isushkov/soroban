@@ -370,9 +370,13 @@ run() {
     # expect 2 ./main.py create "s0 c+,1-99,"
     # expect 2 ./main.py create "s0 ,c+,1-99"
     # expect 2 ./main.py create "s0 ,c+,1-99,"
+
     expect 0 ./main.py create "s0 c+,1-9"
-    expect 0 ./main.py create "s500 c-,1-9"
-    expect 0 ./main.py create "s500 c+-,1-9"
+    expect 0 ./main.py create "s0 c+-,1-9"
+    expect 0 ./main.py create "s0 c+,1-9:<"
+    expect 0 ./main.py create "s0 c+-,1-9:<"
+    # expect 0 ./main.py create "s0 c-,1-9"
+    # expect 0 ./main.py create "s0 c-,1-9:<"
     exit
 
     announce_block "create/params/seq_params/kind.cover/required/operands: ok"

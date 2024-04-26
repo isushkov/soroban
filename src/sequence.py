@@ -44,11 +44,11 @@ def del_sign(num_str):
         return num_str[1:]
     raise ValueError(c.z(f'[r]ERROR:[c] del_sign(): {num_str}'))
 def split_operation(operation):
-    match = re.match(r'([*/+-]*)\s*(-?\d+(?:\.\d+)?)', operation)
+    operation = re.sub(r'\s+', '', operation)
+    match = re.match(r'([*/+-]*)(\d+(?:\.\d+)?)', operation)
     if not match:
         return '', operation
-    operand, number_str = match.groups()
-    return operand, number_str
+    return match.groups()
 def validate_sequence(sequence, pfx=False, exit_policy=0):
     """exit_policy:
        0 - exit: no,  traceback: replace by note

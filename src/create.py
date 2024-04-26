@@ -46,12 +46,12 @@ def create_sequence_start(start_param, seq_params):
     negative_allowed, decimal_params, _ = seq_params['optional'].values()
     operand = choose_operand(operands)
     if start_param == 'r':
-        _, number_str = s.split_operation(create_operation_random(operand, range_params, decimal_params, negative_allowed, 0))
+        _, number_str = s.split_operation(create_operation_random(operand, range_params, decimal_params, negative_allowed, 0, range_params))
         number = s.dec(number_str)
     else:
         number = s.dec(start_param)
     total = s.dec(number)
-    if not negative_politic_check(negative_allowed, total, operand, number):
+    if not negative_politic_check(total, operand, number, negative_allowed):
         c.p('[y]NOTE: [r]<start-number>[c] does not satisfy [y]the negative numbers policy[c].')
         c.p('[y]NOTE: [r]changed to "0".')
         number = 0
@@ -80,7 +80,7 @@ def create_sequence_progression(seq_params, total):
     return new_sequence
 def create_operation_progression(first, operand, diff, negative_allowed, total):
     number = s.do_math(s.dec(first), operand, s.dec(diff))
-    if not negative_politic_check(negative_allowed, total, operand, number):
+    if not negative_politic_check(total, operand, number, negative_allowed):
         c.p('[r]ERROR: progression-operation[c] does not satisfy [y]the negative numbers policy[c].')
         c.p('[r]ERROR: exit.')
         exit(2)
@@ -96,25 +96,25 @@ def create_sequence_random(seq_params, total):
         new_sequence += create_operation_random(operand, range_params, decimal_params, negative_allowed, total)
     return new_sequence
 def create_operation_random(operand, range_params, decimal_params, negative_allowed, total):
-    if operand in '+*/':
-        number = s.dec(generate_random_number(range_params, decimal_params))
-        return f' {operand}{s.num2str(number)}'
-    # minus
-    if not negative_politic_check(negative_allowed, total, operand, range_params[0]):
-        side, shift = 'min', -70
-        c.p('[y]NOTE: Random-operation[c] has conflicting parameters:')
-        c.p('[y]NOTE:[c]   - Negative numbers are not allowed.')
-        c.p('[y]NOTE:[c]   - Only "-" operands are used.')
-        c.p('[y]NOTE:[c]   - The current result minus the minimum possible value is less than zero.')
-        c.p('[y]NOTE:[c]   - The limit has been reached.')
-        c.p(f'[y]NOTE:[c]   replacing by number with [r]"+"[c] and changed range [r]{side}:{s.add_sign(shift)}%[c]')
-        return create_operation_random('+', change_range(side, shift, range_params), decimal_params, negative_allowed, total)
+    # is this possible?
+    if not negative_politic_check(total, operand, range_params[0], negative_allowed):
+        shift_min, shift_max = -500, +500
+        new_min_range,_ = change_range('min', shift_min, range_params)
+        _,new_max_range = change_range('max', shift_max, range_params)
+        new_range = [new_min_range, new_max_range]
+        note_negative_not_posible('r')
+        note_change_operand('+')
+        note_change_range('min', shift_min, range_params, new_range)
+        note_change_range('max', shift_max, range_params, new_range)
+        return create_operation_random('+', new_range, decimal_params, negative_allowed, total)
     number = s.dec(generate_random_number(range_params, decimal_params))
-    if not negative_politic_check(negative_allowed, total, operand, number):
-        side, shift = 'max', -70
-        c.p('[y]NOTE: Random-operation[c] does not satisfy [r]the negative numbers policy:')
-        c.p(f'[y]NOTE:[c]   replacing by number with changed range [r]{side}:{s.add_sign(shift)}%[c]')
-        return create_operation_random(operand, change_range(side, shift, range_params), decimal_params, negative_allowed, total)
+    # no luck this time
+    if not negative_politic_check(total, operand, number, negative_allowed):
+        side, shift = 'max', -75
+        new_range = change_range('max', -75, range_params)
+        note_negative_not_satisfy('r')
+        note_change_range(side, shift, range_params, new_range)
+        return create_operation_random(operand, new_range, decimal_params, negative_allowed, total)
     return f' {operand}{s.del_sign(number)}'
 def choose_operand(operands):
     operations, weights = zip(*operands.items())
@@ -131,108 +131,158 @@ def generate_random_number(range_params, decimal_params):
             return s.dec(format(number, f".{decimal_params['precision']}f"))
         return s.dec(random.randint(*range_values))
     return s.dec(random.randint(*range_values))
-def change_range(shift_type, shift_percent, range_values):
-    min_value, max_value = range_values
-    shift_value = int((int(max_value) - int(min_value)) * (shift_percent / 100))
-    if shift_type == 'min':
-        new_min = int(min_value) - shift_value
-        return (new_min, max_value)
-    if shift_type == 'max':
-        new_max = int(max_value) + shift_value
-        return (min_value, new_max)
 
 # cover
 def create_sequence_cover(seq_params, total):
-    new_sequence = ''
     operands, range_params, length = seq_params['required'].values()
     negative_allowed, decimal_params, _ = seq_params['optional'].values()
     # TODO: cover-units decimal
     if decimal_params['precision']: c.todo('cover-units for decimal')
     # TODO: cover-units for "*/"
     if '*' in operands or '/' in operands: c.todo('cover-units for "*/"')
-    combs_tmp = {(y,x) for y in range(0, 10) for x in range(1, 10)}
-    combs_pos = combs_tmp if '+' in operands else {}
-    combs_neg = combs_tmp if '-' in operands else {}
+    # create cover sequence
+    new_sequence = ''
+    combs_origin = {(y,x) for y in range(0, 10) for x in range(1, 10)}
+    combs = {
+        '+': combs_origin.copy() if '+' in operands else {},
+        '-': combs_origin.copy() if '-' in operands else {}
+    }
     is_notified = False
-    while combs_pos or combs_neg:
-        # если был указан length и length меньше чем потребовалось для подбора всех комбинаций
+    while combs['+'] or combs['-']:
         if length and len(new_sequence.split()) > int(length) and not is_notified:
-            c.p(f'[y]NOTE:[c] Not all numbers have been generated yet for possible combinations of units:')
-            c.p(f'[y]NOTE:[c]   The specified [y]length in the parameters [y]will be ignored.')
-            c.p(f'[y]NOTE:[c]   the specified length in the parameters is {length}.')
-            c.p(f'[y]NOTE:[c]   the current length is [y]{len(new_sequence.split())}.')
-            is_notified = True
+            is_notified = note_length_less_than_req(length, new_sequence)
         operand = choose_operand(operands)
-        combs = combs_pos if operand == '+' else combs_neg
-        operation, combs, total = create_operation_cover(operand, range_params, decimal_params, negative_allowed, total, combs)
-        if operand in '+': combs_pos = combs
-        if operand in '-': combs_neg = combs
+        if not combs[operand]:
+            continue
+        operation, total, combs = create_operation_cover(operand, range_params, decimal_params, negative_allowed, total, combs)
         new_sequence += operation
-    # если был указан length, после того как все комбинации подобраны - генерировать числа рандомно.
+    # add extra random operations
     is_notified = False
     while len(new_sequence.split()) <= int(length):
         if not is_notified:
-            c.p(f'[y]NOTE:[c] All combinations were matched:')
-            c.p(f'[y]NOTE:[y]   The rest of the sequence will be generated randomly.')
-            c.p(f'[y]NOTE:[c]   the current length is [y]{len(new_sequence.split())}.')
-            c.p(f'[y]NOTE:[c]   the specified length in the parameters is [y]{length}.')
-            is_notified = True
+            is_notified = note_length_more_than_req(length, new_sequence)
         operand = choose_operand(operands)
         new_sequence += create_operation_random(operand, range_params, decimal_params, negative_allowed, total)
     return new_sequence
 def create_operation_cover(operand, range_params, decimal_params, negative_allowed, total, combs):
-    # create random number, get y
-    _, number_str = s.split_operation(create_operation_random(operand, range_params, decimal_params, negative_allowed, total))
-    number = s.dec(number_str)
-    y = total % 10
-    # add offset for units
-    y_pairs = get_y_pairs(combs, y)
+    # prepare random_number
+    random_operation = create_operation_random(operand, range_params, decimal_params, negative_allowed, total)
+    _, random_number_str = s.split_operation(random_operation)
+    random_number = s.dec(random_number_str)
+    # looking y_pairs
+    y = int(total % 10)
+    y_pairs = get_y_pairs(combs[operand], y)
+    # если пар нет
     if not y_pairs:
-        # forced - создать операцию и добавить ее к sequence, после чего у total будут y_pairs.
-        c.p('[y]NOTE:[c] cover-operation - [y]no combinations left[c] for the chain of operations.')
-        c.p('[y]NOTE:[c]   the operation will be forcibly selected to start a new chain.')
-        # выбрать рандомную пару из оставшихся, извлечь "y"
-        forced_y = random.choice(list(combs))[0]
-        # посчитать единицы и заменить их в number
-        if operand == '+': forced_x = abs(forced_y - y)
-        if operand == '-': forced_x = abs(y - forced_y)
-        forced_number = replace_units(number, forced_x)
-        # добавляем получившееся значение в sequence
-        forced_operation = f' {operand}{s.del_sign(forced_number)}'
-        # total = s.do_math(total, operand, number)
-        if operand == '+': total += forced_number
-        if operand == '-': total -= forced_number
-        # create_operation_cover снова для уже подходящего total
-        operation, combs, total = create_operation_cover(operand, range_params, decimal_params, negative_allowed, total, combs)
-        two_operations = forced_operation + operation
-        return two_operations, combs, total
-    # второе число получено
+        # add forced_operation (same operand) for total with y_pairs
+        note_force_cover_sequence('[y]no combinations left[c] for the chain of operations.')
+        return force_cover_sequence(operand, range_params, decimal_params, negative_allowed, total, combs, random_number)
+    # если пары есть, но они все не удовлетворяют negative_politic
+    y_pairs = filter_pairs_by_negative_politic(total, operand, random_number, negative_allowed, y_pairs)
+    if not y_pairs:
+        note_force_cover_sequence('[r]all combinations not satisfy negative_politic.')
+        operand = '+'
+        note_change_operand(operand)
+        # add forced_operation ("+" operand) for total with y_pairs
+        if combs[operand]:
+            return force_cover_sequence(operand, range_params, decimal_params, negative_allowed, total, combs, random_number)
+        # add random operation ("+" operand)
+        return f' {operand}{s.del_sign(random_number)}', s.do_math(total, operand, random_number), combs
+    # get second number
     x = random.choice(y_pairs)[1]
-    number = replace_units(number, x)
-    # check negative politic
-    if not negative_politic_check(negative_allowed, total, operand, number):
-        side, shift = 'max', -70
-        c.p('[y]NOTE: Cover-operation[c] does not satisfy [r]the negative numbers policy.')
-        c.p(f'[y]NOTE:[c]   replacing by number with changed range [r]{side}:{s.add_sign(shift)}%[c]')
-        return create_operation_cover(operand, change_range(side, shift, range_params), decimal_params, negative_allowed, total, combs)
+    number = replace_units(random_number, x)
     # done. remove pair, go next
-    combs.remove((y,x))
-    total = s.do_math(total, operand, number)
-    return f' {operand}{s.del_sign(number)}', combs, total
-def get_y_pairs(combs, y):
-    y_pairs = [(y_filtered, x) for (y_filtered, x) in combs if y == y_filtered]
-    return y_pairs if y_pairs else False
+    combs[operand].remove((y,x))
+    return f' {operand}{s.del_sign(number)}', s.do_math(total, operand, number), combs
+def get_y_pairs(combs_op, y):
+    return [(y_filtered, x) for (y_filtered, x) in combs_op if y == y_filtered]
+def filter_pairs_by_negative_politic(total, operand, random_number, negative_allowed, y_pairs):
+    positive_y_pairs = []
+    for (y, x) in y_pairs:
+        predicted_number = replace_units(random_number, x)
+        if not negative_politic_check(total, operand, predicted_number, negative_allowed):
+            note_negative_not_satisfy('c')
+            continue
+        positive_y_pairs.append((y,x))
+    return positive_y_pairs
+
+def force_cover_sequence(operand, range_params, decimal_params, negative_allowed, total, combs, random_number):
+    y = int(total % 10)
+    forced_y = random.choice(list(combs[operand]))[0]
+    if operand == '+': forced_x = (10+forced_y - y) % 10
+    if operand == '-': forced_x = (10+y - forced_y) % 10
+    # get new operation with new total
+    forced_number = replace_units(random_number, forced_x)
+    forced_operation = f' {operand}{s.del_sign(forced_number)}'
+    forced_total = s.do_math(total, operand, forced_number)
+    operation, total, combs = create_operation_cover(operand, range_params, decimal_params, negative_allowed, forced_total, combs)
+    return forced_operation + operation, total, combs
 def replace_units(number, x):
-    if not (1 <= x <= 9):
-        raise ValueError("must be 1 <= x <= 9")
     integer_part = int(number // s.dec(1))
     fractional_part = number % s.dec(1)
     new_integer_part = (integer_part // 10) * 10 + x
     return s.dec(new_integer_part) + s.dec(fractional_part)
 # negative politic
-def negative_politic_check(negative_allowed, total, operand, number):
+def negative_politic_check(total, operand, number, negative_allowed):
     if negative_allowed: return True
     if operand != '-':   return True
     if s.dec(total) - s.dec(number) < 0:
         return False
     return True
+def change_range(shift_type, shift_percent, old_range):
+    old_range = list(map(int, old_range))
+    min_value, max_value = old_range
+    shift_value = int((max_value - min_value) * (shift_percent / 100))
+    if shift_value == 0: shift_value = 1 if shift_percent != 0 else 0
+    if shift_type == 'min':
+        min_value -= shift_value
+        if min_value < 1:
+            min_value = 1
+    if shift_type == 'max':
+        max_value += shift_value
+        if max_value < 1:
+            max_value = 1
+    if max_value < min_value:
+        max_value = min_value
+    new_range = [min_value, max_value]
+    if new_range == old_range:
+        raise Exception(c.z(f'[r]ERROR:[c] range the same: {old_range} -> {new_range}'))
+    return new_range
+
+# notes negative_politic
+def note_negative_not_posible(kind):
+    kind = 'Random' if kind == 'r' else 'Cover'
+    c.p(f'[y]NOTE: {kind}-operation[c] has conflicting parameters:')
+    c.p('[y]NOTE:[c]   - Negative numbers are not allowed.')
+    c.p('[y]NOTE:[c]   - Only "-" operands are used.')
+    c.p('[y]NOTE:[c]   - The current result minus the minimum possible value is less than zero.')
+    c.p('[y]NOTE:[c]   - The limit has been reached.')
+def note_negative_not_satisfy(kind):
+    if kind == 'r':
+        c.p(f'[y]NOTE: Random-operation[c] does not satisfy [r]the negative numbers policy.[x] Trying again..')
+        return True
+    if kind == 'c':
+        c.p(f'[y]NOTE: Y-pair for cover-operation[c] does not satisfy [r]the negative numbers policy.[x] Skip pair..')
+        return True
+    raise Exception(c.z(f'[r]ERROR:[c] unknown kind - {kind}'))
+# notes negative_politic - changes
+def note_change_operand(new_operand):
+    c.p(f'[y]NOTE:[c]   Changing [r]operand by "{new_operand}".')
+def note_change_range(side, shift, old_range, new_range):
+    old_range, new_range = map(str, old_range), map(str, new_range)
+    c.p(f'[y]NOTE:[c]   Changing [r]range {side}:{s.add_sign(shift)}%[c] [x]([c]{"-".join(old_range)} [x]->[c] {"-".join(new_range)}[x])')
+# notes extra-cover
+def note_length_less_than_req(length, new_sequence):
+    c.p(f'[y]NOTE:[c] Not all numbers have been generated yet for possible combinations of units:')
+    c.p(f'[y]NOTE:[c]   The specified [y]length in the parameters [y]will be ignored.')
+    c.p(f'[y]NOTE:[c]   the specified length in the parameters is {length}.')
+    c.p(f'[y]NOTE:[c]   the current length is [y]{len(new_sequence.split())}.')
+    return True
+def note_length_more_than_req(length, new_sequence):
+    c.p(f'[y]NOTE:[c] All combinations were matched:')
+    c.p(f'[y]NOTE:[y]   The rest of the sequence will be generated randomly.')
+    c.p(f'[y]NOTE:[c]   the current length is [y]{len(new_sequence.split())}.')
+    c.p(f'[y]NOTE:[c]   the specified length in the parameters is [y]{length}.')
+    return True
+def note_force_cover_sequence(reason):
+    c.p(f'[y]NOTE:[c] Cover-operation - {reason} [x]Starting a new chain..')
