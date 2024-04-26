@@ -1,18 +1,20 @@
 import time
+import re
 import pandas as pd
 from datetime import datetime
 from src.config import Config
 from src.params import parse_params, params2basename
+from src.create import create
+from src.analyze import analyze
+from src.run import Run
 import src.sequence as s
 import src.helpers.fo as fo
 import src.helpers.pdo as pdo
 import src.helpers.colors as c
 from src.helpers.cmd import cmd
 
-def study(arg_style, arg_user_name):
+def study(arg_user_name):
     # args/conf/fs
-    if arg_style != 'abacus':
-        c.todo(f'study, style: {style}')
     prepare_fs()
     conf = Config()
     user_name = arg_user_name or conf.user_name
@@ -23,48 +25,61 @@ def study(arg_style, arg_user_name):
         user_name = input('Please enter your name: ').strip()[:6]
         if not user_name:
             c.p(f'[r]EXIT:[c] The user-name [r]is required[y] for the study-mode.')
-    print(c.center(c.z(f' [y]STUDY PROGRAM ({user_name})'), 94, '=', 'x'))
+    print(c.center(c.z(f' [y]STUDY PROGRAM  for {user_name} '), 94, '>', 'x'))
     # load/filter data
     study_attempts_columns = ['id','name','step','trainings_passed','exams_failed']
     df_study_attempts = pdo.load('./src/__study_attempts.csv', study_attempts_columns)
     df_records = pdo.load('./src/__records.csv', empty_allowed=True)
     df_study_attempts4user = pdo.filter(df_study_attempts, where={'name': user_name }, empty_allowed=True)
     df_records4user = pdo.filter(df_records, where={'name': user_name }, empty_allowed=True, many_allowed=True)
-    data_study_program = fo.yml2dict('./src/__study_program.yml')
+    data_study_program = get_study_program()
     # step/create/analyze
-    step, target, params_str, exercise = identify_step(df_records4user, data_study_program)
-    path = create(path=False, params=params_str)
+    step, target, params, exercise = identify_step(df_records4user, data_study_program)
+    path = create(path=False, params=params)
     analyze(path)
     # mode
     trainings_passed, exams_failed = get_attempts(df_study_attempts)
     mode = identify_mode(df_records4user, user_name, exercise, target, trainings_passed, exams_failed, conf.t2e, conf.e2t)
     # get-ready
     color = 'r' if mode == 'exam' else 'y'
-    c.p(f'[x]>>> [y]Get ready ({user_name}):')
-    c.p(f'[x]>>> [y]Step {step}:[c] "{params_str}" (target time: [r]{target}[c]) - [{color}]{mode.upper()}')
-    c.p(f'[x]>>> [y]Attempts:[c] trainings [y]{trainings_passed}[g]/{config.t2e}[c], exams [y]{exams_failed}[r]/{config.e2t}')
-    input(c.p('[x]>>> [c]Press Enter to continue...'))
+    c.p(f'[x]>>> [y]{user_name}[x], get ready:')
+    c.p(f'[b]>>> Step {step}: [{color}]{mode.upper()}. [x]target-time: [r]{target}[x]. exercise: "{params}"')
+    c.p(f'[x]>>> trainings-passed: [c]{trainings_passed}[g]/{conf.t2e}[c]')
+    c.p(f'[x]>>> exams-failed:     [c]{exams_failed}[r]/{conf.e2t}')
+    input('Press Enter to continue...')
     # interrupt-handler/run
-    save_study_attempts(mode, False, trainings_passed, exams_failed)
+    interrupt_handler(df_study_attempts, user_name, mode, trainings_passed, exams_failed)
     is_passed, time_seconds = Run(path, mode, user_name, target)
     # result/save
     result = get_result(is_passed, time_seconds, target)
     trainings_passed, exams_failed = upd_attempts(mode, result, trainings_passed, exams_failed)
-    save_study(df_study_attempts, user_name, trainings_passed, exams_failed)
+    save_study_attempts(df_study_attempts, user_name, trainings_passed, exams_failed)
 
 # common/attempts/result
 def prepare_fs():
-    f = './src/__study_program.csv'
+    f = './src/__study_program.txt'
     if not fo.f_exist(f):
         raise FileNotFoundError(c.z(f'[r]ERROR:[c] file not found - {f}'))
+def get_study_program():
+    study_program = []
+    for line in fo.txt2str('./src/__study_program.txt').splitlines():
+        line = line.strip()
+        if not line: continue
+        if not line[0].isdigit(): continue
+        parts = line.split(':')
+        data = [parts[0].strip(), re.sub(r'\s+', ' ', ':'.join(parts[1:]).strip())]
+        study_program.append(data)
+    return study_program
 def target2seconds(target):
     minutes, seconds = map(float, target.split('.'))
     seconds = minutes * 60 + seconds
     return seconds
 def get_attempts(df_study_attempts4user):
-    if df_study_user.empty:
-        return 0, 0
-    return df_study_user.iloc[0][2:4]
+    if df_study_attempts4user.empty:
+        return (0, 0)
+    trainings_passed = df_study_attempts4user.iloc[0, 1]
+    exams_failed = df_study_attempts4user.iloc[0, 2]
+    return (trainings_passed, exams_failed)
 def upd_attempts(mode, result, trainings_passed, exams_failed):
     if mode == 'training':
         return (trainings_passed+1, 0) if result else (0, 0)
@@ -75,26 +90,30 @@ def get_result(is_passed, time_seconds, target):
     if time_seconds <= target2seconds(target):
         return True
     return False
-def save_study(df_study_attempts, user_name, trainings_passed, exams_failed):
-    values = {'trainings_passed':trainings_passed, 'exams_failed':exams_failed}
+def save_study_attempts(df_study_attempts, user_name, trainings_passed, exams_failed):
+    values = {'trainings_passed':str(trainings_passed), 'exams_failed':str(exams_failed)}
     df = pdo.update(df_study_attempts, where={'name':user_name}, values=values, addnew_allowed=True, many_allowed=False)
     pdo.save(df, './src/__study_attempts.csv')
+def interrupt_handler(df_study_attempts, user_name, mode, trainings_passed, exams_failed):
+    trainings_passed, exams_failed = upd_attempts(mode, False, trainings_passed, exams_failed)
+    save_study_attempts(df_study_attempts, user_name, trainings_passed, exams_failed)
 # inentify
 def identify_step(df_records4user, data_study_program):
     c.p(f'[b]INFO: >>>[c] Identifying the STUDY-STEP..')
     if df_records4user.empty:
-        step, target, params_str = data_study_program[0]
-        exercise = params2basename(parse_params(params_str))
+        step = 0
+        target, params = data_study_program[step]
+        exercise = params2basename(parse_params(params))
         c.p(f'[b]INFO:[c] records not found.')
         c.p(f'[b]INFO:[c] Current step is {step} ({exercise}).')
-        return step, target, params_str, exercise
-    for step, target, params_str in enumerate(data_study_program.items()):
-        exercise = params2basename(parse_params(params_str))
+        return step, target, params, exercise
+    for step, [target, params] in enumerate(data_study_program):
+        exercise = params2basename(parse_params(params))
         where = {'exercise':exercise,'is_exam':1,'is_passed':1}
         df_passed_exams = pdo.filter(df_records4user, where=where, empty_allowed=True, many_allowed=True)
         if df_passed_exams[df_passed_exams['time_seconds'] <= target2seconds(target)].empty:
             c.p(f'[g]INFO:[c] Current step is {step} ({exercise}).')
-            return step, target, params_str, exercise
+            return step, target, params, exercise
         c.p(f'[b]INFO: Step {step}[c] - passed ({exercise}).')
     c.p(f'[y]NOTE:[c] Study-step not identified:')
     c.p(f'[y]NOTE:[c] [g]You\'ve already passed everything?')

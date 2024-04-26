@@ -16,12 +16,12 @@ from src.helpers.cmd import cmd
 from src.helpers.tui import Tui
 
 class Run:
-    def __init__(self, arg_path, arg_mode, arg_user_name):
+    def __init__(self, path, mode, user_name, target=False):
         # args/conf/fs
         self.conf = Config()
-        self.path = arg_path
-        self.mode = arg_mode or self.conf.mode
-        self.user_name = arg_user_name or conf.user_name
+        self.path = path
+        self.mode = mode or self.conf.mode
+        self.user_name = user_name or conf.user_name
         self.records_columns = ['id', 'rank', 'name', 'exercise', 'is_exam', 'is_passed', 'time', 'time_seconds', 'date']
         self.prepare_fs()
         self.exercise = os.path.splitext(os.path.basename(self.path))[0]

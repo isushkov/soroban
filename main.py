@@ -12,6 +12,31 @@ import src.helpers.fo as fo
 import src.helpers.exit_handler
 
 
+def would_like_repeat():
+    while True:
+        answer = input("Would you like to repeat? (y/n): ").strip().lower()
+        if answer == 'y': return True
+        elif answer == 'n': return False
+        else:
+            print("Invalid input. Please enter 'y' for yes or 'n' for no.")
+def init_run(args):
+    user_name = (args.user.strip()[:6] or False) if args.user else False
+    if args.command == 'study':
+        study(user_name)
+    else:
+        if args.style == 'mental':
+            c.todo('style mental')
+        elif args.command == 'run':
+            analyze(args.path)
+            Run(path, args.mode, user_name)
+        else:
+            path = create(args.path, args.params)
+            analyze(path)
+            Run(path, args.mode, user_name)
+    if not would_like_repeat():
+        return
+    init_run(args)
+
 def add_arg_params(subparser):
     subparser.add_argument('params', type=str, help=fo.txt2str('./src/_help_params.txt'))
 def add_args_style(subparser):
@@ -34,10 +59,6 @@ def main():
     p_analyze = p_command.add_parser('analyze', help='Analyze an exercise.')
     add_arg_path(p_analyze)
     # run
-    h_study = dedent("""
-    A collection of exercises with pre-defined modes (training and exam)
-    and time to successfully complete further.
-    """)
     p_run = p_command.add_parser('run', help='Run an existing exercise.')
     add_arg_path(p_run)
     add_args_style(p_run)
@@ -46,7 +67,6 @@ def main():
     prun_exam     = prun_mode.add_parser('exam', help='An exercise.', formatter_class=argparse.RawTextHelpFormatter)
     add_arg_params(prun_training)
     add_arg_params(prun_exam)
-    prun_study = prun_mode.add_parser('study', help=h_study)
     add_optarg_username(p_run)
     # run-new
     p_runnew = p_command.add_parser('run-new', help='Create, analyze and run a new exercise.')
@@ -56,9 +76,15 @@ def main():
     prunnew_exam     = prunnew_mode.add_parser('exam', help='Pass the exam.', formatter_class=argparse.RawTextHelpFormatter)
     add_arg_params(prunnew_training)
     add_arg_params(prunnew_exam)
-    prunnew_study = prunnew_mode.add_parser('study', help=h_study)
     add_optarg_path(p_runnew)
     add_optarg_username(p_runnew)
+    # study
+    h_study = dedent("""
+    A collection of exercises with pre-defined modes (training and exam)
+    and time to successfully complete further.
+    """)
+    p_study = p_command.add_parser('study', help=h_study, formatter_class=argparse.RawTextHelpFormatter)
+    add_optarg_username(p_study)
 
     args = parser.parse_args()
     if args.command == 'create':
@@ -66,22 +92,8 @@ def main():
         analyze(path)
     elif args.command == 'analyze':
         analyze(args.path)
-    elif args.command in ['run', 'run-new']:
-        # TODO: recursion - would you like to repeat?
-        user_name = (args.user_name.strip()[:6] or False) if args.user_name else False
-        if args.style == 'mental':
-            c.todo('style mental')
-        else:
-            if args.mode == 'study':
-                study(user_name)
-            else:
-                if args.command == 'run':
-                    analyze(args.path)
-                    Run(path, args.mode, user_name)
-                elif args.command == 'run-new':
-                    path = create(args.path, args.params)
-                    analyze(path)
-                    Run(path, args.mode, user_name)
+    elif args.command in ['run', 'run-new', 'study']:
+        init_run(args)
     else:
         parser.print_help()
 

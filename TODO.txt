@@ -1,6 +1,5 @@
-fix cover +-
-analyze dont work for tens+
 run:
+  redo output
   delta_time:
     simple:
       training:
@@ -12,34 +11,26 @@ run:
          passed: target, best-user, best-other
          repeat:         best-user, best-other
        exam:     target, best-user, best-other
-  upd output:
-    exam - fix output
-main - would you like to continue
-analyze:
-  исключить start-number из подстчета количества таблиц
-  fix treminal size tables
-redo params:
-  "<first_sequence>,<sequence>,<sequence>,..."
-  decimal.precision -> range.procision
-  redo progressions
-tests:
-  python-tests?
-
+разобраться и реализовать:
+  отрицательные
+    create: fix cover +-
 todo:
+  redo params:
+    "<first_sequence>,<sequence>,<sequence>,..."
+    decimal.precision -> range.procision
+  redo progressions
   analyze --spoilers
   decimal:
     analyze: fix decimal tables
-  отрицательные
-  умножение/деление
-
+  tests
   дополнительные возможности:
-    квадратные корни
-    другое?
-      прочитать книги
-
+    умножение/деление
+    прочитать книги
+  upd readme
   mental-mode:
     в процессе работы отображать stage по одному числу - числа должны маргать
     как готово вернуть всю строку
-
-  upd readme
+  extra возможности:
+    квадратные корни, другое?
+    прочитать книги
   добавить локаль для других языков через переводчик

@@ -44,6 +44,7 @@ def addnew(df, values):
     df = df.append(values, ignore_index=True)
     return df
 def update(df, where, values, addnew_allowed=False, many_allowed=False):
+    print(values)
     """
     :param where: Словарь условий {column_name: value} для поиска строк.
     :param values: Словарь с обновлениями {column_name: new_value}.
@@ -59,12 +60,10 @@ def update(df, where, values, addnew_allowed=False, many_allowed=False):
     if matches.empty:
         if not addnew_allowed:
             raise Exception(c.z(f'[r]ERROR:[c] no matches found. [y]<addnew> is not allowed.'))
-        new_row = {**where, **values}
-        return addnew(df, new_row)
+        return addnew(df, {**where, **values})
     if len(matches) > 1:
         if not many_allowed:
             raise Exception(c.z(f'[r]ERROR:[c] found more than 1 matches. [y]<many> is not allowed.'))
-        df.loc[mask, values.keys()] = pd.Series(values)
-        return df
-    df.loc[mask, values.keys()] = pd.Series(values)
+    for key, value in values.items():
+        df.loc[mask, key] = value
     return df

@@ -16,10 +16,9 @@ def analyze(path):
     #   - найти самую длинную дробную чать, посчитать количество знаков.
     #   - умножить каждое число на 10^max_f, чтобы избавиться от дробей.
     #   - посчитать density.
-    min_i, min_f, max_i, max_f = find_min_max_digits(sequence)
+    min_i, max_i, min_f, max_f = find_min_max_digits(sequence)
     density_pos, density_neg = get_density(sequence, max_f)
-    # tables:
-    #   - сместить названия таблиц на 10^(-max_fract_digits).
+    # tables: сместить названия таблиц на 10^(-max_fract_digits).
     tables_fract = get_tables(max_f, density_pos, density_neg, is_fract=True)
     tables_integ = get_tables(max_i, density_pos, density_neg, is_fract=False)
     tables_final = [
@@ -27,8 +26,7 @@ def analyze(path):
         get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid)
     ]
     # render
-    sep = ' '*3
-    tab = ' '*3
+    tab, sep = ' '*3, ' '*3
     width, _ = shutil.get_terminal_size()
     r_fract  = render_tables(sep, tables_fract, width, tab=tab)
     r_integ  = render_tables(sep, tables_integ, width, tab=tab)
@@ -68,7 +66,7 @@ def find_min_max_digits(sequence):
         max_i = max(max_i, len(integ_part))
     if min_f == float('inf'): min_f = 0
     if min_f == float('inf'): min_i = 0
-    return min_i, min_f, max_i, max_f
+    return min_i, max_i, min_f, max_f
 def get_density(sequence, max_f):
     density_pos = {}
     density_neg = {}
