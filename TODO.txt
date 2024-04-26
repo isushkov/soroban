@@ -1,7 +1,4 @@
-study program.
-analyze:
-  range_results
-  fix treminal size tables
+fix cover +-
 run:
   delta_time:
     simple:
@@ -16,12 +13,14 @@ run:
        exam:     target, best-user, best-other
   upd output:
     exam - fix output
-
+main - would you like to continue
+analyze:
+  исключить start-number из подстчета количества таблиц
+  fix treminal size tables
 redo params:
   "<first_sequence>,<sequence>,<sequence>,..."
   decimal.precision -> range.procision
   redo progressions
-main - would you like to continue
 tests:
   python-tests?
 

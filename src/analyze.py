@@ -1,16 +1,16 @@
 import re
-from collections import Counter
-import src.helper as h
-import src.helpers.colors as c
-from src.helpers.fo import Fo as fo
 import shutil
+from collections import Counter
+import src.sequence as s
+import src.helpers.colors as c
+import src.helpers.fo as fo
 
 # density:
 def analyze(path):
     print(c.center(c.z(f' [y]ANALYZE {path} '), 94, '=', 'x'))
     # validation
     sequence, total = fo.txt2str(path).split('=')
-    sequence = h.validate_sequence(sequence, 'analyze sequence', exit_policy=2)
+    sequence = s.validate_sequence(sequence, 'analyze sequence', exit_policy=2)
     total_is_valid = validate_total(total)
     # density
     #   - найти самую длинную дробную чать, посчитать количество знаков.
@@ -45,7 +45,7 @@ def analyze(path):
 
 # validate
 def validate_total(total):
-    total = h.validate_sequence(total, 'analyze total', exit_policy=1)
+    total = s.validate_sequence(total, 'analyze total', exit_policy=1)
     msg = c.z(f"[y]NOTE:[c] total is invalid - [r]'{total}'")
     if not total:
         print(msg); return False
@@ -74,13 +74,13 @@ def get_density(sequence, max_f):
     density_neg = {}
     operations = sequence.split()
     # для каждой пары чисел
-    total = h.dec(operations[0])
+    total = s.dec(operations[0])
     for operation in operations[1:]:
-        operand, number_str = h.split_operation(operation)
+        operand, number_str = s.split_operation(operation)
         # TODO: * / *- /-
-        if operand not in ['+', '-']: todo(f'density for "{operand}"')
+        if operand not in ['+', '-']: c.todo(f'density for "{operand}"')
         # сдвигаем число право на максимальное количество запятых
-        number = h.dec(number_str) * (10 ** max_f)
+        number = s.dec(number_str) * (10 ** max_f)
         if operand == '+': density = density_pos
         if operand == '-': density = density_neg
         # для каждого разряда. всего разрядов - длина второго слогаемого
@@ -90,7 +90,7 @@ def get_density(sequence, max_f):
         # next
         if operand == '+': density_pos = density
         if operand == '-': density_neg = density
-        total = h.do_math(total, operand, number)
+        total = s.do_math(total, operand, number)
     return density_pos, density_neg
 def upd_density(d_density, digit, total, number):
     y,x = get_yx(total, number, digit)
@@ -140,12 +140,6 @@ def get_table(digit, density_pos, density_neg, is_fract=False):
     table.append(c.z('[x]├───────────┼───┼───────────┤'))
     table.append(c.z('[x]└─987654321─┘   └─123456789─┘'))
     return table
-
-
-
-
-
-
 def get_density_row(y, density, rng):
     row = ''
     for x in rng:
@@ -158,20 +152,20 @@ def get_count_str(count):
     if count <= 9: return c.z(f'[y]{count}')
     if count > 9: return c.z('[r]*')
     return str(count)
-def get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid):
+# info
+def get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid, spoilers=False):
     d_min = '.' if min_f else ''
     d_max = '.' if max_f else ''
     start_number      = sequence.split()[0]
     count_numbers     = len(sequence.split())
-    existed_operands  = ' '.join(list(set(h.split_operation(op)[0] for op in sequence.split()))).strip()
-    decimal_exist     = 'YES' if max_f else 'NO'
-    negative_results  = 'YES' if find_negative_results(sequence) else 'NO'
-    range_numbers     = f"{'x'*min_i}{d_min}{'x'*min_f}[x]-[c]{'x'*max_i}{d_max}{'x'*max_f}"
-    # TODO
-    range_results     =
-    total_provided    = 'YES' if total else 'NO'
-    total_valid       = 'YES' if total_is_valid else 'NO'
-    total_correct     = 'YES' if check_total(total, sequence) else 'NO'
+    existed_operands  = ' '.join(list(set(s.split_operation(op)[0] for op in sequence.split()))).strip()
+    decimal_exist     = render_yn(max_f)
+    negative_results  = render_yn(s.apply(lambda total: total < 0, sequence))
+    range_numbers     = f"{'x'*min_i}{d_min}{'x'*min_f}[x]>[c]{'x'*max_i}{d_max}{'x'*max_f}"
+    range_results     = render_range_results(s.apply(get_range_results, sequence), spoilers)
+    total_provided    = render_yn(total)
+    total_valid       = render_yn(total_is_valid)
+    total_correct     = render_yn(s.dec(total) == s.safe_eval(sequence))
     return [
         c.z(f''),
         c.z(f''),
@@ -187,16 +181,20 @@ def get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid):
         c.z(f'[x]Total correct:    [c]{total_correct}'),
         c.z(f'')
     ]
-def check_total(total, sequence):
-    return True if h.dec(total) == h.safe_eval(sequence) else False
-def find_negative_results(sequence):
-    operations = sequence.split()
-    total = h.safe_eval(operations[0])
-    for operation in operations[1:]:
-        total += h.safe_eval(operation)
-        if total < 0:
-            return True
-    return False
+def render_yn(value):
+    return 'Yes' if value else 'No'
+def render_range_results(range_results, spoilers):
+    min_result, max_result = range_results
+    if not spoilers:
+        min_result, max_result = blur(min_result), blur(max_result)
+    return c.z(f'{min_result}[x]>[c]{max_result}')
+def blur(number):
+    return re.sub(r'\d', 'x', str(number))
+def get_range_results(total, range_results=(0,0)):
+    min_result, max_result = range_results
+    if total < min_result: min_result = total
+    if total > max_result: max_result = total
+    return (min_result, max_result)
 # render
 def render_tables(sep, tables, term_width, tab=' '*3):
     if not tables:

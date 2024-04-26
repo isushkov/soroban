@@ -8,14 +8,12 @@ import time
 from datetime import datetime
 from gtts import gTTS
 from num2words import num2words
-import pandas as pd
 from src.config import Config
-import src.csv as csv
-import src.helper as h
-from src.helpers.fo import Fo as fo
-from src.helpers.cmd import Cmd as cmd
-from src.helpers.tui import Tui
+import src.helpers.fo as fo
+import src.helpers.pdo as pdo
 import src.helpers.colors as c
+from src.helpers.cmd import cmd
+from src.helpers.tui import Tui
 
 class Run:
     def __init__(self, arg_path, arg_mode, arg_user_name):
@@ -79,13 +77,13 @@ class Run:
         if self.is_new_record:
             self.update_records()
         self.display_results()
-        return is_passed, end_time
+        return is_passed, round(self.end_time - self.start_time, 2)
 
     # args/conf/fs
     def prepare_fs(self):
-        cmd.run(f'mkdir -p ./sounds/{self.conf.lang}/numbers')
+        cmd(f'mkdir -p ./sounds/{self.conf.lang}/numbers')
         if not fo.f_exist('./src/__records.csv'):
-            cmd.run(f'echo {",".join(self.records_columns)} > ./src/__records.csv')
+            cmd(f'echo {",".join(self.records_columns)} > ./src/__records.csv')
     # sounds
     def generate_sounds_texts(self):
         texts = fo.yml2dict('./src/_texts4sounds.yml')
@@ -122,7 +120,7 @@ class Run:
         progress = int((i + 1) / total * 62)
         done = '#' * progress
         in_progress = ('.'*(62 - progress))
-        c.p(f'[x]>>> {msg} [{done}{in_progress}]'), end='\r', flush=True
+        print(c.z(f'[x]>>> {msg} [{done}{in_progress}]'), end='\r', flush=True)
     def say_beep(self, sound, speed):
         self.mpv(f'sounds/{sound}.mp3', speed)
     def say_text(self, sound, speed):
@@ -138,7 +136,7 @@ class Run:
             exit(1)
         if not speed:
             return False
-        cmd.run(f'mpv {path} --speed={speed}', strict=False, verbose4fail=False)
+        cmd(f'mpv {path} --speed={speed}', strict=False, verbose4fail=False)
 
     # dfs
     def get_best_time(self, passed):
@@ -366,8 +364,8 @@ class Run:
         self.user_id = self.df_records.index[-1]
         self.user_rank = self.upd_rank()
         # save
-        tmp_df = self.df_records.reset_index().rename(columns={'index': 'id'})
-        tmp_df.to_csv('data/_records.csv', index=False)
+        pdo.save(df_records, 'data/_records.csv')
+
     def display_results(self):
         df = self.df_exercise
         df_exam = df.loc[(df['is_exam'] == 1)]

@@ -108,15 +108,21 @@ def apply_exit_policy(exit_policy, msg):
     if exit_policy == 2: print(msg); exit(2)
 
 # num <-> num
+def apply(operation_func, sequence):
+    operations = sequence.split()
+    total = safe_eval(operations[0])
+    result = operation_func(total)
+    for operation in operations[1:]:
+        total += safe_eval(operation)
+        temp_result = operation_func(total)
+        result = temp_result if temp_result is not None else result
+    return result
 def do_math(x, operand, y, precision=2):
     map_operations = {
         '+': lambda x, y: x + y,
         '-': lambda x, y: x - y,
         '*': lambda x, y: x * y,
-        '/': lambda x, y: x / y if y != 0 else (
-            c.p(f'[r]Error:[c] Devision by zero.'))
-            sys.exit(1)
-        )[1]
+        '/': lambda x, y: x / y
     }
     return dec(map_operations[operand](x,y), precision)
 def safe_eval(sequence, precision=2):
@@ -156,8 +162,3 @@ def safe_eval(sequence, precision=2):
         else:
             raise TypeError(f"{e} Unsupported type")
     return dec(eval_(tree), precision)
-
-# other
-def todo(msg):
-    c.p(f'[y]TODO:[c] {msg}..')
-    exit(2)

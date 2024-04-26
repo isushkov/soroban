@@ -1,6 +1,5 @@
 import re
 import random
-import src.helper as h
 import src.helpers.colors as c
 
 # common
@@ -144,7 +143,7 @@ def params_error(errtitle, errval, errmsg=False):
 # params2basename
 def params2basename(params):
     names = []
-    for seq_params in params:
+    for seq_params in params[1:]:
         kind = seq_params['kind']
         names.append(seq_params2seq_name(kind, seq_params))
     return 'x'+params[0]+'_'+'_'.join(names)
@@ -159,4 +158,4 @@ def seq_params2seq_name(kind, seq_params):
     negative = f"{1 if seq_params['optional']['negative_allowed'] else 0}"
     decimal = f'{precision}x{probability}'
     roundtrip = f"{1 if seq_params['optional']['roundtrip'] else 0}"
-    return f'{kind}{operands}g{range_params}l{length}-n{negative}d{decimal}r{roundtrip}'
+    return f'{kind}{operands}-{range_params}-{length}-n{negative}d{decimal}r{roundtrip}'

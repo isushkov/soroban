@@ -2,18 +2,18 @@
 
 import argparse
 import sys
+from textwrap import dedent
 from src.study import study
 from src.create import create
 from src.analyze import analyze
 from src.run import Run
-import src.helper as h
-from src.helpers.fo import Fo as fo
+import src.sequence as s
+import src.helpers.fo as fo
 import src.helpers.exit_handler
-from textwrap import dedent
 
 
 def add_arg_params(subparser):
-    subparser.add_argument('params', type=str, help=fo.txt2str('./src/_help-params.txt'))
+    subparser.add_argument('params', type=str, help=fo.txt2str('./src/_help_params.txt'))
 def add_args_style(subparser):
     subparser.add_argument('style', choices=['abacus', 'mental'], help='Calculate using an abacus or mentally.')
 def add_arg_path(subparser):
@@ -21,11 +21,10 @@ def add_arg_path(subparser):
 def add_optarg_path(subparser):
     subparser.add_argument('--path', type=str, default=None, help='Set the custom full file name of the created exercise (by default ./data/*.txt).')
 def add_optarg_username(subparser):
-    subparser.add_argument('--user-name', type=str, default=None, help='User-name to save and track records')
+    subparser.add_argument('--user', type=str, default=None, help='User-name to save and track records')
 
 def main():
-    parser = argparse.ArgumentParser(description='Soroban exercise management system.',
-                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser = argparse.ArgumentParser(description='Soroban exercise management system.')
     p_command = parser.add_subparsers(dest='command', required=True, help='Command to perform.')
     # create
     p_create = p_command.add_parser('create', help='Create a new exercise.')
@@ -35,11 +34,6 @@ def main():
     p_analyze = p_command.add_parser('analyze', help='Analyze an exercise.')
     add_arg_path(p_analyze)
     # run
-    h_mode = dedent("""
-    A training session or exam for a specific exercise
-    or a collection of exercises with pre-defined modes (training and exam)
-    and time to successfully complete further.
-    """)
     h_study = dedent("""
     A collection of exercises with pre-defined modes (training and exam)
     and time to successfully complete further.
@@ -47,9 +41,9 @@ def main():
     p_run = p_command.add_parser('run', help='Run an existing exercise.')
     add_arg_path(p_run)
     add_args_style(p_run)
-    prun_mode = p_run.add_subparsers(dest='mode', required=True, help=h_mode)
-    prun_training = prun_mode.add_parser('training', help='A training session.')
-    prun_exam     = prun_mode.add_parser('exam', help='An exercise.')
+    prun_mode = p_run.add_subparsers(dest='mode', required=True)
+    prun_training = prun_mode.add_parser('training', help='A training session.', formatter_class=argparse.RawTextHelpFormatter)
+    prun_exam     = prun_mode.add_parser('exam', help='An exercise.', formatter_class=argparse.RawTextHelpFormatter)
     add_arg_params(prun_training)
     add_arg_params(prun_exam)
     prun_study = prun_mode.add_parser('study', help=h_study)
@@ -57,9 +51,9 @@ def main():
     # run-new
     p_runnew = p_command.add_parser('run-new', help='Create, analyze and run a new exercise.')
     add_args_style(p_runnew)
-    prunnew_mode = p_runnew.add_subparsers(dest='mode', required=True, help=h_mode)
-    prunnew_training = prunnew_mode.add_parser('training', help='A training session.')
-    prunnew_exam     = prunnew_mode.add_parser('exam', help='An exercise.')
+    prunnew_mode = p_runnew.add_subparsers(dest='mode', required=True)
+    prunnew_training = prunnew_mode.add_parser('training', help='A training session.', formatter_class=argparse.RawTextHelpFormatter)
+    prunnew_exam     = prunnew_mode.add_parser('exam', help='Pass the exam.', formatter_class=argparse.RawTextHelpFormatter)
     add_arg_params(prunnew_training)
     add_arg_params(prunnew_exam)
     prunnew_study = prunnew_mode.add_parser('study', help=h_study)
@@ -68,7 +62,7 @@ def main():
 
     args = parser.parse_args()
     if args.command == 'create':
-        path = create(args)
+        path = create(args.path, args.params)
         analyze(path)
     elif args.command == 'analyze':
         analyze(args.path)
@@ -76,7 +70,7 @@ def main():
         # TODO: recursion - would you like to repeat?
         user_name = (args.user_name.strip()[:6] or False) if args.user_name else False
         if args.style == 'mental':
-            h.todo('style mental')
+            c.todo('style mental')
         else:
             if args.mode == 'study':
                 study(user_name)

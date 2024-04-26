@@ -2,8 +2,12 @@ import re
 from colorama import Fore, Style, init
 init(autoreset=True)
 
+def todo(msg):
+    p(f'[y]TODO:[c] {msg}..')
+    exit(2)
+
 def p(msg):
-    print(c.z(msg))
+    print(z(msg))
 def z(msg):
     replacements = {
         '[b]': Fore.BLUE,

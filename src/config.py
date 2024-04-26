@@ -1,7 +1,6 @@
-from src.helpers.fo import Fo as fo
 import src.helpers.colors as c
-from src.helpers.fo import Fo as fo
-from src.helpers.cmd import Cmd as cmd
+import src.helpers.fo as fo
+from src.helpers.cmd import cmd
 
 class Config:
     def __init__(self):
@@ -37,10 +36,7 @@ class Config:
     # args/fs
     def prepare_fs():
         if not fo.f_exist('config.yml'):
-            cmd.run('copy ./examples/config.yml ./config.yml')
-    # common
-    if not fo.f_exist('./src/__study.csv'):
-        cmd.run(f'echo {",".join(self.records_columns)} > ./src/__study.csv')
+            cmd('copy ./examples/config.yml ./config.yml')
     def config_error(self, key, val, replacement):
         c.p(f'[y]CONFIG ERROR:[c] Invalid config value [r]"{key}: {val}"')
         c.p(f'[y]CONFIG ERROR:[c] Was replaced by [g]"{replacement}"')
@@ -75,10 +71,10 @@ class Config:
     def get_user_name(self):
         user_name = self.data['common'].get('user_name')
         return user_name.strip()[:6] if user_name else False
-    def self.get_study_switch(self, kind):
+    def get_study_switch(self, kind):
         key, default = ('training2exam', 1) if kind == 'training2exam' else ('exam2training', 3)
         switch = self.data['common']['study_program']['switch_mode_policy'][key]
-        if switch <= 1:
+        if (key == 'training2exam' and switch <= 1) or (key == 'exam2training' and switch <= 0):
             return self.config_error(f'.common.study_program.switch_mode_policy.{key}', switch, default)
         return switch
     def get_yesno(self, mode, direction, key):
