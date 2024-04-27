@@ -6,7 +6,7 @@ from textwrap import dedent
 from src.study import study
 from src.create import create
 from src.analyze import analyze
-from src.run import Run
+from src.run import run
 import src.sequence as s
 import src.helpers.fo as fo
 import src.helpers.exit_handler
@@ -28,11 +28,11 @@ def init_run(args):
             c.todo('style mental')
         elif args.command == 'run':
             analyze(args.path)
-            Run(path, args.mode, user_name)
+            run(path, args.mode, user_name)
         else:
             path = create(args.path, args.params)
             analyze(path)
-            Run(path, args.mode, user_name)
+            run(path, args.mode, user_name)
     if not would_like_repeat():
         return
     init_run(args)

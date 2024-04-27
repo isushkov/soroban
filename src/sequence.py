@@ -106,17 +106,7 @@ def apply_exit_policy(exit_policy, msg):
     if exit_policy == 0: print(msg)
     if exit_policy == 1: raise ValueError(msg)
     if exit_policy == 2: print(msg); exit(2)
-
 # num <-> num
-def apply(operation_func, sequence):
-    operations = sequence.split()
-    total = safe_eval(operations[0])
-    result = operation_func(total)
-    for operation in operations[1:]:
-        total += safe_eval(operation)
-        temp_result = operation_func(total)
-        result = temp_result if temp_result is not None else result
-    return result
 def do_math(x, operand, y, precision=2):
     map_operations = {
         '+': lambda x, y: x + y,
@@ -162,3 +152,17 @@ def safe_eval(sequence, precision=2):
         else:
             raise TypeError(f"{e} Unsupported type")
     return dec(eval_(tree), precision)
+# analyze
+def apply(operation_func, sequence):
+    operations = sequence.split()
+    total = safe_eval(operations[0])
+    result = operation_func(total)
+    for operation in operations[1:]:
+        total += safe_eval(operation)
+        temp_result = operation_func(total)
+        result = temp_result if temp_result is not None else result
+    return result
+def get_resNmaxres(data, operation):
+    res, max_res = data
+    res = safe_eval(f'{res}{operation}')
+    return (max(max_res, res), res)
