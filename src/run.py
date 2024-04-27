@@ -38,11 +38,10 @@ def run(path, mode, user_name, goal=False):
     ready(mode, start_number, cfg, render)
     render.header(mode, goal, cfg)
     start_time = round(time.time(), 2)
-    # if mode == 'exam':     is_passed = exam(start_number, operations, goal, cfg, render)
-    if mode == 'training':
-        is_passed = training(start_number, operations, goal, cfg, render)
-    exit()
+    is_passed = run_stages(mode, start_number, operations, goal, cfg, render, tui, check_method)
     end_time = round(time.time(), 2) - start_time
+    print('end_time:',end_time)
+    exit()
     # finish
     end_time_formated = format_time(end_time)
     date = datetime.fromtimestamp(time.time()).strftime('%d.%m.%y')
@@ -50,14 +49,55 @@ def run(path, mode, user_name, goal=False):
     if is_new_record:
         update_records()
     display_results()
-
     # # get records data
     # records_columns = ['id', 'rank', 'name', 'exercise', 'is_exam', 'is_passed', 'time', 'time_seconds', 'date']
     # df_records = pdo.load('./src/__records.csv', columns=records_columns, empty_allowed=True)
     # df_exercise = pdo.filter(df_records, where={'exercise':exercise})
     # get_timing()
-
     return is_passed, end_time
+
+# args/cfg/fs/sounds
+def prepare_fs(lang):
+    cmd(f'mkdir -p ./sounds/{lang}/numbers')
+def generate_sounds_texts(lang, w):
+    texts = fo.yml2dict('./src/_texts4sounds.yml')
+    for i,sound in enumerate(texts):
+        path = f'sounds/{lang}/{sound}.mp3'
+        generate_sound(path, texts[sound][lang], lang)
+        progress_bar('generate speech (texts)  ', len(texts), i, w)
+    print() # for progress_bar
+def generate_sounds_numbers(lang, operations, w):
+    for i,operation in enumerate(operations):
+        _, number = s.split_operation(operation)
+        path = f'sounds/{lang}/numbers/{number}.mp3'
+        generate_sound(path, num2words(number, lang=lang), lang)
+        progress_bar('generate speech (numbers)', len(operations), i, w)
+    print() # for progress_bar
+def generate_sound(path, text, lang):
+    if not fo.f_exist(path):
+        tts = gTTS(text=text, lang=lang)
+        tts.save(path)
+def progress_bar(msg, start_number, i, w):
+    w = w - len(msg) - 7
+    progress = int((i + 1) / start_number * w)
+    done = '#' * progress
+    in_progress = '.'*(w - progress)
+    print(c.z(f'[x]>>> {msg} [{done}{in_progress}]'), end='\r', flush=True)
+def say_beep(sound, speed):
+    mpv(f'sounds/{sound}.mp3', speed)
+def say_text(lang, sound, speed):
+    mpv(f'sounds/{lang}/{sound}.mp3', speed)
+def say_number(lang, sound, speed):
+    path = f'sounds/{lang}/numbers/{sound}.mp3'
+    if not fo.f_exist(path):
+        generate_sound(path, num2words(sound, lang=lang), lang=lang)
+    mpv(path, speed)
+def mpv(path, speed):
+    if not fo.f_exist(path):
+        raise Exception(c.z(f'[r]ERROR:[c] MPV - File not exist: {path}'))
+    if not speed:
+        return False
+    cmd(f'mpv {path} --speed={speed}', strict=False, verbose4fail=False)
 
 # run
 def ready(mode, start_number, cfg, render):
@@ -65,127 +105,102 @@ def ready(mode, start_number, cfg, render):
     say_text(cfg.lang, 'get-ready', cfg.spd_speech)
     say_text(cfg.lang, 'start-number', cfg.spd_speech)
     say_number(cfg.lang, start_number, cfg.spd_speech)
-# def exam(start_number, operations, goal, cfg, render):
-#     is_passed = run_stage(operations, goal, cfg, render)
-#     return is_passed
-def training(start_number, operations, goal, cfg, render):
+def run_stages(mode, start_number, operations, goal, cfg, render, tui, check_method):
+    is_passed = True
     user_errors = 0
-    chunk = cfg.numbers_per_stage
-    stages = [operations[i:i+chunk] for i in range(0, len(operations), chunk)]
-    for i, stage_ops in enumerate(stages, start=1):
-        render.start_stage(stage_ops[0], user_errors)
-        say_start_stage()
-        is_passed = run_stage(stage_ops, cfg, render)
+    if mode == 'exam':
+        stages = [operations]
+    else:
+        chunk = cfg.numbers_per_stage
+        stages = [operations[i:i+chunk] for i in range(0, len(operations), chunk)]
+    total = s.dec(start_number)
+    is_restart_stage = False
+    for stage_number, stage_ops in enumerate(stages, start=1):
+        is_passed = run_stage(mode, stage_number, stage_ops, cfg, render,tui,
+                              check_method, is_passed, user_errors, is_restart_stage)
     return is_passed
-# run stage
-def run_stage(stage_ops, cfg, render):
-    # start stage
-    exit()
-    # operation
-    for operation in operations:
+def run_stage(mode, stage_number, stage_ops, cfg, render, tui,
+              check_method, is_passed, user_errors, is_restart_stage):
+    is_last_stage = True if stage_number == len(stages) else False
+    # start_stage
+    if mode == 'training':
+        render.start_stage(stage_number, user_errors)
+        say_start_stage(stage_number, total, is_restart_stage, cfg)
+    # operations
+    is_passed = run_operations(stage_ops, cfg, render)
+    # answer
+    total = total + s.safe_eval(' '.join(stage_ops))
+    if cfg.check_method == 'yes-no':
+        render.show_result(total)
+        say_text(cfg.lang, 'answer' if is_last_stage else 'stage-result', cfg.spd_result_txt)
+        say_number(cfg.lang, total, cfg.spd_result_num)
+        render.ask_yesno(is_last_stage)
+        answer = ask_yesno(tui)
+        tui.clear_lines(3)
+    else:
+        render.ask_input(is_last_stage)
+        sound = 'enter-answer' if is_last_stage else 'enter-stage-result'
+        say_text(cfg.lang, sound, cfg.spd_enter_result)
+        answer = True if ask_input(tui) == total else False
+    # result.failed
+    if not answer:
+        user_errors += 1
+        is_restart_stage = True
+        is_passed = False
+        # TODO
+        self.say_beep('wrong', self.cfg.spd_wrong)
+        run_stage(stage_number, stage_ops, cfg, render, tui, check_method, is_passed, user_errors, is_restart_stage)
+    # TODO
+    # result.ok
+    self.say_beep('ok', self.cfg.spd_wrong)
+    print(self.get_delta_time())
+    return is_passed
+
+# start_stage
+def say_start_stage(stage_number, start_number, is_restart_stage, cfg):
+    if stage_number == 1 and not is_restart_stage:
+        speed = cfg.spd_speech
+        speed_beeps = cfg.spd_signals
+    else:
+        speed = cfg.spd_stage
+        speed_beeps = cfg.spd_start
+    # say
+    say_text(cfg.lang, 'stage', speed)
+    say_number(cfg.lang, stage_number, speed)
+    if is_restart_stage:
+        say_text(cfg.lang, 'continue-with', cfg.spd_stage_cont_txt)
+        say_number(cfg.lang, start_number, cfg.spd_stage_cont_num)
+    say_beep('start', speed_beeps)
+# operations
+def run_operations(stage_ops, cfg, render):
+    for operation in stage_ops:
         operand, number = s.split_operation(operation)
         render.operation(operand, number, cfg)
         say_operation(operand, number, cfg)
         time.sleep(cfg.spd_delay)
-        start_number = s.do_math(start_number, operand, number)
-    # answer
-    if check_method == 'input':
-        answer = ask_answer_input(is_last_stage, spd_enter_result, render)
-    else:
-        answer = ask_answer_yesno(is_last_stage, render)
-    is_passed = check_answer(answer, start_number, is_passed, render)
-    return is_passed
-# start_stage
-def say_start_stage():
-    say_text('start_stage', speed_operand)
-    say_beep('start', speed_beeps)
-    # calc speed
-    if self.stage_number == 1 and self.stage_succeed:
-        speed = self.cfg.spd_speech
-        speed_beeps = self.cfg.spd_signals
-    else:
-        speed = self.cfg.spd_stage
-        speed_beeps = self.cfg.spd_start
-    # say
-    if not self.is_exam:
-        self.say_text('stage', speed)
-        self.say_number(self.stage_number, speed)
-    if not self.stage_succeed:
-        self.say_text('continue-with', self.cfg.spd_stage_cont_txt)
-        self.say_number(self.start_number, self.cfg.spd_stage_cont_num)
-    self.say_beep('start', speed_beeps)
-# operation
 def say_operation(operand, number, cfg):
     speed_operand = cfg.spd_plus if operand == '+' else cfg.spd_number
     say_text(cfg.lang, operand, speed_operand)
     say_number(cfg.lang, number, cfg.spd_number)
 # answer
-def ask_answer_input(is_last_stage, spd_enter_result):
-    # render
-    msg = 'answer' if is_last_stage else 'stage-result'
-    render = c.z(f'[y]Your {msg} is: ')
-    # say
-    sound = 'enter-answer' if is_last_stage else 'enter-stage-result'
-    say_text(cfg.lang, sound, cfg.spd_enter_result)
-    # answer/restore
+def ask_yesno(tui):
+    key = tui.getch()
+    if key in [' ', '\r', '\n']: # next stage
+        return True
+    elif key == '\x1b':  # Esc
+        c.p('[g]Exit.')
+        exit(0)
+    else: # restart stage
+        return False
+def ask_input(tui):
     tui.echo()
-    answer = s.dec(input(render))
+    answer = s.dec(input())
     tui.noecho()
     tui.clear_lines(1)
     return answer
 
-# def ask_answer_yesno(start_number, is_last_stage, spd_result_txt, spd_result_num):
-#     # render start_number
-#     render = c.edgesjust(self.stage_row, f' ={start_number}', 75)
-#     print(render)
-#     # say start_number
-#     say_text('answer' if is_last_stage else 'stage-result', spd_result_txt)
-#     say_number(start_number, spd_result_num)
-#     # render menu
-#     menu  = f"   [y]<Space/Enter>[c]   {'FINISH' if is_last_stage else 'Continue'}\n"
-#     menu +=  "   [y]<a-Z>[c]           Restart the stage\n"
-#     menu +=  "   [y]<Esc>[c]           Exit"
-#     c.p(menu)
-#     # get key
-#     key = self.tui.getch()
-#     self.tui.clear_lines(3)
-#     if key in [' ', '\r', '\n']: # next stage
-#         return True
-#     elif key == '\x1b':  # Esc
-#         c.p('[g]Exit.')
-#         exit(0)
-#     else: # restart stage
-#         return False
-#
-# # answer.check
-# def check_answer(answer, start_number, is_passed, user_errors):
-#     if answer == start_number:
-#         user_errors = 0
-#         is_passed = True
-#     if not is_passed:
-#         user_errors += 1
-#         is_passed = False
-#     # check stage result
-#     self.stage_succeed = self.check_answer(start_number)
-#     if not self.stage_succeed:
-#         self.is_passed = False
-#         if self.is_exam:
-#             self.tui.clear_lines(1)
-#             print(self.stage_row + self.get_delta_time())
-#             print(self.answer_line)
-#         else:
-#             self.say_beep('wrong', self.cfg.spd_wrong)
-#             if self.user_errors < 9:
-#                 self.user_errors += 1
-#             self.tui.clear_lines(1)
-#             start_number = self.run_stage()
-#     else:
-#         self.user_errors = 0
-#         self.tui.clear_lines(1)
-#         print(self.stage_row + self.get_delta_time())
-#     return start_number
-#
-
+# TODO
+# result.ok
 # timing:
 #   training:
 #     passed:
@@ -209,21 +224,6 @@ def ask_answer_input(is_last_stage, spd_enter_result):
 #         best_time_row = df.nsmallest(1, 'time_seconds')
 #         best_time_value = best_time_row['time_seconds'].iloc[0]
 #         return best_time_value
-#
-# # dfs
-# def upd_rank(self):
-#     self.df_exercise['sort_priority'] = self.df_exercise.apply(
-#         lambda row: 0 if row['is_exam'] == 1 else (1 if row['is_passed'] == 1 else 2), axis=1
-#     )
-#     self.df_exercise.sort_values(by=['sort_priority', 'time_seconds'], ascending=[True, True], inplace=True)
-#     self.df_exercise.drop('sort_priority', axis=1, inplace=True)
-#     self.df_exercise['rank'] = range(1, len(self.df_exercise) + 1)
-#     for idx in self.df_exercise.index:
-#         self.df_records.at[idx, 'rank'] = self.df_exercise.at[idx, 'rank']
-#     return self.df_records.loc[self.user_id, 'rank']
-#
-#
-#
 # # delta time
 # def get_delta_time(self):
 #     best_time = self.define_best_time()
@@ -264,8 +264,20 @@ def ask_answer_input(is_last_stage, spd_enter_result):
 #         seconds = min(seconds, 59.99)
 #     formatted_time = f'{sign}{minutes:02d}:{seconds:05.2f}'
 #     return formatted_time
-#
+
+# TODO
 # # finish
+# def upd_rank(self):
+#     self.df_exercise['sort_priority'] = self.df_exercise.apply(
+#         lambda row: 0 if row['is_exam'] == 1 else (1 if row['is_passed'] == 1 else 2), axis=1
+#     )
+#     self.df_exercise.sort_values(by=['sort_priority', 'time_seconds'], ascending=[True, True], inplace=True)
+#     self.df_exercise.drop('sort_priority', axis=1, inplace=True)
+#     self.df_exercise['rank'] = range(1, len(self.df_exercise) + 1)
+#     for idx in self.df_exercise.index:
+#         self.df_records.at[idx, 'rank'] = self.df_exercise.at[idx, 'rank']
+#     return self.df_records.loc[self.user_id, 'rank']
+#
 # def announce_finish(self):
 #     self.is_new_record = True
 #     if self.is_exam:
@@ -388,47 +400,3 @@ def ask_answer_input(is_last_stage, spd_enter_result):
 #     return table
 # def cut_line(self, line):
 #     return c.z('[x]'+line[6:])
-#
-
-# args/cfg/fs/sounds
-def prepare_fs(lang):
-    cmd(f'mkdir -p ./sounds/{lang}/numbers')
-def generate_sounds_texts(lang, w):
-    texts = fo.yml2dict('./src/_texts4sounds.yml')
-    for i,sound in enumerate(texts):
-        path = f'sounds/{lang}/{sound}.mp3'
-        generate_sound(path, texts[sound][lang], lang)
-        progress_bar('generate speech (texts)  ', len(texts), i, w)
-    print() # for progress_bar
-def generate_sounds_numbers(lang, operations, w):
-    for i,operation in enumerate(operations):
-        _, number = s.split_operation(operation)
-        path = f'sounds/{lang}/numbers/{number}.mp3'
-        generate_sound(path, num2words(number, lang=lang), lang)
-        progress_bar('generate speech (numbers)', len(operations), i, w)
-    print() # for progress_bar
-def generate_sound(path, text, lang):
-    if not fo.f_exist(path):
-        tts = gTTS(text=text, lang=lang)
-        tts.save(path)
-def progress_bar(msg, start_number, i, w):
-    w = w - len(msg) - 7
-    progress = int((i + 1) / start_number * w)
-    done = '#' * progress
-    in_progress = '.'*(w - progress)
-    print(c.z(f'[x]>>> {msg} [{done}{in_progress}]'), end='\r', flush=True)
-def say_beep(sound, speed):
-    mpv(f'sounds/{sound}.mp3', speed)
-def say_text(lang, sound, speed):
-    mpv(f'sounds/{lang}/{sound}.mp3', speed)
-def say_number(lang, sound, speed):
-    path = f'sounds/{lang}/numbers/{sound}.mp3'
-    if not fo.f_exist(path):
-        generate_sound(path, num2words(sound, lang=lang), lang=lang)
-    mpv(path, speed)
-def mpv(path, speed):
-    if not fo.f_exist(path):
-        raise Exception(c.z(f'[r]ERROR:[c] MPV - File not exist: {path}'))
-    if not speed:
-        return False
-    cmd(f'mpv {path} --speed={speed}', strict=False, verbose4fail=False)

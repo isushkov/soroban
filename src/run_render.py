@@ -16,12 +16,11 @@ class RunRender():
         self.len_dt = len(self.df_empty)
     # render
     def title(self, user_name, exercise):
-        return print(c.center(c.z(f' [y]RUNNING {user_name}:[c] {exercise} '), self.w, '=', 'x'))
+        print(c.ljust(c.z(f'[x]===== [y]RUNNING {exercise}:[c] {user_name} '), self.w, '=', 'x'))
     def ready(self, mode, start_number):
         color = '[r]' if mode == 'exam' else '[g]'
         c.p(f'{color}{mode.upper()}. [y]Get ready.[x] Start number:[c] {start_number}')
     def header(self, mode, goal, cfg):
-        sep = ' '
         start_stage = ' '.ljust(self.start_stage_max_len)
         operations = 'Operations'.ljust(cfg.numbers_per_stage * self.operation_max_len)
         result = 'Result'.ljust(self.result_max_len)
@@ -29,29 +28,28 @@ class RunRender():
         dt_user   = 'Δt.user'.center(self.len_dt)
         dt_other  = 'Δt.other'.center(self.len_dt)
         dts = [dt_target] + [dt_user, dt_other] if goal else [dt_user, dt_other]
-        c.p('[x]'+ sep.join([start_stage, operations, result] + dts))
+        c.p(f'[x]{self.tab}{self.sep.join([start_stage, operations, result] + dts)}{self.tab}')
     def start_stage(self, stage_number, user_errors):
         user_errors = f' [r]x{min(user_errors+1, 9)}' if user_errors else ''
-        render = c.ljust(c.z(f'[x]Stage{min(stage_number, 99)}{user_errors}:', 11))
+        render = c.ljust(c.z(f'[x]Stage-{min(int(stage_number), 99)}{user_errors}:'), self.start_stage_max_len)
         print(render, end='', flush=True)
     def operation(self, operand, number, cfg):
         operand = '' if (operand == '+' and not cfg.show_plus) else operand
         render = f' {operand}{number}'.rjust(self.operation_max_len)
         print(render, end='', flush=True)
-    def result(self):
-        pass
-        render = c.edgesjust(self.stage_row, f' ={result}', 75)
-        print(render)
-    def delta(self):
-        pass
-    def ask_input(self):
-        pass
+    def show_result(self, result):
+        print(f' ={result}')
     def ask_yesno(self, is_last_stage):
-        # render menu
         menu  = f"   [y]<Space/Enter>[c]   {'FINISH' if is_last_stage else 'Continue'}\n"
         menu +=  "   [y]<a-Z>[c]           Restart the stage\n"
         menu +=  "   [y]<Esc>[c]           Exit"
-        return c.z(menu)
+        c.p(menu)
+    def ask_input(self):
+        msg = 'answer' if is_last_stage else 'stage-result'
+        print(c.z(f'[y]Your {msg} is: '), end='', flush=True)
+
+    def delta(self):
+        pass
     def leaderboard(self):
         pass
 
