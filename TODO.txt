@@ -11,9 +11,6 @@ run:
          passed: target, best-user, best-other
          repeat:         best-user, best-other
        exam:     target, best-user, best-other
-разобраться и реализовать:
-  отрицательные
-    create: fix cover +-
 todo:
   redo params:
     "<first_sequence>,<sequence>,<sequence>,..."
@@ -24,6 +21,7 @@ todo:
     analyze: fix decimal tables
   tests
   дополнительные возможности:
+    отрицательные
     умножение/деление
     прочитать книги
   upd readme
