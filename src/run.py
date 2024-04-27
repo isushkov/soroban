@@ -19,23 +19,24 @@ def run(path, mode, user_name, target=False):
     user_name = user_name or config.user_name
     check_method = 'input' if mode == 'exam' else config.check_method
     exercise = os.path.splitext(os.path.basename(path))[0]
-    sequence = s.validate_sequence(fo.txt2str(path), exit_policy=2)
-    operations = sequence.split()
     prepare_fs(config.lang)
     tui = Tui()
     tui.noecho()
     print(c.center(c.z(f' [y]RUNNING {user_name}:[c] {exercise} '), 94, '=', 'x'))
     # prepare data
+    sequence = s.validate_sequence(fo.txt2str(path), exit_policy=2)
+    operations = sequence.split()
+    max_len_operation = max(sequence, key=len) + 1 # plus one space
     generate_sounds_texts(config.lang)
     generate_sounds_numbers(config.lang, sequence)
-    # get ready
-    get_ready(mode, operations[0], config.spd_speech)
-    # run mode
+    # run
+    total = s.safe_eval(operations.pop(0))
+    get_ready(mode, total, config.spd_speech)
+    render_header() # TODO
     start_time = round(time.time(), 2)
-    if mode == 'exam':     is_passed = exam(config, operations[1:])
-    if mode == 'training': is_passed = training(config, operations[1:])
+    if mode == 'exam':     is_passed = exam(total, operations, target, config, max_len_operation)
+    if mode == 'training': is_passed = training(total, operations, target, config, max_len_operation)
     end_time = round(time.time(), 2) - start_time
-
     # finish
     end_time_formated = format_time(end_time)
     date = datetime.fromtimestamp(time.time()).strftime('%d.%m.%y')
@@ -52,104 +53,40 @@ def run(path, mode, user_name, target=False):
 
     return is_passed, end_time
 
-# ready
+# run
 def get_ready(mode, start_number, spd_speech):
     color = '[r]' if mode == 'exam' else '[g]'
     c.p(f'{color}{mode.upper()}. [y]Get ready.[x] Start number:[c] {start_number}')
     say_text('get-ready', spd_speech)
     say_text('start-number', spd_speech)
     say_number(start_number, spd_speech)
-def exam(config, operations):
-    pass
-def training(configm, operations):
-    is_passed = True
-    stage_succeed = True
-    is_last_stage = False
+def exam(total, operations, target, config, max_len_operation):
+    total = run_stage(total, operations, target, config, max_len_operation)
+    answer = ask_answer()
+    is_passed = check_answer(answer, total, is_passed)
+    return is_passed
+def training(total, operations, target, config, max_len_operation):
+    chunk = config.numbers_per_stage
+    stages = [operations[i:i+chunk] for i in range(0, len(operations), chunk)]
     user_errors = 0
-    if self.is_exam:
-        self.stages = [self.all_numbers]
-    else:
-        self.stages = [self.all_numbers[i:i+self.config.numbers_per_stage] for i in range(1, len(self.all_numbers), self.config.numbers_per_stage)]
-    for i, stage in enumerate(self.stages):
-        self.stage_number = i+1
-        self.stage_numbers = self.stages[i]
-        if self.is_exam:
-            self.stage_numbers.pop(0)
-        if self.stage_number == len(self.stages):
-            self.is_last_stage = True
-        self.start_number = self.run_stage()
-def run_stage(self):
-    total = self.start_number
-    self.announce_stage()
-    for number in self.stage_numbers:
-        # output
-        op = '' if (self.operand == '+' and not self.config.show_plus) else self.operand
-        output = f' {op}{number}'.rjust(self.len_for_number)
-        self.stage_row += output
-        print(output, end='', flush=True)
-        # say operand
-        self.say_text(self.operand, self.config.spd_plus if self.operand == '+' else self.config.spd_number)
-        # say number
-        self.say_number(number, self.config.spd_number)
-        time.sleep(self.config.spd_delay)
-        if self.operand == '+':
-            total += number
-        elif self.operand == '-':
-            total -= number
-        else:
-            print(f'TODO: unknown operand "{self.operand}"')
-            exit(1)
-    # check stage result
-    self.stage_succeed = self.check_answer(total)
-    if not self.stage_succeed:
-        self.is_passed = False
-        if self.is_exam:
-            self.tui.clear_lines(1)
-            print(self.stage_row + self.get_delta_time())
-            print(self.answer_line)
-        else:
-            self.say_beep('wrong', self.config.spd_wrong)
-            if self.user_errors < 9:
-                self.user_errors += 1
-            self.tui.clear_lines(1)
-            total = self.run_stage()
-    else:
-        self.user_errors = 0
-        self.tui.clear_lines(1)
-        print(self.stage_row + self.get_delta_time())
+    for i, operations in enumerate(stages, start=1):
+        render_start_stage(i, user_errors)
+        say_start_stage()
+        total = run_stage(total, operations, max_len_operation)
+        answer = ask_answer()
+        is_passed = check_answer(answer, total, is_passed)
+    return is_passed
+def run_stage(total, operations, max_len_operation):
+    for operation in operations:
+        operand, number = s.split_operation(operation)
+        render_operation(operand, number, config, max_len_operation)
+        say_operation(operand, number, config)
+        time.sleep(config.spd_delay)
+        total = s.do_math(total, operand, number)
     return total
-
-def announce_stage(self):
-    # print
-    if not self.is_exam:
-        stage_lenght = len(str(len(self.stages))) + 9
-        stage_row =  f'[x]Stage{self.stage_number}'
-        if self.user_errors:
-            stage_row += f'[r].x{self.user_errors+1}[x]'
-        stage_row += ':'
-        self.stage_row = c.ljust(c.z(stage_row), stage_lenght)
-    else:
-        self.stage_row = c.z(f'[r]x{self.user_errors+1}[x]:') if self.user_errors else ''
-    print(self.stage_row, end='', flush=True)
-    # calc speed
-    if self.stage_number == 1 and self.stage_succeed:
-        speed = self.config.spd_speech
-        speed_beeps = self.config.spd_signals
-    else:
-        speed = self.config.spd_stage
-        speed_beeps = self.config.spd_start
-    # say
-    if not self.is_exam:
-        self.say_text('stage', speed)
-        self.say_number(self.stage_number, speed)
-    if not self.stage_succeed:
-        self.say_text('continue-with', self.config.spd_stage_cont_txt)
-        self.say_number(self.start_number, self.config.spd_stage_cont_num)
-    self.say_beep('start', speed_beeps)
-    # init start time
-    if self.stage_number == 1:
-        self.start_time = round(time.time(), 2)
-def check_answer(self, total):
+# answer
+def ask_answer():
+def check_answer():
     if self.config.check_method == 'input':
         return self.check_answer_input(total)
     return self.check_answer_yesno(total)
@@ -198,6 +135,78 @@ def check_answer_yesno(self, total):
         exit(0)
     else: # restart stage
         return False
+def check_answer(answer)
+    # check stage result
+    self.stage_succeed = self.check_answer(total)
+    if not self.stage_succeed:
+        self.is_passed = False
+        if self.is_exam:
+            self.tui.clear_lines(1)
+            print(self.stage_row + self.get_delta_time())
+            print(self.answer_line)
+        else:
+            self.say_beep('wrong', self.config.spd_wrong)
+            if self.user_errors < 9:
+                self.user_errors += 1
+            self.tui.clear_lines(1)
+            total = self.run_stage()
+    else:
+        self.user_errors = 0
+        self.tui.clear_lines(1)
+        print(self.stage_row + self.get_delta_time())
+    return total
+
+# start_stage
+def render_start_stage(stage_number, user_errors):
+    user_errors = f' [r]x{min(user_errors+1, 9)}' if user_errors else ''
+    render = c.ljust(c.z(f'[x]Stage{min(stage_number, 99)}{user_errors}:', 11))
+    print(render, end='', flush=True)
+def say_start_stage()
+    say_text(operand, speed_operand)
+    say_beep(, config.spd_number)
+    say_beep('start', speed_beeps)
+    # calc speed
+    if self.stage_number == 1 and self.stage_succeed:
+        speed = self.config.spd_speech
+        speed_beeps = self.config.spd_signals
+    else:
+        speed = self.config.spd_stage
+        speed_beeps = self.config.spd_start
+    # say
+    if not self.is_exam:
+        self.say_text('stage', speed)
+        self.say_number(self.stage_number, speed)
+    if not self.stage_succeed:
+        self.say_text('continue-with', self.config.spd_stage_cont_txt)
+        self.say_number(self.start_number, self.config.spd_stage_cont_num)
+    self.say_beep('start', speed_beeps)
+
+# operation
+def render_operation(operand, number, config, max_len_operation):
+    operand = '' if (operand == '+' and not config.show_plus) else operand
+    render = f' {operand}{number}'.rjust(max_len_operation)
+    print(render, end='', flush=True)
+def say_operation(operand, number, config):
+    speed_operand = config.spd_plus if operand == '+' else config.spd_number
+    say_text(operand, speed_operand)
+    say_number(number, config.spd_number)
+
+
+
+# TODO
+def render_header():
+    pass
+def render_line():
+    pass
+
+
+
+
+
+
+
+
+
 
 
 
