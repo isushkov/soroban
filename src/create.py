@@ -170,7 +170,7 @@ def create_sequence_cover(seq_params, first):
         if not is_notified:
             is_notified = note_length_more_than_req('cover', length, new_sequence)
         operand = choose_operand(operands)
-        new_sequence += create_operation_random(firstm, operand, range_params, decimal_params, negative_allowed)
+        new_sequence += create_operation_random(first, operand, range_params, decimal_params, negative_allowed)
     return new_sequence
 def create_operation_cover(first, operand, range_params, decimal_params, negative_allowed, combs):
     c.p(f'[b]>>>>: cover-operation:  start. first:{first}, operand:{operand}, range_params:{range_params}')

@@ -1,8 +1,4 @@
 import os
-import sys
-import tty
-import termios
-import select
 import re
 import time
 from datetime import datetime

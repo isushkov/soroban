@@ -38,6 +38,7 @@ class Tui:
         sys.stdout.write('\033[?25l')
     def cursor_show(self):
         sys.stdout.write('\033[?25h')
+
     # cursor
     def cursor_move(self, y=None, x=None):
         if y is not None and x is not None:
@@ -59,6 +60,7 @@ class Tui:
     def cursor_restore(self):
         sys.stdout.write('\033[u')
         sys.stdout.flush()
+
     # clear
     def clear(self, mode=False):
         modes = {False: '2J', 'end': 'K', 'start': '1K', 'line': '2K', 'down': 'J', 'up': '1J'}

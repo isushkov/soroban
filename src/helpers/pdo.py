@@ -8,13 +8,12 @@ def load(csvfile, columns=False, empty_allowed=False):
         df = df.rename(columns=lambda x: x.strip())
         df = df.apply(lambda col: col.apply(lambda x: x.strip() if isinstance(x, str) else x))
         df.set_index('id', inplace=True)
-        return df
     except FileNotFoundError:
         if columns:
-            return pd.DataFrame(columns=columns).set_index('id')
+            df = pd.DataFrame(columns=columns).set_index('id')
         if not empty_allowed:
             raise FileNotFoundError(c.z(f'[r]ERROR:[c] csvfile not found - {csvfile}'))
-        return False
+    return df
 def save(df, csvfile):
     df = df.reset_index().rename(columns={'index': 'id'})
     df.to_csv(csvfile, index=False)
