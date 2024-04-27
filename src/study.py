@@ -6,7 +6,7 @@ from src.config import Config
 from src.params import parse_params, params2basename
 from src.create import create
 from src.analyze import analyze
-from src.run import Run
+from src.run import run
 import src.sequence as s
 import src.helpers.fo as fo
 import src.helpers.pdo as pdo
@@ -49,7 +49,7 @@ def study(arg_user_name):
     input('Press Enter to continue...')
     # interrupt-handler/run
     interrupt_handler(df_study_attempts, user_name, mode, trainings_passed, exams_failed)
-    is_passed, time_seconds = Run(path, mode, user_name, target)
+    is_passed, time_seconds = run(path, mode, user_name, target)
     # result/save
     result = get_result(is_passed, time_seconds, target)
     trainings_passed, exams_failed = upd_attempts(mode, result, trainings_passed, exams_failed)

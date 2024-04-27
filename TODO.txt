@@ -1,16 +1,18 @@
 run:
   redo output
   delta_time:
-    simple:
-      training:
-        passed:          best-user, best-other
-        repeat:          best-user, best-other
-      exam:              best-user, best-other
-    study:
-       training:
-         passed: target, best-user, best-other
-         repeat:         best-user, best-other
-       exam:     target, best-user, best-other
+    training:
+      passed:
+        best-user:
+        best-other:
+      repeat:
+        best-user:
+        best-other:
+    exam:
+      best-user:
+      best-other:
+    target:
+
 todo:
   redo params:
     "<first_sequence>,<sequence>,<sequence>,..."
