@@ -72,13 +72,13 @@ def get_density(sequence, max_f):
     density_neg = {}
     operations = sequence.split()
     # для каждой пары чисел
-    total = s.dec(operations[0])
+    total = s.tonum(operations[0])
     for operation in operations[1:]:
         operand, number_str = s.split_operation(operation)
         # TODO: * / *- /-
         if operand not in ['+', '-']: c.todo(f'density for "{operand}"')
         # сдвигаем число право на максимальное количество запятых
-        number = s.dec(number_str) * (10 ** max_f)
+        number = s.tonum(number_str) * (10 ** max_f)
         if operand == '+': density = density_pos
         if operand == '-': density = density_neg
         # для каждого разряда. всего разрядов - длина второго слогаемого
@@ -163,7 +163,7 @@ def get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid, spo
     range_results     = render_range_results(s.apply(get_range_results, sequence), spoilers)
     total_provided    = render_yn(total)
     total_valid       = render_yn(total_is_valid)
-    total_correct     = render_yn(s.dec(total) == s.safe_eval(sequence))
+    total_correct     = render_yn(s.tonum(total) == s.safe_eval(sequence))
     return [
         c.z(f''),
         c.z(f''),

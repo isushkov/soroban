@@ -125,7 +125,7 @@ def run_stages(cfg, render, tui, mode, start_number, operations, check_method, t
     else:
         chunk = cfg.numbers_per_stage
         stages = [operations[i:i+chunk] for i in range(0, len(operations), chunk)]
-    total = s.dec(start_number)
+    total = s.tonum(start_number)
     is_restart_stage = False
     for stage_number, stage_ops in enumerate(stages, start=1):
         is_last_stage = True if stage_number == len(stages) else False
@@ -203,7 +203,7 @@ def ask_yesno(tui):
         return False
 def ask_input(tui):
     tui.echo()
-    answer = s.dec(input())
+    answer = s.tonum(input())
     tui.noecho()
     tui.clear_lines(1)
     return answer

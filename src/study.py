@@ -30,8 +30,8 @@ def study(arg_user_name):
     study_attempts_columns = ['id','user_name','step','trainings_passed','exams_failed']
     df_study_attempts = pdo.load('./src/__study_attempts.csv', study_attempts_columns)
     df_records = pdo.load('./src/__records.csv', empty_allowed=True)
-    df_study_attempts4user = pdo.filter(df_study_attempts, where={'name': user_name }, empty_allowed=True)
-    df_records4user = pdo.filter(df_records, where={'name': user_name }, empty_allowed=True, many_allowed=True)
+    df_study_attempts4user = pdo.filter(df_study_attempts, where={'user_name': user_name }, empty_allowed=True)
+    df_records4user = pdo.filter(df_records, where={'user_name': user_name }, empty_allowed=True, many_allowed=True)
     data_study_program = get_study_program()
     # step/create/analyze
     step, target, params, exercise = identify_step(df_records4user, data_study_program)
@@ -92,7 +92,7 @@ def get_result(is_passed, time_seconds, target):
     return False
 def save_study_attempts(df_study_attempts, user_name, trainings_passed, exams_failed):
     values = {'trainings_passed':str(trainings_passed), 'exams_failed':str(exams_failed)}
-    df = pdo.update(df_study_attempts, where={'name':user_name}, values=values, addnew_allowed=True, many_allowed=False)
+    df = pdo.update(df_study_attempts, where={'user_name':user_name}, values=values, addnew_allowed=True, many_allowed=False)
     pdo.save(df, './src/__study_attempts.csv')
 def interrupt_handler(df_study_attempts, user_name, mode, trainings_passed, exams_failed):
     trainings_passed, exams_failed = upd_attempts(mode, False, trainings_passed, exams_failed)

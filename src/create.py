@@ -46,16 +46,16 @@ def create_sequence_start(start_param, seq_params):
     operand = choose_operand(operands)
     if start_param == 'r':
         _, number_str = s.split_operation(create_operation_random(0, operand, range_params, decimal_params, negative_allowed))
-        second = s.dec(number_str)
+        second = s.tonum(number_str)
     else:
-        second = s.dec(start_param)
-    first = s.dec(second)
+        second = s.tonum(start_param)
+    first = s.tonum(second)
     check_error_negative_first_number(first, negative_allowed) # TODO: tmp
     if not check_opetarion_by_negative(first, operand, second, negative_allowed):
         c.p('[y]NOTE: [r]<start-number>[c] does not satisfy [y]the negative numbers policy[c].')
         c.p('[y]NOTE: [r]changed to "0".')
         second = 0
-    return s.num2str(second)
+    return s.tostr(second)
 def create_sequence_roundtrip(sequence):
     operations = sequence.split()
     operations.reverse()
@@ -81,7 +81,7 @@ def create_sequence_progression(seq_params, first):
     return new_sequence
 def create_operation_progression(first, operand, diff, negative_allowed):
     check_error_negative_first_number(first, negative_allowed) # TODO: tmp
-    second = s.do_math(s.dec(first), operand, s.dec(diff))
+    second = s.do_math(s.tonum(first), operand, s.tonum(diff))
     if not check_opetarion_by_negative(first, operand, second, negative_allowed):
         c.p('[r]ERROR: progression-operation[c] does not satisfy [y]the negative numbers policy[c].')
         c.p('[r]ERROR: exit.')
@@ -113,7 +113,7 @@ def create_operation_random(first, operand, range_params, decimal_params, negati
         note_change_range('random', 'min', shift_min, range_params, new_range)
         note_change_range('random', 'max', shift_max, range_params, new_range)
         return create_operation_random(first, new_operand, new_range, decimal_params, negative_allowed)
-    second = s.dec(generate_random_number(range_params, decimal_params))
+    second = s.tonum(generate_random_number(range_params, decimal_params))
     # no luck this time
     if not check_opetarion_by_negative(first, operand, second, negative_allowed):
         side, shift = 'max', -75
@@ -135,9 +135,9 @@ def generate_random_number(range_params, decimal_params):
         if int(decimal_params['probability']) > random.randint(0, 100):
             second = random.uniform(*range_values)
             # до скольки знаков после запятой должен быть float
-            return s.dec(format(second, f".{decimal_params['precision']}f"))
-        return s.dec(random.randint(*range_values))
-    return s.dec(random.randint(*range_values))
+            return s.tonum(format(second, f".{decimal_params['precision']}f"))
+        return s.tonum(random.randint(*range_values))
+    return s.tonum(random.randint(*range_values))
 
 # cover
 def create_sequence_cover(seq_params, first):
@@ -180,7 +180,7 @@ def create_operation_cover(first, operand, range_params, decimal_params, negativ
     # prepare random_number
     random_operation = create_operation_random(first, operand, range_params, decimal_params, negative_allowed)
     _, random_number_str = s.split_operation(random_operation)
-    random_number = s.dec(random_number_str)
+    random_number = s.tonum(random_number_str)
     # looking y_pairs
     y = int(first % 10)
     y_pairs = get_y_pairs(combs[operand], y)
@@ -260,17 +260,17 @@ def create_operation_forced(first, operand, random_number, negative_allowed, com
     c.p(f'[r]>>>>: forced-operation:[c] done. forced_first:{forced_first}, operation:{operation}')
     return operation, forced_first
 def replace_units(second, x):
-    integer_part = int(second // s.dec(1))
-    fractional_part = second % s.dec(1)
+    integer_part = int(second // s.tonum(1))
+    fractional_part = second % s.tonum(1)
     new_integer_part = (integer_part // 10) * 10 + x
-    return s.dec(new_integer_part) + s.dec(fractional_part)
+    return s.tonum(new_integer_part) + s.tonum(fractional_part)
 # negative politic
 def check_opetarion_by_negative(first, operand, second, negative_allowed):
     if operand != '-':
         return True
     if negative_allowed:
        return True
-    if s.do_math(first, operand, s.dec(s.del_sign(second))) < 0:
+    if s.do_math(first, operand, s.tonum(s.del_sign(second))) < 0:
         return False
     return True
 def change_range(shift_type, shift_percent, old_range):

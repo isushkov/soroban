@@ -12,7 +12,7 @@ class RunRender():
         self.sep = ' '
         self.start_stage_max_len = len('Stage99 x2:')
         self.operation_max_len = len(max(operations, key=len)) + 1
-        self.result_max_len = len(s.num2str(reduce(s.get_resNmaxres, operations, (operations[0],0))[1]))
+        self.result_max_len = len(s.tostr(reduce(s.get_resNmaxres, operations, (operations[0],0))[1]))
         self.df_empty = '--:--:--'
         self.len_dt = len(self.df_empty)
     # render
