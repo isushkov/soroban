@@ -18,21 +18,22 @@ def save(df, csvfile):
     df = df.reset_index().rename(columns={'index': 'id'})
     df.to_csv(csvfile, index=False)
 # filter:select/sort
-def filter(df, where=None, sorts=None, empty_allowed=False, many_allowed=False):
+def filter(df, where=None, where_not=None, sorts=None, empty_allowed=False, many_allowed=False):
     if where:
-        # mask
         mask = pd.Series(True, index=df.index)
         for col, val in where.items():
             mask &= (df[col] == val)
-        matches = df[mask]
-        # check
-        if matches.empty:
-            if not empty_allowed:
-                raise Exception(c.z(f'[r]ERROR:[c] no matches found. [y]<addnew> is not allowed.'))
-            return matches
-        if len(matches) > 1 and not many_allowed:
+        df = df[mask]
+    if where_not:
+        mask_not = pd.Series(True, index=df.index)
+        for col, val in where_not.items():
+            mask_not &= (df[col] != val)
+        df = df[mask_not]
+    if where or where_not:
+        if df.empty and not empty_allowed:
+            raise Exception(c.z(f'[r]ERROR:[c] no matches found. [y]<addnew> is not allowed.'))
+        if len(df) > 1 and not many_allowed:
             raise Exception(c.z(f'[r]ERROR:[c] found more than 1 matches. [y]<many> is not allowed.'))
-        df = matches
     if sorts:
         sort_columns = list(sorts.keys())
         ascending = [True if sorts[col] == 'up' else False for col in sort_columns]
@@ -40,8 +41,11 @@ def filter(df, where=None, sorts=None, empty_allowed=False, many_allowed=False):
     return df
 # +
 def addnew(df, values):
-    df = df.append(values, ignore_index=True)
-    return df
+    if isinstance(values, dict):
+        values = pd.DataFrame([values])
+    elif isinstance(values, pd.Series):
+        values = pd.DataFrame([values])
+    return pd.concat([df, values], ignore_index=True)
 def update(df, where, values, addnew_allowed=False, many_allowed=False):
     print(values)
     """

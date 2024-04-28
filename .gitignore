@@ -5,5 +5,5 @@ venv/
 sounds/**/
 data/*
 config.yml
-
-mk.wiki
+./src/__records.csv
+./src/__study_attempts.csv

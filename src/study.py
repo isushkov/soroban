@@ -27,7 +27,7 @@ def study(arg_user_name):
             c.p(f'[r]EXIT:[c] The user-name [r]is required[y] for the study-mode.')
     print(c.center(c.z(f' [y]STUDY PROGRAM  for {user_name} '), 94, '>', 'x'))
     # load/filter data
-    study_attempts_columns = ['id','name','step','trainings_passed','exams_failed']
+    study_attempts_columns = ['id','user_name','step','trainings_passed','exams_failed']
     df_study_attempts = pdo.load('./src/__study_attempts.csv', study_attempts_columns)
     df_records = pdo.load('./src/__records.csv', empty_allowed=True)
     df_study_attempts4user = pdo.filter(df_study_attempts, where={'name': user_name }, empty_allowed=True)
