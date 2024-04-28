@@ -49,11 +49,7 @@ def create_sequence_start(start_param, seq_params):
     else:
         second = s.tonum(start_param)
     first = s.tonum(second)
-    check_error_negative_first_number(first, negative_allowed) # TODO: tmp
-    if not check_opetarion_by_negative(first, operand, second, negative_allowed):
-        c.p('[y]NOTE: [r]<start-number>[c] does not satisfy [y]the negative numbers policy[c].')
-        c.p('[y]NOTE: [r]changed to "0".')
-        second = 0
+    check_negative(s.do_math(first, operand, second), negative_allowed)
     return s.tostr(second)
 def create_sequence_roundtrip(sequence):
     operations = sequence.split()
@@ -69,7 +65,6 @@ def create_sequence_progression(seq_params, first):
     new_sequence = ''
     operands, range_params, length = seq_params['required'].values()
     negative_allowed, _, _ = seq_params['optional'].values()
-    check_error_negative_first_number(first, negative_allowed) # TODO: tmp
     diff = range_params[0]
     first = first
     for _ in range(int(length)):
@@ -79,12 +74,8 @@ def create_sequence_progression(seq_params, first):
         new_sequence += operation
     return new_sequence
 def create_operation_progression(first, operand, diff, negative_allowed):
-    check_error_negative_first_number(first, negative_allowed) # TODO: tmp
     second = s.do_math(s.tonum(first), operand, s.tonum(diff))
-    if not check_opetarion_by_negative(first, operand, second, negative_allowed):
-        c.p('[r]ERROR: progression-operation[c] does not satisfy [y]the negative numbers policy[c].')
-        c.p('[r]ERROR: exit.')
-        exit(2)
+    check_negative(s.do_math(first, operand, second), negative_allowed)
     return f' {s.add_sign(second)}', second
 
 # random
@@ -92,42 +83,43 @@ def create_sequence_random(seq_params, first):
     new_sequence = ''
     operands, range_params, length = seq_params['required'].values()
     negative_allowed, decimal_params, _ = seq_params['optional'].values()
-    check_error_negative_first_number(first, negative_allowed) # TODO: tmp
     for _ in range(int(length)):
         operand = choose_operand(operands)
         new_sequence += create_operation_random(first, operand, range_params, decimal_params, negative_allowed)
     return new_sequence
 def create_operation_random(first, operand, range_params, decimal_params, negative_allowed):
-    # c.p(f'[x]>>>>: random-operation: start. first:{first}, operand:{operand}, range_params:{range_params}')
-    check_error_negative_first_number(first, negative_allowed) # TODO: tmp
     # is this possible?
-    if not check_opetarion_by_negative(first, operand, range_params[0], negative_allowed):
-        new_operand = '+'
+    if not check_negative(s.do_math(first, operand, range_params[0]), negative_allowed, exit_policy=0):
+        operand = '+'
         shift_min, shift_max = -75, +75
         new_min_range,_ = change_range('min', shift_min, range_params)
         _,new_max_range = change_range('max', shift_max, range_params)
         new_range = [new_min_range, new_max_range]
         note_negative_not_posible('random')
-        note_change_operand('random', new_operand)
+        note_change_operand('random', operand)
         note_change_range('random', 'min', shift_min, range_params, new_range)
         note_change_range('random', 'max', shift_max, range_params, new_range)
-        return create_operation_random(first, new_operand, new_range, decimal_params, negative_allowed)
+        return create_operation_random(first, operand, new_range, decimal_params, negative_allowed)
     second = s.tonum(generate_random_number(range_params, decimal_params))
     # no luck this time
-    if not check_opetarion_by_negative(first, operand, second, negative_allowed):
+    if not check_negative(s.do_math(first, operand, second), negative_allowed, exit_policy=0):
         side, shift = 'max', -75
         new_range = change_range('max', -75, range_params)
         note_negative_not_satisfy('random')
         note_change_range('random', side, shift, range_params, new_range)
         return create_operation_random(first, operand, new_range, decimal_params, negative_allowed)
-    # c.p(f'[x]>>>>: random-operation: done.  first:{first}, operand:{operand}, second:{second}')
+    check_negative(s.do_math(first, operand, second), negative_allowed, exit_policy=1)
+    c.p(f'[x]>>>>: random-operation: done:[c] operation: {operand}{s.del_sign(second)}')
+    c.p(f'[x]>>>>: random-operation:      [c] first,range_params:{(first, range_params)}')
     return f' {operand}{s.del_sign(second)}'
 def choose_operand(operands):
+    if len(operands) == 1:
+        return next(iter(operands))
     operations, weights = zip(*operands.items())
     operand = random.choices(operations, weights=weights, k=1)[0]
     return operand
 def generate_random_number(range_params, decimal_params):
-    range_values = (int(i) for i in range_params)
+    range_values = tuple(int(i) for i in range_params)
     # генерировать float или int
     if decimal_params['precision']:
         # с какой вероятностью генерировать float
@@ -142,7 +134,6 @@ def generate_random_number(range_params, decimal_params):
 def create_sequence_cover(seq_params, first):
     operands, range_params, length = seq_params['required'].values()
     negative_allowed, decimal_params, _ = seq_params['optional'].values()
-    check_error_negative_first_number(first, negative_allowed) # TODO: tmp
     # TODO: cover-units decimal
     if decimal_params['precision']: c.todo('cover-units for decimal')
     # TODO: cover-units for "*/"
@@ -151,8 +142,8 @@ def create_sequence_cover(seq_params, first):
     new_sequence = ''
     combs_origin = {(y,x) for y in range(0, 10) for x in range(1, 10)}
     combs = {
-        '+': combs_origin.copy() if '+' in operands else {},
-        '-': combs_origin.copy() if '-' in operands else {}
+        '+': combs_origin.copy() if '+' in operands else set(),
+        '-': combs_origin.copy() if '-' in operands else set()
     }
     is_notified = False
     while combs['+'] or combs['-']:
@@ -173,9 +164,6 @@ def create_sequence_cover(seq_params, first):
     return new_sequence
 def create_operation_cover(first, operand, range_params, decimal_params, negative_allowed, combs):
     # c.p(f'[b]>>>>: cover-operation:  start. first:{first}, operand:{operand}, range_params:{range_params}')
-    check_error_negative_first_number(first, negative_allowed) # TODO: tmp
-    if first < 0:
-        c.todo(f'negative. first: {first}')
     # prepare random_number
     random_operation = create_operation_random(first, operand, range_params, decimal_params, negative_allowed)
     _, random_number_str = s.split_operation(random_operation)
@@ -209,21 +197,22 @@ def create_operation_cover(first, operand, range_params, decimal_params, negativ
     second = replace_units(random_number, x)
     # done. remove pair, go next
     combs[operand].remove((y,x))
+    check_negative(s.do_math(first, operand, second), negative_allowed) # TODO: tmp
     # c.p(f'[g]>>>>: cover-operation:  done. first:{first}, operand:{operand}, second:{second}')
     return f' {operand}{s.del_sign(second)}', s.do_math(first, operand, second), combs
 def get_y_pairs(combs_op, y):
     return [(y_filtered, x) for (y_filtered, x) in combs_op if y == y_filtered]
-def filter_pairs_by_negative_allowed(first, operand, random_number, pairs, negative_allowed):
+def filter_pairs_by_negative_allowed(first, operand, random_number, y_pairs, negative_allowed):
     positive_pairs = []
-    for (y,x) in pairs:
+    for (y,x) in y_pairs:
         predicted_number = replace_units(random_number, x)
-        if not check_opetarion_by_negative(first, operand, predicted_number, negative_allowed):
+        if not check_negative(s.do_math(first, operand, predicted_number), negative_allowed, exit_policy=0):
             continue
         positive_pairs.append((y,x))
     return positive_pairs
+# add random number with "x" from combs
 def create_operation_forced(first, operand, random_number, negative_allowed, combs):
     # c.p(f'[r]>>>>: forced-operation:[c] start. first:{first}, operand:{operand}')
-    check_error_negative_first_number(first, negative_allowed) # TODO: tmp
     y = int(first % 10)
     pairs = list(combs[operand])
     # если combs пустой
@@ -256,6 +245,7 @@ def create_operation_forced(first, operand, random_number, negative_allowed, com
     second = replace_units(random_number, x)
     operation = f' {operand}{s.del_sign(second)}'
     forced_first = s.do_math(first, operand, second)
+    check_negative(forced_first, negative_allowed) # TODO: tmp
     # c.p(f'[r]>>>>: forced-operation:[c] done. forced_first:{forced_first}, operation:{operation}')
     return operation, forced_first
 def replace_units(second, x):
@@ -263,15 +253,8 @@ def replace_units(second, x):
     fractional_part = second % s.tonum(1)
     new_integer_part = (integer_part // 10) * 10 + x
     return s.tonum(new_integer_part) + s.tonum(fractional_part)
-# negative politic
-def check_opetarion_by_negative(first, operand, second, negative_allowed):
-    if operand != '-':
-        return True
-    if negative_allowed:
-       return True
-    if s.do_math(first, operand, s.tonum(s.del_sign(second))) < 0:
-        return False
-    return True
+
+# random/cover:common
 def change_range(shift_type, shift_percent, old_range):
     old_range = list(map(int, old_range))
     min_value, max_value = old_range
@@ -288,9 +271,24 @@ def change_range(shift_type, shift_percent, old_range):
     if max_value < min_value:
         max_value = min_value
     new_range = [min_value, max_value]
+    # ok
     if new_range == old_range:
         raise Exception(c.z(f'[r]ERROR:[c] range the same: {old_range} -> {new_range}'))
     return new_range
+def check_negative(number, negative_allowed, exit_policy=1):
+    """exit_policy:
+       0 - exit: no
+       1 - exit: yes
+    """
+    if negative_allowed:
+        # return True
+        c.p(f'[y]TODO:[c] negative allowed')
+        exit(2)
+    if number < 0:
+        if exit_policy == 0:
+            return False
+        raise Exception(c.z(f'[r]ERROR:[c] number < 0 and negative not allowed: {number}'))
+    return True
 
 # note.negative
 def note_negative_not_posible(kind):
@@ -324,13 +322,4 @@ def note_length_more_than_req(kind, length, new_sequence):
     c.p(f'[y]NOTE:[y]   The rest of the sequence will be generated randomly.')
     c.p(f'[y]NOTE:[c]   the current length is [y]{len(new_sequence.split())}.')
     c.p(f'[y]NOTE:[c]   the specified length in the parameters is [y]{length}.')
-    return True
-# error
-def check_error_negative_first_number(first, negative_allowed):
-    if not negative_allowed and first < 0:
-        c.p(f'[r]ERROR:[c] first < 0 and negative not allowed: {first}')
-        exit(1)
-    if negative_allowed:
-        c.p(f'[y]TODO:[c] negative allowed')
-        exit(2)
     return True

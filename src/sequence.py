@@ -34,6 +34,7 @@ def tostr(val, rnd=None):
     return str(tonum(val, rnd))
 # num/num
 def do_math(x, operand, y, rnd=None):
+    x,y = tonum(x), tonum(y)
     map_operations = {
         '+': lambda x, y: x + y,
         '-': lambda x, y: x - y,
