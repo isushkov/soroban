@@ -6,6 +6,7 @@ todo:
     "<first_sequence>,<sequence>,<sequence>,..."
     decimal.precision -> range.procision
   analyze:
+    density - считать по второму слогаемому тоже
     fix decimal tables
     --spoilers
   tests
