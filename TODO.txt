@@ -1,17 +1,6 @@
 run:
-  redo output
-  delta_time:
-    training:
-      passed:
-        best-user:
-        best-other:
-      repeat:
-        best-user:
-        best-other:
-    exam:
-      best-user:
-      best-other:
-    target:
+  delta_time
+  render line
 
 todo:
   redo params:

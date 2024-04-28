@@ -242,7 +242,6 @@ def add_record(df_records, user_name, exercise, mode, is_passed, end_time, rende
         'date': datetime.fromtimestamp(time.time()).strftime('%d.%m.%y')
     })
 def upd_ranks(df):
-    df = df.sort_values(by=['is_exam', 'is_passed', 'time_seconds'],
-                        ascending=[False, False, True])
+    df = df.sort_values(by=['is_exam', 'is_passed', 'time_seconds'], ascending=[False, False, True])
     df['rank'] = range(1, len(df) + 1)
     return df

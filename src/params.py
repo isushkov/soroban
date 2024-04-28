@@ -158,4 +158,4 @@ def seq_params2seq_name(kind, seq_params):
     negative = f"{1 if seq_params['optional']['negative_allowed'] else 0}"
     decimal = f'{precision}x{probability}'
     roundtrip = f"{1 if seq_params['optional']['roundtrip'] else 0}"
-    return f'{kind}{operands}-{range_params}-{length}-n{negative}d{decimal}r{roundtrip}'
+    return f'{kind}{operands}-{range_params}w{length}-n{negative}d{decimal}r{roundtrip}'
