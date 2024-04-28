@@ -17,7 +17,7 @@ class RunRender():
         self.len_dt = len(self.df_empty)
     # render
     def title(self, exercise):
-        print(c.ljust(c.z(f'[x]===== [y]RUNNING {exercise} '), self.w, '=', 'x'))
+        print(c.ljust(c.z(f'[x]========= [y]RUNNING {exercise} '), self.w, '=', 'x'))
     def ready(self, mode, start_number):
         color = '[r]' if mode == 'exam' else '[g]'
         c.p(f'{color}{mode.upper()}. [y]Get ready.[x] Start number:[c] {start_number}')

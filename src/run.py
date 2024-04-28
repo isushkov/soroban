@@ -25,15 +25,13 @@ def run(path, mode, user_name, goal=False):
     sequence, total_provided = fo.txt2str(path).split('=')
     sequence = s.validate_sequence(sequence, exit_policy=2)
     operations = sequence.split()
-    # init render
     tui = Tui()
     tui.noecho()
     render = RunRender(operations)
-    render.title(exercise)
-    # prepare-data
     start_number = s.safe_eval(operations.pop(0))
     generate_sounds_texts(cfg.lang, render.w)
     generate_sounds_numbers(cfg.lang, operations, render.w)
+    render.title(exercise)
     records_columns = ['id', 'rank', 'user_name', 'exercise', 'is_exam', 'is_passed', 'time', 'time_seconds', 'date']
     where = {'exercise': exercise, 'is_exam': '1' if mode == 'exam' else '0'}
     df_records = pdo.load('./src/__records.csv', columns=records_columns, empty_allowed=True)
@@ -117,6 +115,7 @@ def ready(cfg, render, mode, start_number):
     say_text(cfg.lang, 'get-ready', cfg.spd_speech)
     say_text(cfg.lang, 'start-number', cfg.spd_speech)
     say_number(cfg.lang, start_number, cfg.spd_speech)
+    input(c.z('Press [y]<Enter>[c] to start..\n'))
 def run_stages(cfg, render, tui, mode, start_number, operations, check_method, timing, start_time):
     is_passed = True
     user_errors = 0

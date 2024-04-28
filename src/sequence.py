@@ -29,7 +29,7 @@ def tonum(val, rnd=None):
     return val
 # num/str
 def tostr(val, rnd=None):
-    if not isinstance(val, (str, int, float):
+    if not isinstance(val, (str, int, float)):
         raise ValueError(f'[r]ERROR - tostr():[c] unknown type {type(val)} ({val}).')
     return str(tonum(val, rnd))
 # num/num

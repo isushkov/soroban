@@ -1,21 +1,21 @@
 run:
   delta_time
   render line
-
 todo:
-  redo params:
+  redo params + redo progressions:
     "<first_sequence>,<sequence>,<sequence>,..."
     decimal.precision -> range.procision
-  redo progressions
-  analyze --spoilers
-  decimal:
-    analyze: fix decimal tables
+  analyze:
+    fix decimal tables
+    --spoilers
   tests
+  upd readme
+
+backlog:
   дополнительные возможности:
     отрицательные
     умножение/деление
     прочитать книги
-  upd readme
   mental-mode:
     в процессе работы отображать stage по одному числу - числа должны маргать
     как готово вернуть всю строку

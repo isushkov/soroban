@@ -25,7 +25,7 @@ def study(arg_user_name):
         user_name = input('Please enter your name: ').strip()[:6]
         if not user_name:
             c.p(f'[r]EXIT:[c] The user-name [r]is required[y] for the study-mode.')
-    print(c.center(c.z(f' [y]STUDY PROGRAM  for {user_name} '), 94, '>', 'x'))
+    print(c.ljust(c.z(f'[x]>>>>>>>>> [y]STUDY PROGRAM: {user_name} '), 94, '>', 'x'))
     # load/filter data
     study_attempts_columns = ['id','user_name','step','trainings_passed','exams_failed']
     df_study_attempts = pdo.load('./src/__study_attempts.csv', study_attempts_columns)
@@ -35,18 +35,19 @@ def study(arg_user_name):
     data_study_program = get_study_program()
     # step/create/analyze
     step, target, params, exercise = identify_step(df_records4user, data_study_program)
+    print(c.ljust('', 94, '.', 'x'))
     path = create(path=False, params=params)
     analyze(path)
+    print(c.ljust('', 94, '.', 'x'))
     # mode
     trainings_passed, exams_failed = get_attempts(df_study_attempts)
     mode = identify_mode(df_records4user, user_name, exercise, target, trainings_passed, exams_failed, conf.t2e, conf.e2t)
     # get-ready
     color = 'r' if mode == 'exam' else 'y'
-    c.p(f'[x]>>> [y]{user_name}[x], get ready:')
+    c.p(f'[y]>>> {user_name}:')
     c.p(f'[b]>>> Step {step}: [{color}]{mode.upper()}. [x]target-time: [r]{target}[x]. exercise: "{params}"')
     c.p(f'[x]>>> trainings-passed: [c]{trainings_passed}[g]/{conf.t2e}[c]')
     c.p(f'[x]>>> exams-failed:     [c]{exams_failed}[r]/{conf.e2t}')
-    input('Press Enter to continue...')
     # interrupt-handler/run
     interrupt_handler(df_study_attempts, user_name, mode, trainings_passed, exams_failed)
     is_passed, time_seconds = run(path, mode, user_name, target)
@@ -120,20 +121,20 @@ def identify_step(df_records4user, data_study_program):
     exit(0)
 def identify_mode(df_records4user, user_name, exercise, target, trainings_passed, exams_failed, t2e, e2t):
     c.p(f'[b]INFO: >>>[c] Identifying the MODE for study-step..')
-    mode, sfx_time = 'training', f'within the specified time ({target}).'
+    mode, sfx_time = 'training', f'within the specified time ({target})'
     where = {'exercise':exercise,'is_exam':0,'is_passed':1}
     df_passed_trainings = pdo.filter(df_records4user, where=where, empty_allowed=True, many_allowed=True)
     if df_passed_trainings.empty:
-        c.p(f'[b]INFO:[c] So far, no trainings have been passed.')
+        c.p(f'[b]INFO:[c] So far, no trainings have been passed for this exercise.')
         return info_mode(mode)
     if df_passed_trainings[df_passed_trainings['time_seconds'] <= target2seconds(target)].empty:
-        c.p(f'[b]INFO:[c] So far, no training have been passed {sfx_time}.')
+        c.p(f'[b]INFO:[c] So far, no training have been passed {sfx_time} for this exercise.')
         return info_mode(mode)
     if trainings_passed < t2e:
-        c.p(f'[y]INFO:[c] The training was completed fewer times in a row than necessary {sfx_time}')
+        c.p(f'[y]INFO:[c] The training was completed fewer times in a row than necessary {sfx_time} for this exercise.')
         return info_mode(mode)
     if exams_failed > e2t:
-        c.p(f'[r]INFO:[c] The exam is failed more times in a row than possible {sfx_time}')
+        c.p(f'[r]INFO:[c] The exam is failed more times in a row than possible {sfx_time}.')
         return info_mode(mode)
     c.p('[g]INFO: Admission to the exam has been received.')
     return info_mode('exam')

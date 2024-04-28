@@ -7,7 +7,7 @@ import src.helpers.fo as fo
 
 # density:
 def analyze(path):
-    print(c.center(c.z(f' [y]ANALYZE {path} '), 94, '=', 'x'))
+    print(c.ljust(c.z(f'[x]========= [y]ANALYZE {path} '), 94, '=', 'x'))
     # validation
     sequence, total = fo.txt2str(path).split('=')
     sequence = s.validate_sequence(sequence, 'analyze sequence', exit_policy=2)
@@ -155,11 +155,11 @@ def get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid, spo
     d_min = '.' if min_f else ''
     d_max = '.' if max_f else ''
     start_number      = sequence.split()[0]
-    count_numbers     = len(sequence.split())
+    count_numbers     = len(sequence.split()[1:])
     existed_operands  = ' '.join(list(set(s.split_operation(op)[0] for op in sequence.split()))).strip()
     decimal_exist     = render_yn(max_f)
     negative_results  = render_yn(s.apply(lambda total: total < 0, sequence))
-    range_numbers     = f"{'x'*min_i}{d_min}{'x'*min_f}[x]>[c]{'x'*max_i}{d_max}{'x'*max_f}"
+    range_numbers     = f"{'x'*min_i}{d_min}{'x'*min_f}-{'x'*max_i}{d_max}{'x'*max_f}"
     range_results     = render_range_results(s.apply(get_range_results, sequence), spoilers)
     total_provided    = render_yn(total)
     total_valid       = render_yn(total_is_valid)
@@ -185,7 +185,7 @@ def render_range_results(range_results, spoilers):
     min_result, max_result = range_results
     if not spoilers:
         min_result, max_result = blur(min_result), blur(max_result)
-    return c.z(f'{min_result}[x]>[c]{max_result}')
+    return c.z(f'{min_result}-{max_result}')
 def blur(number):
     return re.sub(r'\d', 'x', str(number))
 def get_range_results(total, range_results=(0,0)):

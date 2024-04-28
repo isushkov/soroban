@@ -47,7 +47,6 @@ def addnew(df, values):
         values = pd.DataFrame([values])
     return pd.concat([df, values], ignore_index=True)
 def update(df, where, values, addnew_allowed=False, many_allowed=False):
-    print(values)
     """
     :param where: Словарь условий {column_name: value} для поиска строк.
     :param values: Словарь с обновлениями {column_name: new_value}.

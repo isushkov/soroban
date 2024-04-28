@@ -7,8 +7,8 @@ from src.helpers.cmd import cmd
 
 # init
 def create(path, params):
+    print(c.ljust(c.z(f'[x]========= [y]CREATING '), 94, '=', 'x'))
     prepare_fs()
-    print(c.center(c.z(f' [y]CREATING '), 94, '=', 'x'))
     params = parse_params(params)
     sequence = create_sequence_start(params[0], params[1]) + '\n'
     for i,seq_params in enumerate(params[1:]):
@@ -37,7 +37,6 @@ def save_file(path, data):
     cmd('mkdir -p ./data')
     fo.str2txt(data, path)
     c.p(f'[g]Exercise was created:[c] {path}')
-    print()
 
 # start/roundtrip
 def create_sequence_start(start_param, seq_params):
@@ -99,7 +98,7 @@ def create_sequence_random(seq_params, first):
         new_sequence += create_operation_random(first, operand, range_params, decimal_params, negative_allowed)
     return new_sequence
 def create_operation_random(first, operand, range_params, decimal_params, negative_allowed):
-    c.p(f'[x]>>>>: random-operation: start. first:{first}, operand:{operand}, range_params:{range_params}')
+    # c.p(f'[x]>>>>: random-operation: start. first:{first}, operand:{operand}, range_params:{range_params}')
     check_error_negative_first_number(first, negative_allowed) # TODO: tmp
     # is this possible?
     if not check_opetarion_by_negative(first, operand, range_params[0], negative_allowed):
@@ -121,7 +120,7 @@ def create_operation_random(first, operand, range_params, decimal_params, negati
         note_negative_not_satisfy('random')
         note_change_range('random', side, shift, range_params, new_range)
         return create_operation_random(first, operand, new_range, decimal_params, negative_allowed)
-    c.p(f'[x]>>>>: random-operation: done.  first:{first}, operand:{operand}, second:{second}')
+    # c.p(f'[x]>>>>: random-operation: done.  first:{first}, operand:{operand}, second:{second}')
     return f' {operand}{s.del_sign(second)}'
 def choose_operand(operands):
     operations, weights = zip(*operands.items())
@@ -166,14 +165,14 @@ def create_sequence_cover(seq_params, first):
         new_sequence += operation
     # add extra random operations
     is_notified = False
-    while len(new_sequence.split()) <= int(length):
+    while len(new_sequence.split()) < int(length):
         if not is_notified:
             is_notified = note_length_more_than_req('cover', length, new_sequence)
         operand = choose_operand(operands)
         new_sequence += create_operation_random(first, operand, range_params, decimal_params, negative_allowed)
     return new_sequence
 def create_operation_cover(first, operand, range_params, decimal_params, negative_allowed, combs):
-    c.p(f'[b]>>>>: cover-operation:  start. first:{first}, operand:{operand}, range_params:{range_params}')
+    # c.p(f'[b]>>>>: cover-operation:  start. first:{first}, operand:{operand}, range_params:{range_params}')
     check_error_negative_first_number(first, negative_allowed) # TODO: tmp
     if first < 0:
         c.todo(f'negative. first: {first}')
@@ -210,7 +209,7 @@ def create_operation_cover(first, operand, range_params, decimal_params, negativ
     second = replace_units(random_number, x)
     # done. remove pair, go next
     combs[operand].remove((y,x))
-    c.p(f'[g]>>>>: cover-operation:  done. first:{first}, operand:{operand}, second:{second}')
+    # c.p(f'[g]>>>>: cover-operation:  done. first:{first}, operand:{operand}, second:{second}')
     return f' {operand}{s.del_sign(second)}', s.do_math(first, operand, second), combs
 def get_y_pairs(combs_op, y):
     return [(y_filtered, x) for (y_filtered, x) in combs_op if y == y_filtered]
@@ -223,7 +222,7 @@ def filter_pairs_by_negative_allowed(first, operand, random_number, pairs, negat
         positive_pairs.append((y,x))
     return positive_pairs
 def create_operation_forced(first, operand, random_number, negative_allowed, combs):
-    c.p(f'[r]>>>>: forced-operation:[c] start. first:{first}, operand:{operand}')
+    # c.p(f'[r]>>>>: forced-operation:[c] start. first:{first}, operand:{operand}')
     check_error_negative_first_number(first, negative_allowed) # TODO: tmp
     y = int(first % 10)
     pairs = list(combs[operand])
@@ -257,7 +256,7 @@ def create_operation_forced(first, operand, random_number, negative_allowed, com
     second = replace_units(random_number, x)
     operation = f' {operand}{s.del_sign(second)}'
     forced_first = s.do_math(first, operand, second)
-    c.p(f'[r]>>>>: forced-operation:[c] done. forced_first:{forced_first}, operation:{operation}')
+    # c.p(f'[r]>>>>: forced-operation:[c] done. forced_first:{forced_first}, operation:{operation}')
     return operation, forced_first
 def replace_units(second, x):
     integer_part = int(second // s.tonum(1))
