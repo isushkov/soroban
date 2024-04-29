@@ -95,10 +95,10 @@ def create_operation_random(first, operand, range_params, decimal_params, negati
         new_min_range,_ = change_range('min', shift_min, range_params)
         _,new_max_range = change_range('max', shift_max, range_params)
         new_range = [new_min_range, new_max_range]
-        note_random_negative_not_posible()
-        note_change_operand('random', operand)
-        note_change_range('random', 'min', shift_min, range_params, new_range)
-        note_change_range('random', 'max', shift_max, range_params, new_range)
+        # note_random_negative_not_posible()
+        # note_change_operand('random', operand)
+        # note_change_range('random', 'min', shift_min, range_params, new_range)
+        # note_change_range('random', 'max', shift_max, range_params, new_range)
         return create_operation_random(first, operand, new_range, decimal_params, negative_allowed)
     second = s.tonum(generate_random_number(range_params, decimal_params))
     # no luck this time
