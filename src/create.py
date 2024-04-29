@@ -4,6 +4,7 @@ import src.sequence as s
 import src.helpers.colors as c
 import src.helpers.fo as fo
 from src.helpers.cmd import cmd
+from src.helpers.storage import storage as stg
 
 # init
 def create(path, params):

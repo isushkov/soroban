@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import argparse
 import sys
 from textwrap import dedent
@@ -10,6 +9,7 @@ from src.run import run
 import src.sequence as s
 import src.helpers.fo as fo
 import src.helpers.exit_handler
+from src.helpers.storage import Storage
 
 
 def would_like_repeat():
