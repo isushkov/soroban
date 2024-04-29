@@ -95,7 +95,7 @@ def create_operation_random(first, operand, range_params, decimal_params, negati
         new_min_range,_ = change_range('min', shift_min, range_params)
         _,new_max_range = change_range('max', shift_max, range_params)
         new_range = [new_min_range, new_max_range]
-        note_negative_not_posible('random')
+        note_random_negative_not_posible()
         note_change_operand('random', operand)
         note_change_range('random', 'min', shift_min, range_params, new_range)
         note_change_range('random', 'max', shift_max, range_params, new_range)
@@ -105,12 +105,10 @@ def create_operation_random(first, operand, range_params, decimal_params, negati
     if not check_negative(s.do_math(first, operand, second), negative_allowed, exit_policy=0):
         side, shift = 'max', -75
         new_range = change_range('max', -75, range_params)
-        note_negative_not_satisfy('random')
-        note_change_range('random', side, shift, range_params, new_range)
+        # note_random_negative_not_passed()
+        # note_change_range('random', side, shift, range_params, new_range)
         return create_operation_random(first, operand, new_range, decimal_params, negative_allowed)
     check_negative(s.do_math(first, operand, second), negative_allowed, exit_policy=1)
-    c.p(f'[x]>>>>: random-operation: done:[c] operation: {operand}{s.del_sign(second)}')
-    c.p(f'[x]>>>>: random-operation:      [c] first,range_params:{(first, range_params)}')
     return f' {operand}{s.del_sign(second)}'
 def choose_operand(operands):
     if len(operands) == 1:
@@ -148,106 +146,87 @@ def create_sequence_cover(seq_params, first):
     is_notified = False
     while combs['+'] or combs['-']:
         if length and len(new_sequence.split()) > int(length) and not is_notified:
-            is_notified = note_length_less_than_req('cover', length, new_sequence)
+            is_notified = note_cover_length_less_than_req('cover', length, new_sequence)
         operand = choose_operand(operands)
-        if not combs[operand]:
-            continue
         operation, first, combs = create_operation_cover(first, operand, range_params, decimal_params, negative_allowed, combs)
         new_sequence += operation
     # add extra random operations
     is_notified = False
     while len(new_sequence.split()) < int(length):
         if not is_notified:
-            is_notified = note_length_more_than_req('cover', length, new_sequence)
+            is_notified = note_cover_length_more_than_req('cover', length, new_sequence)
         operand = choose_operand(operands)
         new_sequence += create_operation_random(first, operand, range_params, decimal_params, negative_allowed)
     return new_sequence
 def create_operation_cover(first, operand, range_params, decimal_params, negative_allowed, combs):
-    # c.p(f'[b]>>>>: cover-operation:  start. first:{first}, operand:{operand}, range_params:{range_params}')
     # prepare random_number
     random_operation = create_operation_random(first, operand, range_params, decimal_params, negative_allowed)
     _, random_number_str = s.split_operation(random_operation)
     random_number = s.tonum(random_number_str)
-    # looking y_pairs
+    # 1. yx_pairs not exist
+    yx_pairs = list(combs[operand])
+    if not yx_pairs:
+        return '', first, combs
+    # 2. yx_pairs negative
+    yx_pairs = filter_pairs_by_negative_allowed(first, operand, random_number, yx_pairs, negative_allowed)
+    if not yx_pairs:
+        # replace operand to '+'
+        # add random_number
+        # note_cover_add_random_number()
+        # note_change_operand('cover', operand)
+        operand = '+'
+        return f' {operand}{random_number}', s.do_math(first, operand, random_number), combs
+    # 3. y_pairs not exist
     y = int(first % 10)
-    y_pairs = get_y_pairs(combs[operand], y)
-    # если пар нет
+    y_pairs = get_y_pairs(yx_pairs, y)
     if not y_pairs:
-        note_pairs_not_exist('cover')
-        # add forced_operation
-        forced_operation, forced_first = create_operation_forced(first, operand, random_number, negative_allowed, combs)
-        return forced_operation, forced_first, combs
-    # если пары есть, но они все не удовлетворяют negative_politic
+        # 3.1. newchain_pairs negative
+        newchain_pairs = filter_pairs_by_negative_allowed(first, operand, random_number, yx_pairs, negative_allowed)
+        if newchain_pairs:
+            # replace operand to '+'
+            # add random_operation
+            # note_cover_add_random_number()
+            # note_change_operand('cover', operand)
+            operand = '+'
+            return f' {operand}{s.del_sign(random_number)}', s.do_math(first, operand, random_number), combs
+        # 3.2. newchain_pairs ok
+        # add newchain_operation
+        note_cover_start_new_chain()
+        newchain_pair = random.choice(newchain_pairs)
+        newchain_y = newchain_pair[0]
+        if operand == '+': x = (10+newchain_y - y) % 10
+        if operand == '-': x = (10+y - newchain_y) % 10
+        newchain_number = replace_units(random_number, x)
+        newchain_first = s.do_math(first, operand, newchain_number)
+        return f' {operand}{s.del_sign(newchain_number)}', newchain_first, combs
+    # 4. y_pairs negative
     y_pairs = filter_pairs_by_negative_allowed(first, operand, random_number, y_pairs, negative_allowed)
     if not y_pairs:
-        note_pairs_not_satisfy('cover')
+        # replace operand to '+'
+        # add random_number
+        #   не получится добавить newchain_number потому что
+        #   после смены операнда нет гарантии что y_pairs вообще есть.
+        # note_cover_add_random_number()
+        # note_change_operand('cover', operand)
         operand = '+'
-        note_change_operand('cover', operand)
-        # если пар нет (+)
-        y_pairs = get_y_pairs(combs[operand], y)
-        if not y_pairs:
-            # add random_operation
-            note_pairs_not_exist('cover')
-            return f' {operand}{s.del_sign(random_number)}', s.do_math(first, operand, random_number), combs
-        # add forced_operation (+)
-        forced_operation, forced_first = create_operation_forced(first, operand, random_number, negative_allowed, combs)
-        return forced_operation, forced_first, combs
-    # get second
+        return f' {operand}{s.del_sign(random_number)}', s.do_math(first, operand, random_number), combs
+    # 5. y_pairs ok
+    # done. remove pair, go next
     x = random.choice(y_pairs)[1]
     second = replace_units(random_number, x)
-    # done. remove pair, go next
     combs[operand].remove((y,x))
     check_negative(s.do_math(first, operand, second), negative_allowed) # TODO: tmp
-    # c.p(f'[g]>>>>: cover-operation:  done. first:{first}, operand:{operand}, second:{second}')
     return f' {operand}{s.del_sign(second)}', s.do_math(first, operand, second), combs
 def get_y_pairs(combs_op, y):
     return [(y_filtered, x) for (y_filtered, x) in combs_op if y == y_filtered]
-def filter_pairs_by_negative_allowed(first, operand, random_number, y_pairs, negative_allowed):
+def filter_pairs_by_negative_allowed(first, operand, random_number, pairs, negative_allowed):
     positive_pairs = []
-    for (y,x) in y_pairs:
+    for (y,x) in pairs:
         predicted_number = replace_units(random_number, x)
         if not check_negative(s.do_math(first, operand, predicted_number), negative_allowed, exit_policy=0):
             continue
         positive_pairs.append((y,x))
     return positive_pairs
-# add random number with "x" from combs
-def create_operation_forced(first, operand, random_number, negative_allowed, combs):
-    # c.p(f'[r]>>>>: forced-operation:[c] start. first:{first}, operand:{operand}')
-    y = int(first % 10)
-    pairs = list(combs[operand])
-    # если combs пустой
-    if not pairs:
-        # add random_operation
-        note_pairs_not_exist('forced')
-        second = replace_units(random_number, random.randint(1, 9))
-        return f' {operand}{s.del_sign(second)}', s.do_math(first, operand, second)
-    # выбрать пару которая не делают forced_first отрицательным
-    if not negative_allowed and operand == '-':
-        pairs = []
-        for (y,x) in pairs:
-            if first - replace_units(random_number, x) < 0:
-                continue
-            pairs.append((y,x))
-        # если таких пар нет
-        if not pairs:
-            # add random_operation
-            operand = '+'
-            note_pairs_not_exist('forced')
-            note_change_operand('forced', operand)
-            second = replace_units(random_number, random.randint(1, 9))
-            return f' {operand}{s.del_sign(second)}', s.do_math(first, operand, second)
-    # берем пару
-    forced_pair = random.choice(pairs)
-    forced_y = forced_pair[0]
-    if operand == '+': x = (10+forced_y - y) % 10
-    if operand == '-': x = (10+y - forced_y) % 10
-    # get new operation with new first
-    second = replace_units(random_number, x)
-    operation = f' {operand}{s.del_sign(second)}'
-    forced_first = s.do_math(first, operand, second)
-    check_negative(forced_first, negative_allowed) # TODO: tmp
-    # c.p(f'[r]>>>>: forced-operation:[c] done. forced_first:{forced_first}, operation:{operation}')
-    return operation, forced_first
 def replace_units(second, x):
     integer_part = int(second // s.tonum(1))
     fractional_part = second % s.tonum(1)
@@ -291,35 +270,34 @@ def check_negative(number, negative_allowed, exit_policy=1):
     return True
 
 # note.negative
-def note_negative_not_posible(kind):
-    c.p(f'[y]NOTE: {kind}-operation:[c] has conflicting parameters:')
+def note_random_negative_not_posible():
+    c.p('[y]NOTE:[x] random-operation:[c] has conflicting parameters:')
     c.p('[y]NOTE:[c]   - Negative numbers are not allowed.')
     c.p('[y]NOTE:[c]   - Only "-" operands are used.')
     c.p('[y]NOTE:[c]   - The current result minus the minimum possible value is less than zero.')
     c.p('[y]NOTE:[c]   - The limit has been reached.')
-def note_negative_not_satisfy(kind):
-    c.p(f'[y]NOTE: {kind}-operation:[c] does not satisfy [r]the negative numbers policy.[x] Trying again..')
-# note.change
-def note_change_operand(kind, new_operand):
-    c.p(f'[y]NOTE: {kind}-operation:[c] changing [r]operand by "{new_operand}".')
-def note_change_range(kind, side, shift, old_range, new_range):
-    old_range, new_range = map(str, old_range), map(str, new_range)
-    c.p(f'[y]NOTE: {kind}-operation:[c] changing [r]range {side}:{s.add_sign(shift)}%[c] [x]([c]{"-".join(old_range)} [x]->[c] {"-".join(new_range)}[x])')
-# note.pairs
-def note_pairs_not_exist(kind):
-    c.p(f'[y]NOTE: {kind}-operation: [r]no y-pairs left[c] for the chain of operations.')
-def note_pairs_not_satisfy(kind):
-    c.p(f'[y]NOTE: {kind}-operation: [r]all y-pairs for does not satisfy[c] the negative numbers policy.')
-# note.extra
-def note_length_less_than_req(kind, length, new_sequence):
-    c.p(f'[y]NOTE: {kind}-operation:[c] Not all numbers have been generated yet for possible combinations of units:')
+def note_random_negative_not_passed():
+    c.p('[y]NOTE:[x] random-operation:[c] does not satisfy [r]the negative numbers policy.[x]')
+# note.cover
+def note_cover_add_random_number():
+    c.p('[y]NOTE:[x] cover-operation:[c] broken chain. [r]adding random number..')
+def note_cover_start_new_chain():
+    c.p('[y]NOTE:[x] cover-operation:[c] broken chain. [b]starting new chain..')
+def note_cover_length_less_than_req(kind, length, new_sequence):
+    c.p(f'[y]NOTE:[x] cover-operation:[c] Not all numbers have been generated yet for possible combinations of units:')
     c.p(f'[y]NOTE:[c]   The specified [y]length in the parameters [y]will be ignored.')
     c.p(f'[y]NOTE:[c]   the specified length in the parameters is {length}.')
     c.p(f'[y]NOTE:[c]   the current length is [y]{len(new_sequence.split())}.')
     return True
-def note_length_more_than_req(kind, length, new_sequence):
-    c.p(f'[y]NOTE: {kind}-operation:[c] All combinations were matched:')
+def note_cover_length_more_than_req(length, new_sequence):
+    c.p(f'[y]NOTE:[x] cover-operation:[c] All combinations were matched:')
     c.p(f'[y]NOTE:[y]   The rest of the sequence will be generated randomly.')
     c.p(f'[y]NOTE:[c]   the current length is [y]{len(new_sequence.split())}.')
     c.p(f'[y]NOTE:[c]   the specified length in the parameters is [y]{length}.')
     return True
+# note.common
+def note_change_operand(kind, new_operand):
+    c.p(f'[y]NOTE:[x] {kind}-operation:[c] changing [r]operand by "{new_operand}".')
+def note_change_range(kind, side, shift, old_range, new_range):
+    old_range, new_range = map(str, old_range), map(str, new_range)
+    c.p(f'[y]NOTE:[x] {kind}-operation:[c] changing [r]range {side}:{s.add_sign(shift)}%:[c] {"-".join(old_range)} [x]->[c] {"-".join(new_range)}')
