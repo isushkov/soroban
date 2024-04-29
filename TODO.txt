@@ -1,12 +1,13 @@
 run:
   delta_time
   render line
+create:
+  upd status format
 todo:
   redo params + redo progressions:
     "<first_sequence>,<sequence>,<sequence>,..."
     decimal.precision -> range.procision
   analyze:
-    fix decimal tables
     --spoilers
   tests
   upd readme
@@ -14,6 +15,8 @@ todo:
 backlog:
   дополнительные возможности:
     отрицательные
+    decimal
+      fix decimal tables
     умножение/деление
     прочитать книги
   mental-mode:

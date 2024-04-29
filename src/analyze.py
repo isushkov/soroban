@@ -146,8 +146,10 @@ def get_density_row(y, density, rng):
     return row
 def get_count_str(count):
     if count == 0: return c.z('[c] ')
-    if count == 1: return c.z('[g]x')
-    if count <= 9: return c.z(f'[y]{count}')
+    if count == 1: return c.z('[b]x')
+    if count <= 3: return c.z(f'[g]{count}')
+    if count <= 5: return c.z(f'[y]{count}')
+    if count <= 9: return c.z(f'[r]{count}')
     if count > 9: return c.z('[r]*')
     return str(count)
 # info
@@ -168,7 +170,7 @@ def get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid, spo
         c.z(f''),
         c.z(f''),
         c.z(f'[x]Start number:     [c]{start_number}'),
-        c.z(f'[x]Count numbers:    [c]{count_numbers}'),
+        c.z(f'[x]Count operations: [c]{count_numbers}'),
         c.z(f'[x]Existed operands: [c]{existed_operands}'),
         c.z(f'[x]Decimal exist:    [c]{decimal_exist}'),
         c.z(f'[x]Negative results: [c]{negative_results}'),

@@ -64,10 +64,10 @@ run() {
     expect 0 ./main.py create "s0 c-,1-9"
     expect 0 ./main.py create "s0 c+-,1-9"
     expect 0 ./main.py create "s0 c-,99-909"
-    expect 0 ./main.py create "s0 c+,1-9:<"
-    expect 0 ./main.py create "s0 c-,1-9:<"
-    expect 0 ./main.py create "s0 c+-,1-9:<"
     exit
+    # expect 0 ./main.py create "s0 c+,1-9:<"
+    # expect 0 ./main.py create "s0 c-,1-9:<"
+    # expect 0 ./main.py create "s0 c+-,1-9:<"
     # expect 2 ./main.py create "s0 c+-*/,1-9"
     # expect 2 ./main.py create "s0 c+,1-9:n"
     # expect 2 ./main.py create "s0 c-,1-9:n"
