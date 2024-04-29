@@ -1,8 +1,8 @@
+create:
+  upd status format
 run:
   delta_time
   render line
-create:
-  upd status format
 todo:
   redo params + redo progressions:
     "<first_sequence>,<sequence>,<sequence>,..."

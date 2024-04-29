@@ -4,52 +4,57 @@ import time
 from datetime import datetime
 from gtts import gTTS
 from num2words import num2words
+# src
 from src.config import Config
-from src.run_render import RunRender
 import src.sequence as s
+# src/view
+from src.view._tui import Tui
+from src.view.run import ViewRun
+# src/helpers
+from src.helpers.cmd import cmd
 import src.helpers.fo as fo
 import src.helpers.pdo as pdo
 import src.helpers.colors as c
-from src.helpers.cmd import cmd
-from src.helpers.tui import Tui
 
+cfg = Config()
+tui = Tui()
+view = ViewRun()
 
 def run(path, mode, user_name, goal=False):
-    # args/cfg/fs
-    cfg = Config()
+    # config
     mode = mode or cfg.mode
     user_name = user_name or cfg.user_name
     check_method = 'input' if mode == 'exam' else cfg.check_method
-    exercise = os.path.splitext(os.path.basename(path))[0]
-    prepare_fs(cfg.lang)
+    # exercise
+    exercise_name = os.path.splitext(os.path.basename(path))[0]
     sequence, total_provided = fo.txt2str(path).split('=')
     sequence = s.validate_sequence(sequence, exit_policy=2)
     operations = sequence.split()
-    tui = Tui()
-    tui.noecho()
-    render = RunRender(operations)
-    start_number = s.safe_eval(operations.pop(0))
-    generate_sounds_texts(cfg.lang, render.w)
-    generate_sounds_numbers(cfg.lang, operations, render.w)
-    render.title(exercise)
+    start_number = operations.pop(0)
+    # reocords
     records_columns = ['id', 'rank', 'user_name', 'exercise', 'is_exam', 'is_passed', 'time', 'time_seconds', 'date']
-    where = {'exercise': exercise, 'is_exam': '1' if mode == 'exam' else '0'}
+    where = {'exercise': exercise_name, 'is_exam': '1' if mode == 'exam' else '0'}
     df_records = pdo.load('./src/__records.csv', columns=records_columns, empty_allowed=True)
     df_run = pdo.filter(df_records, where=where, empty_allowed=True, many_allowed=True)
     timing = get_timing(df_run, user_name, goal)
     # run
-    user_name = user_name or get_user_name(tui)
-    ready(cfg, render, mode, start_number)
-    render.header(cfg, mode, goal)
+    prepare_fs()
+    tui.noecho()
+    view.render_title(f'RUNNING {exercise_name}')
+    generate_sounds_texts()
+    generate_sounds_numbers(operations)
+    user_name = user_name or get_user_name()
+    ready(mode, start_number)
+    view.render_header(mode, goal)
     start_time = round(time.time(), 2)
-    is_passed = run_stages(cfg,render,tui, mode, start_number, operations, check_method, timing, start_time)
+    is_passed = run_stages(mode, start_number, operations, check_method, timing, start_time)
     end_time = round(round(time.time(), 2) - start_time, 2)
     # finish
-    render.finish(mode, is_passed, end_time)
+    view.finish(mode, is_passed, end_time)
     say_beep('end-game-passed' if is_passed else 'end-game', cfg.spd_signals)
     # upd_records
     if mode == 'training' or is_passed:
-        df_records = add_record(df_records, user_name, exercise, mode, is_passed, end_time, render)
+        df_records = add_record(df_records, user_name, exercise_name, mode, is_passed, end_time)
         user_id = df_records.index[-1]
         df_records = upd_ranks(df_records)
         pdo.save(df_records, './src/__records.csv')
@@ -57,8 +62,9 @@ def run(path, mode, user_name, goal=False):
         user_data['id'] = user_id
     else:
         user_data = False
-    df = pdo.filter(df_records, where={'exercise':exercise}, empty_allowed=True, many_allowed=True)
-    render.leaderboard(df, user_data)
+    # leaderboard
+    df = pdo.filter(df_records, where={'exercise':exercise_name}, empty_allowed=True, many_allowed=True)
+    view.render_leaderboard(df, user_data)
     tui.echo()
     return is_passed, end_time
 
@@ -106,17 +112,17 @@ def mpv(path, speed):
     cmd(f'mpv {path} --speed={speed}', strict=False, verbose4fail=False)
 
 # run
-def get_user_name(tui):
+def get_user_name():
     tui.echo()
     user_name = input('Please enter your name: ').strip()[:6] or '<anon>'
     tui.noecho()
-def ready(cfg, render, mode, start_number):
-    render.ready(mode, start_number)
-    say_text(cfg.lang, 'get-ready', cfg.spd_speech)
-    say_text(cfg.lang, 'start-number', cfg.spd_speech)
-    say_number(cfg.lang, start_number, cfg.spd_speech)
+def ready(mode, start_number):
+    view.render_ready(mode, start_number)
+    say_text('get-ready', cfg.spd_speech)
+    say_text('start-number', cfg.spd_speech)
+    say_number(start_number, cfg.spd_speech)
     input(c.z('Press [y]<Enter>[c] to start..\n'))
-def run_stages(cfg, render, tui, mode, start_number, operations, check_method, timing, start_time):
+def run_stages(mode, start_number, operations, check_method, timing, start_time):
     is_passed = True
     user_errors = 0
     if mode == 'exam':
@@ -128,31 +134,29 @@ def run_stages(cfg, render, tui, mode, start_number, operations, check_method, t
     is_restart_stage = False
     for stage_number, stage_ops in enumerate(stages, start=1):
         is_last_stage = True if stage_number == len(stages) else False
-        is_passed = run_stage(cfg,render,tui, mode, stage_number, total, stage_ops, check_method,
-                              is_passed, is_restart_stage, is_last_stage, user_errors, timing, start_time)
+        is_passed = run_stage(mode, stage_number, total, stage_ops, check_method, is_passed, is_restart_stage, is_last_stage, user_errors, timing, start_time)
     return is_passed
-def run_stage(cfg,render,tui, mode, stage_number, total, stage_ops, check_method,
-              is_passed, is_restart_stage, is_last_stage, user_errors, timing, start_time):
+def run_stage(mode, stage_number, total, stage_ops, check_method, is_passed, is_restart_stage, is_last_stage, user_errors, timing, start_time):
     # start_stage
     if mode == 'training':
-        render.start_stage(stage_number, user_errors)
-        say_start_stage(stage_number, total, is_restart_stage, cfg)
+        view.start_stage(stage_number, user_errors)
+        say_start_stage(stage_number, total, is_restart_stage)
     # operations
-    run_operations(stage_ops, cfg, render)
+    run_operations(stage_ops)
     # answer
     total = total + s.safe_eval(' '.join(stage_ops))
     if cfg.check_method == 'yes-no':
-        render.show_result(total)
-        say_text(cfg.lang, 'answer' if is_last_stage else 'stage-result', cfg.spd_result_txt)
-        say_number(cfg.lang, total, cfg.spd_result_num)
-        render.ask_yesno(is_last_stage)
-        answer = ask_yesno(tui)
+        view.show_result(total)
+        say_text('answer' if is_last_stage else 'stage-result', cfg.spd_result_txt)
+        say_number(total, cfg.spd_result_num)
+        view.ask_yesno(is_last_stage)
+        answer = ask_yesno()
         tui.clear_lines(3)
     else:
-        render.ask_input(is_last_stage)
+        view.ask_input(is_last_stage)
         sound = 'enter-answer' if is_last_stage else 'enter-stage-result'
-        say_text(cfg.lang, sound, cfg.spd_enter_result)
-        answer = True if ask_input(tui) == total else False
+        say_text(sound, cfg.spd_enter_result)
+        answer = True if ask_input() == total else False
     # result.failed
     if not answer:
         user_errors += 1
@@ -160,14 +164,13 @@ def run_stage(cfg,render,tui, mode, stage_number, total, stage_ops, check_method
         is_passed = False
         say_beep('wrong', cfg.spd_wrong)
         tui.clear_lines(1)
-        run_stage(cfg,render,tui, mode, stage_number, total, stage_ops, check_method,
-                  is_passed, is_restart_stage, is_last_stage, user_errors, timing, start_time)
+        run_stage(mode, stage_number, total, stage_ops, check_method, is_passed, is_restart_stage, is_last_stage, user_errors, timing, start_time)
     # result.ok
-    render.deltas(is_passed, timing, start_time)
+    view.deltas(is_passed, timing, start_time)
     return is_passed
 
 # stage.start
-def say_start_stage(stage_number, start_number, is_restart_stage, cfg):
+def say_start_stage(stage_number, start_number, is_restart_stage):
     if stage_number == 1 and not is_restart_stage:
         speed = cfg.spd_speech
         speed_beeps = cfg.spd_signals
@@ -175,23 +178,23 @@ def say_start_stage(stage_number, start_number, is_restart_stage, cfg):
         speed = cfg.spd_stage
         speed_beeps = cfg.spd_start
     # say
-    say_text(cfg.lang, 'stage', speed)
-    say_number(cfg.lang, stage_number, speed)
+    say_text('stage', speed)
+    say_number(stage_number, speed)
     if is_restart_stage:
-        say_text(cfg.lang, 'continue-with', cfg.spd_stage_cont_txt)
-        say_number(cfg.lang, start_number, cfg.spd_stage_cont_num)
+        say_text('continue-with', cfg.spd_stage_cont_txt)
+        say_number(start_number, cfg.spd_stage_cont_num)
     say_beep('start', speed_beeps)
 # stage.operations
-def run_operations(stage_ops, cfg, render):
+def run_operations(stage_ops):
     for operation in stage_ops:
         operand, number = s.split_operation(operation)
-        render.operation(operand, number, cfg)
+        view.operation(operand, number, cfg)
         speed_operand = cfg.spd_plus if operand == '+' else cfg.spd_number
-        say_text(cfg.lang, operand, speed_operand)
-        say_number(cfg.lang, number, cfg.spd_number)
+        say_text(operand, speed_operand)
+        say_number(number, cfg.spd_number)
         time.sleep(cfg.spd_delay)
 # stage.answer
-def ask_yesno(tui):
+def ask_yesno():
     key = tui.getch()
     if key in [' ', '\r', '\n']: # next stage
         return True
@@ -200,7 +203,7 @@ def ask_yesno(tui):
         exit(0)
     else: # restart stage
         return False
-def ask_input(tui):
+def ask_input():
     tui.echo()
     answer = s.tonum(input())
     tui.noecho()
@@ -229,14 +232,14 @@ def df2besttime(df):
     return float(best_time_value)
 
 # final.upd_records
-def add_record(df_records, user_name, exercise, mode, is_passed, end_time, render):
+def add_record(df_records, user_name, exercise_name, mode, is_passed, end_time):
     return pdo.addnew(df_records, {
         'rank': 0,
         'user_name': user_name,
-        'exercise': exercise,
+        'exercise': exercise_name,
         'is_exam': 1 if mode == 'exam' else 0,
         'is_passed': 1 if is_passed else 0,
-        'time': render.f_time(end_time, unary_plus=False),
+        'time': view.f_time(end_time, unary_plus=False),
         'time_seconds': end_time,
         'date': datetime.fromtimestamp(time.time()).strftime('%d.%m.%y')
     })

@@ -1,23 +1,35 @@
-import shutil
 from functools import reduce
 import time
+# src
 import src.sequence as s
+# src/view
+from src.view._view import View
+# src/helpers
 import src.helpers.colors as c
 
-class RunRender():
-    def __init__(self, operations):
-        self.operations = operations[1:]
-        self.w, _ = shutil.get_terminal_size()
-        self.tab = ' '
-        self.sep = ' '
-        self.start_stage_max_len = len('Stage99 x2:')
-        self.operation_max_len = len(max(operations, key=len)) + 1
-        self.result_max_len = len(s.tostr(reduce(s.get_resNmaxres, operations, (operations[0],0))[1]))
-        self.df_empty = '--:--:--'
+class ViewRun(View):
+    def __init__(self):
+        self.delta_empty = '--:--:--'
         self.len_dt = len(self.df_empty)
-    # render
-    def title(self, exercise):
-        print(c.ljust(c.z(f'[x]========= [y]RUNNING {exercise} '), self.w, '=', 'x'))
+        self.row = {
+            'start': None,
+            'operations': None,
+            'result': None,
+            'deltas': None
+        }
+
+    # Stage99 x99: (operation, operation, ...) <-> result deltas
+    def set_row_lens(self, operations):
+        self.len_start = len('Stage99 x2:')
+        self.len_operation = len(max(operations, key=len)) + 1
+        # TODO: количество операций в stage * len_operation
+        self.len_operations =
+        self.len_result = len(s.tostr(reduce(s.get_resNmaxres, operations, (operations[0],0))[1]))
+        self.len_delta = len(self.delta_empty)
+        если study тогда 3 иначе 2
+        self.len_deltas =
+
+    # view
     def ready(self, mode, start_number):
         color = '[r]' if mode == 'exam' else '[g]'
         c.p(f'{color}{mode.upper()}. [y]Get ready.[x] Start number:[c] {start_number}')
@@ -32,12 +44,12 @@ class RunRender():
         c.p(f'[x]{self.tab}{self.sep.join([start_stage, operations, result] + dts)}{self.tab}')
     def start_stage(self, stage_number, user_errors):
         user_errors = f' [r]x{min(user_errors+1, 9)}' if user_errors else ''
-        render = c.ljust(c.z(f'[x]Stage-{min(int(stage_number), 99)}{user_errors}:'), self.start_stage_max_len)
-        print(self.tab + render, end='', flush=True)
+        view = c.ljust(c.z(f'[x]Stage-{min(int(stage_number), 99)}{user_errors}:'), self.start_stage_max_len)
+        print(self.tab + view, end='', flush=True)
     def operation(self, operand, number, cfg):
         operand = '' if (operand == '+' and not cfg.show_plus) else operand
-        render = f' {operand}{number}'.rjust(self.operation_max_len)
-        print(render, end='', flush=True)
+        view = f' {operand}{number}'.rjust(self.operation_max_len)
+        print(view, end='', flush=True)
     def show_result(self, result):
         print(f' ={result}')
     def ask_yesno(self, is_last_stage):
@@ -60,8 +72,8 @@ class RunRender():
             self.delta((float(timing[k][i]) - spend_time) if timing[k].get(i) else False)
         print(self.tab)
     def delta(self, time):
-        render = c.z(f"[{'r' if time < 0 else 'g'}]{self.f_time(time, unary_plus=True)}") if time else c.z(f'[x]{self.df_empty}')
-        print(self.sep.join(render), end='', flush=True)
+        view = c.z(f"[{'r' if time < 0 else 'g'}]{self.f_time(time, unary_plus=True)}") if time else c.z(f'[x]{self.df_empty}')
+        print(self.sep.join(view), end='', flush=True)
     def f_time(self, seconds_total, unary_plus):
         unary_plus = '+' if unary_plus else ''
         sign = '-' if seconds_total < 0 else unary_plus

@@ -1,13 +1,18 @@
 import re
 import shutil
 from collections import Counter
+# src
 import src.sequence as s
-import src.helpers.colors as c
+# src/view
+from src.view.analyze import ViewAnalyze
+# src/helpers
 import src.helpers.fo as fo
+import src.helpers.colors as c
 
-# density:
+view = ViewAnalyze()
+
 def analyze(path):
-    print(c.ljust(c.z(f'[x]========= [y]ANALYZE {path} '), 94, '=', 'x'))
+    view.render_title(f'[y]ANALYZE {path}')
     # validation
     sequence, total = fo.txt2str(path).split('=')
     sequence = s.validate_sequence(sequence, 'analyze sequence', exit_policy=2)

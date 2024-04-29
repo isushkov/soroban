@@ -1,14 +1,19 @@
 import random
+# src
 from src.params import parse_params, params2basename
 import src.sequence as s
+# src/view
+from src.view.create import ViewCreate
+# src/helpers
+from src.helpers.cmd import cmd
 import src.helpers.colors as c
 import src.helpers.fo as fo
-from src.helpers.cmd import cmd
-from src.helpers.storage import storage as stg
+
+view = ViewCreate()
 
 # init
 def create(path, params):
-    print(c.ljust(c.z(f'[x]========= [y]CREATING '), 94, '=', 'x'))
+    view.title('[y]CREATING')
     prepare_fs()
     params = parse_params(params)
     sequence = create_sequence_start(params[0], params[1]) + '\n'
@@ -168,7 +173,7 @@ def create_sequence_cover(seq_params, first):
 def create_operation_cover(first, operand, negative_allowed, combs, random_number):
     y = first % 10
     yx_pairs = list(combs[operand])
-    # 1. y_pairs exitst. remove pair, done.
+    # 1. (y,x) pairs exitst. remove pair, done.
     y_pairs = filter_pairs_by_negative_allowed(first, operand, random_number, get_y_pairs(yx_pairs, y), negative_allowed)
     if y_pairs:
         print(c.z('[b]D[x]'), end='', flush=True)
@@ -176,12 +181,12 @@ def create_operation_cover(first, operand, negative_allowed, combs, random_numbe
         second = replace_units(random_number, x)
         combs[operand].remove((y,x))
         return f' {operand}{s.del_sign(second)}', s.do_math(first, operand, second), combs
-    # 2. init new chain by "y".
+    # 2. (y,_) init new chain
     y_pairs = filter_pairs_by_negative_allowed(first, operand, random_number, yx_pairs, negative_allowed)
     if y_pairs:
         print(c.z('[y]N[x]'), end='', flush=True)
         newchain_y = random.choice(y_pairs)[0]
-        # +10: избежание отрицательных результатов и сохранение единиц в результате
+        # получение разряда единиц. +10 гарантирует положительный результат
         if operand == '+': x = (10+newchain_y - y) % 10
         if operand == '-': x = (10+y - newchain_y) % 10
         newchain_number = replace_units(random_number, x)
@@ -195,7 +200,7 @@ def create_operation_cover(first, operand, negative_allowed, combs, random_numbe
             print(c.z('[r]N[x]'), end='', flush=True)
             newchain_first += 10
         return f' {operand}{s.del_sign(newchain_number)}', newchain_first, combs
-    # 3. reduce power negative filters by "adding mass" and try again.
+    # 3. (_,_) reduce power negative filters by "adding mass" and try again.
     print(c.z('[r]R[x]'), end='', flush=True)
     return f' +{random_number}', s.do_math(first, '+', random_number), combs
 def get_y_pairs(combs_op, y):

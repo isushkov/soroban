@@ -1,17 +1,22 @@
 import time
 import re
-import pandas as pd
 from datetime import datetime
+# src
 from src.config import Config
 from src.params import parse_params, params2basename
 from src.create import create
 from src.analyze import analyze
 from src.run import run
 import src.sequence as s
+# src/view
+from src.view.study import ViewStudy
+# src/helpers
+from src.helpers.cmd import cmd
 import src.helpers.fo as fo
 import src.helpers.pdo as pdo
 import src.helpers.colors as c
-from src.helpers.cmd import cmd
+
+view = ViewStudy()
 
 def study(arg_user_name):
     # args/conf/fs
@@ -25,7 +30,7 @@ def study(arg_user_name):
         user_name = input('Please enter your name: ').strip()[:6]
         if not user_name:
             c.p(f'[r]EXIT:[c] The user-name [r]is required[y] for the study-mode.')
-    print(c.ljust(c.z(f'[x]>>>>>>>>> [y]STUDY PROGRAM: {user_name} '), 94, '>', 'x'))
+    view.render_title(f'[y]STUDY PROGRAM: {user_name}')
     # load/filter data
     study_attempts_columns = ['id','user_name','step','trainings_passed','exams_failed']
     df_study_attempts = pdo.load('./src/__study_attempts.csv', study_attempts_columns)
