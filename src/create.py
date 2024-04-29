@@ -147,8 +147,14 @@ def create_sequence_cover(seq_params, first):
     while combs['+'] or combs['-']:
         if length and len(new_sequence.split()) > int(length) and not is_notified:
             is_notified = note_cover_length_less_than_req('cover', length, new_sequence)
+        # prepare operand
         operand = choose_operand(operands)
-        operation, first, combs = create_operation_cover(first, operand, range_params, decimal_params, negative_allowed, combs)
+        # prepare random_number
+        random_operation = create_operation_random(first, operand, range_params, decimal_params, negative_allowed)
+        _, random_number_str = s.split_operation(random_operation)
+        random_number = s.tonum(random_number_str)
+        # create operation
+        operation, first, combs = create_operation_cover(first, operand, negative_allowed, combs, random_number)
         new_sequence += operation
     # add extra random operations
     is_notified = False
@@ -158,39 +164,27 @@ def create_sequence_cover(seq_params, first):
         operand = choose_operand(operands)
         new_sequence += create_operation_random(first, operand, range_params, decimal_params, negative_allowed)
     return new_sequence
-def create_operation_cover(first, operand, range_params, decimal_params, negative_allowed, combs):
-    # prepare random_number
-    random_operation = create_operation_random(first, operand, range_params, decimal_params, negative_allowed)
-    _, random_number_str = s.split_operation(random_operation)
-    random_number = s.tonum(random_number_str)
-    # 1. yx_pairs not exist
+def create_operation_cover(first, operand, negative_allowed, combs, random_number):
+    # 1. yx_pairs negative
     yx_pairs = list(combs[operand])
-    if not yx_pairs:
-        return '', first, combs
-    # 2. yx_pairs negative
     yx_pairs = filter_pairs_by_negative_allowed(first, operand, random_number, yx_pairs, negative_allowed)
     if not yx_pairs:
-        # replace operand to '+'
-        # add random_number
         # note_cover_add_random_number()
         # note_change_operand('cover', operand)
         operand = '+'
         return f' {operand}{random_number}', s.do_math(first, operand, random_number), combs
-    # 3. y_pairs not exist
+    # 2. y_pairs not exist
     y = int(first % 10)
     y_pairs = get_y_pairs(yx_pairs, y)
     if not y_pairs:
-        # 3.1. newchain_pairs negative
+        # 3. newchain_pairs negative
         newchain_pairs = filter_pairs_by_negative_allowed(first, operand, random_number, yx_pairs, negative_allowed)
         if newchain_pairs:
-            # replace operand to '+'
-            # add random_operation
             # note_cover_add_random_number()
             # note_change_operand('cover', operand)
             operand = '+'
             return f' {operand}{s.del_sign(random_number)}', s.do_math(first, operand, random_number), combs
-        # 3.2. newchain_pairs ok
-        # add newchain_operation
+        # 4. newchain_pairs ok
         note_cover_start_new_chain()
         newchain_pair = random.choice(newchain_pairs)
         newchain_y = newchain_pair[0]
@@ -199,24 +193,50 @@ def create_operation_cover(first, operand, range_params, decimal_params, negativ
         newchain_number = replace_units(random_number, x)
         newchain_first = s.do_math(first, operand, newchain_number)
         return f' {operand}{s.del_sign(newchain_number)}', newchain_first, combs
-    # 4. y_pairs negative
+    # 5. y_pairs negative
     y_pairs = filter_pairs_by_negative_allowed(first, operand, random_number, y_pairs, negative_allowed)
     if not y_pairs:
-        # replace operand to '+'
-        # add random_number
-        #   не получится добавить newchain_number потому что
-        #   после смены операнда нет гарантии что y_pairs вообще есть.
         # note_cover_add_random_number()
         # note_change_operand('cover', operand)
         operand = '+'
         return f' {operand}{s.del_sign(random_number)}', s.do_math(first, operand, random_number), combs
-    # 5. y_pairs ok
+    # 6. y_pairs ok
     # done. remove pair, go next
     x = random.choice(y_pairs)[1]
     second = replace_units(random_number, x)
     combs[operand].remove((y,x))
     check_negative(s.do_math(first, operand, second), negative_allowed) # TODO: tmp
     return f' {operand}{s.del_sign(second)}', s.do_math(first, operand, second), combs
+def create_operation_cover_v2(first, operand, negative_allowed, combs, random_number):
+    # 1. (_,_) ok
+    yx_pairs = list(combs[operand])
+    yx_pairs = filter_pairs_by_negative_allowed(first, operand, random_number, yx_pairs, negative_allowed)
+    if yx_pairs:
+        # 2. (y,_) ok
+        y = int(first % 10)
+        y_pairs = get_y_pairs(yx_pairs, y)
+        y_pairs = filter_pairs_by_negative_allowed(first, operand, random_number, y_pairs, negative_allowed)
+        if y_pairs:
+            # 3. (y,x) ok. done. remove pair, go next
+            x = random.choice(y_pairs)[1]
+            second = replace_units(random_number, x)
+            combs[operand].remove((y,x))
+            check_negative(s.do_math(first, operand, second), negative_allowed) # TODO: tmp
+            return f' {operand}{s.del_sign(second)}', s.do_math(first, operand, second), combs
+        # 4. (y,_) trying newchain
+        newchain_pairs = filter_pairs_by_negative_allowed(first, operand, random_number, yx_pairs, negative_allowed)
+        if not newchain_pairs:
+            note_cover_start_new_chain()
+            newchain_pair = random.choice(newchain_pairs)
+            newchain_y = newchain_pair[0]
+            if operand == '+': x = (10+newchain_y - y) % 10
+            if operand == '-': x = (10+y - newchain_y) % 10
+            newchain_number = replace_units(random_number, x)
+            newchain_first = s.do_math(first, operand, newchain_number)
+            return f' {operand}{s.del_sign(newchain_number)}', newchain_first, combs
+    # 5. nothing. add positive random_number to reduce negative filters
+    operand = '+'
+    return f' {operand}{random_number}', s.do_math(first, operand, random_number), combs
 def get_y_pairs(combs_op, y):
     return [(y_filtered, x) for (y_filtered, x) in combs_op if y == y_filtered]
 def filter_pairs_by_negative_allowed(first, operand, random_number, pairs, negative_allowed):
