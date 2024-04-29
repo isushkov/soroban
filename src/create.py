@@ -108,7 +108,6 @@ def create_operation_random(first, operand, range_params, decimal_params, negati
         # note_random_negative_not_passed()
         # note_change_range('random', side, shift, range_params, new_range)
         return create_operation_random(first, operand, new_range, decimal_params, negative_allowed)
-    check_negative(s.do_math(first, operand, second), negative_allowed, exit_policy=1)
     return f' {operand}{s.del_sign(second)}'
 def choose_operand(operands):
     if len(operands) == 1:
@@ -174,7 +173,7 @@ def create_operation_cover(first, operand, negative_allowed, combs, random_numbe
         operand = '+'
         return f' {operand}{random_number}', s.do_math(first, operand, random_number), combs
     # 2. y_pairs not exist
-    y = int(first % 10)
+    y = first % 10
     y_pairs = get_y_pairs(yx_pairs, y)
     if not y_pairs:
         # 3. newchain_pairs negative
