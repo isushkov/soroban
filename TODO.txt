@@ -1,6 +1,9 @@
-run:
-  delta_time
-  render line
+render:
+  analyze
+  run
+    delta_time
+    render line
+  study
 todo:
   redo params + redo progressions:
     "<first_sequence>,<sequence>,<sequence>,..."

@@ -23,28 +23,32 @@ def analyze(path):
     #   - посчитать density.
     min_i, max_i, min_f, max_f = find_min_max_digits(sequence)
     density_pos, density_neg = get_density(sequence, max_f)
-    # tables: сместить названия таблиц на 10^(-max_fract_digits).
-    tables_fract = get_tables(max_f, density_pos, density_neg, is_fract=True)
-    tables_integ = get_tables(max_i, density_pos, density_neg, is_fract=False)
-    tables_final = [
-        get_table_total(density_pos, density_neg),
-        get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid)
-    ]
+    # data
+    # TODO: is_fract: digit -> negative_digit
+    # TODO: is_fract: digit -> negative_digit
+    # TODO: is_fract: digit -> negative_digit
+    # TODO: is_fract: digit -> negative_digit
+    # TODO: is_fract: digit -> negative_digit
+    # сместить названия таблиц на 10^(-max_fract_digits).
+    data_fract = density2data(max_f, density_pos, density_neg, is_fract=True)
+    data_integ = density2data(max_i, density_pos, density_neg, is_fract=False)
+    data_total = get_data_total(density_pos, density_neg)
+    data_info  = get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid)
     # render
-    tab, sep = ' '*3, ' '*3
-    width, _ = shutil.get_terminal_size()
-    r_fract  = render_tables(sep, tables_fract, width, tab=tab)
-    r_integ  = render_tables(sep, tables_integ, width, tab=tab)
-    r_final  = render_tables(sep, tables_final, width, tab=tab)
-    width_tables = len(c.remove_colors(r_integ.splitlines()[0])) - len(sep)
+    view.upd_tables(sep, tables_fract, width, tab=tab)
+    view.upd_tables(sep, tables_integ, width, tab=tab)
+    view.upd_tables(sep, tables_final, width, tab=tab)
     r_header  = render_header(sep, width_tables)
     r_sepline = render_sepline(sep, width_tables)
-    print(r_header)
-    print(r_fract);
-    if r_fract: print(r_sepline)
-    print(r_integ)
-    if r_fract: print(r_sepline)
-    print(r_final)
+
+    view.display_header()
+    view.display_fract()
+    if view.fract:
+        view.display_sepline()
+    view.display_integ()
+    if view.fract:
+        view.display_sepline()
+    view.display_total()
 
 # validate
 def validate_total(total):
@@ -105,131 +109,53 @@ def get_yx(total, number, digit):
     x = (number // divisor) % 10
     return y,x
 
-# tables
-def get_tables(max_d, density_pos, density_neg, is_fract=False):
-    tables = []
+# data.density
+def density2data(max_d, density_pos, density_neg):
+    data = {}
     for digit in range(0, max_d):
-        tables.append(get_table(digit, density_pos.get(digit), density_neg.get(digit), is_fract))
-    return tables
-def get_table_total(density_pos, density_neg):
+        data[digit] = {}
+        data[digit]['pos'] = digit_density2data(density_pos.get(digit))
+        data[digit]['neg'] = digit_density2data(density_neg.get(digit))
+    return data
+def get_data_total(density_pos, density_neg):
     density_total_pos = Counter()
     density_total_neg = Counter()
     for counter in density_pos.values():
         density_total_pos += counter
     for counter in density_neg.values():
         density_total_neg += counter
-    return get_table('total', density_total_pos, density_total_neg)
-
-def get_table(digit, density_pos, density_neg, is_fract=False):
-    table = []
-    # title
-    if digit == 'total':
-        title = '──[ TOTAL ]──'
-    else:
-        if is_fract:
-            title = f'──[ 0.1^{digit+1} ]──'
-        else:
-            shift2title = {0:'──[ Units ]──', 1:'──[ Tens ]───', 2:'[ Hundreds ]─'}
-            title = shift2title.get(digit, f'──[ 10 ^{digit} ]──')
-    table.append(c.z(f'[x]   ┌───{title}───┐     '))
-    table.append(c.z( '[x]┌───┴─[ - ]─┬───┬─[ + ]─┴───┐'))
-    # rows
+    data['total']['pos'] = digit_density2data(density_total_pos)
+    data['total']['neg'] = digit_density2data(density_total_neg)
+    return data_total
+def digit_density2data(density):
+    data_digit = {}
     for y in range(9, -1, -1):
-        row_middle = f' │ {y} │ '
-        row_left   = get_density_row(y, density_neg, range(9, 0, -1))
-        row_right  = get_density_row(y, density_pos, range(1, 10))
-        table.append(c.z(f"[x]│ [c]{row_left}[x]{row_middle}[c]{row_right}[x] │"))
-    # footer
-    table.append(c.z('[x]├───────────┼───┼───────────┤'))
-    table.append(c.z('[x]└─987654321─┘   └─123456789─┘'))
-    return table
-def get_density_row(y, density, rng):
+        data_digit[y]['pos'] = y_density2data(y, density_neg, range(9, 0, -1))
+        data_digit[y]['neg'] = y_density2data(y, density_pos, range(1, 10))
+    return data_digit
+def y_density2data(y, density, rng):
     row = ''
     for x in rng:
         count = density.get((y, x), 0) if density else 0
-        row += get_count_str(count)
+        row += str(count if count < 9 else 'm')
     return row
-def get_count_str(count):
-    if count == 0: return c.z('[c] ')
-    if count == 1: return c.z('[b]x')
-    if count <= 3: return c.z(f'[g]{count}')
-    if count <= 5: return c.z(f'[y]{count}')
-    if count <= 9: return c.z(f'[r]{count}')
-    if count > 9: return c.z('[r]*')
-    return str(count)
-# info
-def get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid, spoilers=False):
+# data.info
+def get_data_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid, spoilers=False):
+    operations = sequence.split()
+    start_number = operations.pop(0)
+    ops_operands = ' '.join(list(set(s.split_operation(op)[0] for op in sequence.split()))).strip()
     d_min = '.' if min_f else ''
     d_max = '.' if max_f else ''
-    start_number      = sequence.split()[0]
-    count_numbers     = len(sequence.split()[1:])
-    existed_operands  = ' '.join(list(set(s.split_operation(op)[0] for op in sequence.split()))).strip()
-    decimal_exist     = render_yn(max_f)
-    negative_results  = render_yn(s.apply(lambda total: total < 0, sequence))
-    range_numbers     = f"{'x'*min_i}{d_min}{'x'*min_f}-{'x'*max_i}{d_max}{'x'*max_f}"
-    range_results     = render_range_results(s.apply(get_range_results, sequence), spoilers)
-    total_provided    = render_yn(total)
-    total_valid       = render_yn(total_is_valid)
-    total_correct     = render_yn(s.tonum(total) == s.safe_eval(sequence))
-    return [
-        c.z(f''),
-        c.z(f''),
-        c.z(f'[x]Start number:     [c]{start_number}'),
-        c.z(f'[x]Count operations: [c]{count_numbers}'),
-        c.z(f'[x]Existed operands: [c]{existed_operands}'),
-        c.z(f'[x]Decimal exist:    [c]{decimal_exist}'),
-        c.z(f'[x]Negative results: [c]{negative_results}'),
-        c.z(f'[x]Range numbers:    [c]{range_numbers}'),
-        c.z(f'[x]Range results:    [c]{range_results}'),
-        c.z(f'[x]Total provided:   [c]{total_provided}'),
-        c.z(f'[x]Total valid:      [c]{total_valid}'),
-        c.z(f'[x]Total correct:    [c]{total_correct}'),
-        c.z(f'')
-    ]
-def render_yn(value):
-    return 'Yes' if value else 'No'
-def render_range_results(range_results, spoilers):
-    min_result, max_result = range_results
-    if not spoilers:
-        min_result, max_result = blur(min_result), blur(max_result)
-    return c.z(f'{min_result}-{max_result}')
-def blur(number):
-    return re.sub(r'\d', 'x', str(number))
-def get_range_results(total, range_results=(0,0)):
-    min_result, max_result = range_results
-    if total < min_result: min_result = total
-    if total > max_result: max_result = total
-    return (min_result, max_result)
-# render
-def render_tables(sep, tables, term_width, tab=' '*3):
-    if not tables:
-        return ''
-    # Определяем максимальное количество строк среди всех таблиц
-    max_rows = max(len(table) for table in tables)
-    # Ширина одной таблицы с учетом сепаратора
-    table_width = max(len(c.remove_colors(table[0])) for table in tables) + len(sep)
-    tables_per_row = (term_width - len(tab)) // table_width
-    if tables_per_row == 0:
-        tables_per_row = 1
-    result = ''
-    # Обрабатываем каждую строку максимального количества строк среди таблиц
-    for row_index in range(max_rows):
-        # Разделяем вывод на строки по tables_per_row таблиц в каждой
-        for start in range(0, len(tables), tables_per_row):
-            end = min(start + tables_per_row, len(tables))
-            line_parts = []
-            for i in range(start, end):
-                # Добавляем строки таблицы, если строка существует
-                if row_index < len(tables[i]):
-                    line_parts.append(tables[i][row_index])
-                else:
-                    # Добавляем пустое место, если строк в таблице меньше
-                    line_parts.append(' ' * len(tables[i][0]))
-            result += tab + sep.join(line_parts).rstrip() + '\n'
-    return result
-def render_header(sep, width):
-    header = '\n'
-    header += sep + c.center(c.z('[x]COMBINATION DENSITY[c]'), width)
-    return header
-def render_sepline(sep, width):
-    return sep + c.z(f"[x]{'.'*width}[c]") + '\n'
+    range_numbers = f"{'x'*min_i}{d_min}{'x'*min_f}-{'x'*max_i}{d_max}{'x'*max_f}"
+    return {
+        'start_number': start_number,
+        'ops_count': len(operations),
+        'ops_operands': ops_operands,
+        'dec_exist': bool(max_f),
+        'neg_exist': s.apply(lambda total: total < 0, sequence),
+        'range_numbers': range_numbers,
+        'range_results': s.apply(get_range_results, sequence)
+        'total_provided': total,
+        'total_valid': total_is_valid,
+        'total_correct': s.tonum(total) == s.safe_eval(sequence)
+    }
