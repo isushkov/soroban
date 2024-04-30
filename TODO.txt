@@ -1,9 +1,13 @@
 render:
+  max_width: not only terminal
   analyze
+  study
   run
     delta_time
     render line
-  study
+create:
+  check 3seq-random
+  note if cover range 1-3
 todo:
   redo params + redo progressions:
     "<first_sequence>,<sequence>,<sequence>,..."

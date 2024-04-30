@@ -6,54 +6,70 @@ import src.helpers.colors as c
 class ViewCreate(View):
     def __init__(self):
         super().__init__()
+        self.legend_start = dedent("""
+            [x]start-number:
+              [b]S     [x]: created.
+        """).strip() + '\n'
+        self.legend_roudtrip = dedent("""
+            [x]roundtrip:
+              [b]<     [x]: operation created.
+        """).strip() + '\n'
+        self.legend_progression = dedent("""
+            [x]progression:
+              [b]P     [x]: operation created.
+        """).strip() + '\n'
         self.legend_cover = dedent("""
-            [x]cover-operation legend:
-              [b]D:[x] (y,x)  done: next pair in chain found.
-              [y]N:[x] (y,_)  newchain: artificially start a new chain.
-              [r]N:[x] (y,_)+ newchain: artificially increase the sum.
-              [r]R:[x] (_,_)+ random: add a random number to increase the sum.
+            [x]cover:
+              [b]C     [x]: (y,x)  operation created.
+              [y]C     [x]: (y,_)  newchain: artificially start a new chain.
+              [r]C     [x]: (y,_)+ newchain: artificially increase the sum.
+              [r]R     [x]: (_,_)+ random : adding a random number to increase the sum.
         """).strip() + '\n'
-        self.legend_random = dedent("""
-            [x]random-operation legend:
+        self.legend = dedent("""
+            [x]random-operation:
               [r]e[x]50x50 [y]f[x]75x75
+              [b]R     [x]: operation created.
               [r]e     [x]: Impossible to maintain conditions for the use of non-negative numbers.
+                            once change the operation to "+" and increase the range of numbers
               [y]n     [x]: Failed to maintain conditions for the use of non-negative numbers.
-              [x]99x99 [x]: one-time new value of the numbers range.
+                            once reduce the range of numbers.
+              [x]99x99 [x]: new value of the numbers range.
         """).strip() + '\n'
-        self.legend = ''
         self.status = ''
-        self.note_cover_len = ''
-    # legend/status
+        self.legend = ''
+    # legend
+    def upd_legend(self, kind):
+        calls_attr = f'calls_legend_{kind}'
+        legend = getattr(self, f'legend_{kind}', "")
+        calls = getattr(self, calls_attr, 0)
+        if calls == 0:
+            self.legend += legend
+            setattr(self, calls_attr, calls + 1)
+    # status
     def upd_status(self, info):
-        if self.legend_cover:
-            self.legend += self.legend_cover
-            self.legend_cover = False
         self.status += info
     def upd_status_random(self, kind, new_range):
-        if self.legend_random:
-            self.legend += self.legend_random
-            self.legend_random = False
         self.status += '{}[x]{}x{}'.format(kind, *new_range)
     def display_status(self):
-        if not self.status: return
-        if self.legend: c.p(self.add_padding(self.legend, [3,1,0,1]))
+        if not self.status:
+            return
         status_wrapped = '\n'.join(self.wrap(c.z(self.status), 60))
+        c.p(self.add_padding(self.legend, [3,1,0,1]))
         c.p(self.add_padding(status_wrapped, [3,0,0,1]))
-        exit()
     # notes
-    def upd_note_cover_len(self, kind, len_param, len_new_seq):
+    def upd_cover_len(self, kind, len_param, len_new_seq):
         if kind == 'less':
-            self.note_cover_len = dedent(f"""
-                [y]NOTE:[x] cover-operation:[c] Not all numbers have been generated yet for possible combinations of units:
-                [y]NOTE:[c]   The specified [y]length in the parameters [y]will be ignored.
-            """)
+            self.cover_len = dedent(f"""
+                [y]NOTE: cover-operation:[x] not all numbers have been generated yet for possible combinations of units.
+                [y]NOTE:   [x]The specified [y]length in the parameters will be ignored.
+            """).strip()
         else:
-            self.note_cover_len = dedent(f"""
-                [y]NOTE:[x] cover-operation:[c] All combinations were matched:')
-                [y]NOTE:[y]   The rest of the sequence will be generated randomly.')
-            """)
-        self.note_cover_len += dedent(f"""
-            [y]NOTE:[c]   the specified length in the parameters is {len_param}.
-            [y]NOTE:[c]   the current length is [y]{len_new_seq}.
-        """)
+            self.cover_len = dedent(f"""
+                [y]NOTE: cover-operation:[x] all combinations were matched.
+                [y]NOTE:   [x]The rest of the sequence [r]will be generated randomly.
+            """).strip()
+        self.cover_len += '\n' + dedent(f"""
+            [y]NOTE:   [x]the specified length in the parameters is [y]{len_param}.
+            [y]NOTE:   [x]the current length is [y]{len_new_seq}.
+        """).strip()
         return True

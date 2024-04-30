@@ -47,6 +47,7 @@ def save_file(path, data):
 
 # start/roundtrip
 def create_sequence_start(start_param, seq_params):
+    view.upd_legend('start')
     operands, range_params, length = seq_params['required'].values()
     negative_allowed, decimal_params, _ = seq_params['optional'].values()
     operand = choose_operand(operands)
@@ -57,11 +58,14 @@ def create_sequence_start(start_param, seq_params):
         second = s.tonum(start_param)
     first = s.tonum(second)
     check_negative(s.do_math(first, operand, second), negative_allowed)
+    view.upd_status('[b]S ')
     return s.tostr(second)
 def create_sequence_roundtrip(sequence):
+    view.upd_legend('roundtrip')
     operations = sequence.split()
     operations.reverse()
     sequence = ' '+' '.join([switch_operand(operation.strip()) for operation in operations])
+    view.upd_status('[b]'+('<'*len(operations))+' ')
     return sequence
 def switch_operand(operation):
     operand_old = [operand for operand in '+-*/' if operand in operation][0]
@@ -69,6 +73,7 @@ def switch_operand(operation):
 
 # progression
 def create_sequence_progression(seq_params, first):
+    view.upd_legend('progression')
     new_sequence = ''
     operands, range_params, length = seq_params['required'].values()
     negative_allowed, _, _ = seq_params['optional'].values()
@@ -76,9 +81,10 @@ def create_sequence_progression(seq_params, first):
     first = first
     for _ in range(int(length)):
         operand = choose_operand(operands)
-        operation, first = create_operation_progression(first, operand, diff,
-                                    negative_allowed, first)
+        operation, first = create_operation_progression(first, operand, diff, negative_allowed, first)
+        view.upd_status('[b]P')
         new_sequence += operation
+    view.upd_status(' ')
     return new_sequence
 def create_operation_progression(first, operand, diff, negative_allowed):
     second = s.do_math(s.tonum(first), operand, s.tonum(diff))
@@ -87,12 +93,15 @@ def create_operation_progression(first, operand, diff, negative_allowed):
 
 # random
 def create_sequence_random(seq_params, first):
+    view.upd_legend('random')
     new_sequence = ''
     operands, range_params, length = seq_params['required'].values()
     negative_allowed, decimal_params, _ = seq_params['optional'].values()
     for i in range(int(length)):
         operand = choose_operand(operands)
         new_sequence += create_operation_random(first, operand, range_params, decimal_params, negative_allowed)
+        view.upd_status('[b]R')
+    view.upd_status(' ')
     return new_sequence
 def create_operation_random(first, operand, range_params, decimal_params, negative_allowed):
     # is this possible?
@@ -130,6 +139,7 @@ def generate_random_number(range_params, decimal_params):
 
 # cover
 def create_sequence_cover(seq_params, first):
+    view.upd_legend('cover')
     operands, range_params, length = seq_params['required'].values()
     negative_allowed, decimal_params, _ = seq_params['optional'].values()
     # TODO: cover-units decimal
@@ -143,10 +153,11 @@ def create_sequence_cover(seq_params, first):
         '+': combs_origin.copy() if '+' in operands else set(),
         '-': combs_origin.copy() if '-' in operands else set()
     }
-    is_notified = False
     while combs['+'] or combs['-']:
-        if length and len(new_sequence.split()) > int(length) and not is_notified:
-            is_notified = view.render_note_cover_len('less', length, len(new_sequence.split()))
+        len_seq = len(new_sequence.split())
+        if not view.calls_cover_len_less and length and len_seq > int(length):
+            view.render_cover_len('less', length, len_seq)
+            view.calls_cover_len_less += 1
         # prepare operand
         operand = choose_operand(operands)
         # prepare random_number
@@ -157,12 +168,16 @@ def create_sequence_cover(seq_params, first):
         operation, first, combs = create_operation_cover(first, operand, negative_allowed, combs, random_number)
         new_sequence += operation
     # add extra random operations
-    is_notified = False
-    while len(new_sequence.split()) < int(length):
-        if not is_notified:
-            is_notified = view.render_note_cover_len('more', length, len(new_sequence.split()))
+    len_seq += 1
+    while len_seq < int(length):
+        if not view.calls_cover_len_more:
+            view.render_cover_len('more', length, len_seq)
+            view.calls_cover_len_more += 1
         operand = choose_operand(operands)
         new_sequence += create_operation_random(first, operand, range_params, decimal_params, negative_allowed)
+        view.upd_status('[b]R')
+        len_seq += 1
+    view.upd_status(' ')
     return new_sequence
 def create_operation_cover(first, operand, negative_allowed, combs, random_number):
     y = first % 10
@@ -170,7 +185,7 @@ def create_operation_cover(first, operand, negative_allowed, combs, random_numbe
     # 1. (y,x) pairs exitst. remove pair, done.
     y_pairs = filter_pairs_by_negative_allowed(first, operand, random_number, get_y_pairs(yx_pairs, y), negative_allowed)
     if y_pairs:
-        view.upd_status('[b]D[x]')
+        view.upd_status('[b]C[x]')
         x = random.choice(y_pairs)[1]
         second = replace_units(random_number, x)
         combs[operand].remove((y,x))
@@ -178,7 +193,7 @@ def create_operation_cover(first, operand, negative_allowed, combs, random_numbe
     # 2. (y,_) init new chain
     y_pairs = filter_pairs_by_negative_allowed(first, operand, random_number, yx_pairs, negative_allowed)
     if y_pairs:
-        view.upd_status('[y]N[x]')
+        view.upd_status('[y]C[x]')
         newchain_y = random.choice(y_pairs)[0]
         # получение разряда единиц. +10 гарантирует положительный результат
         if operand == '+': x = (10+newchain_y - y) % 10
@@ -191,7 +206,7 @@ def create_operation_cover(first, operand, negative_allowed, combs, random_numbe
         #   newchain_pair: (2, 6)
         #     7(7) - 5(3->5) = 2(2)
         if operand == '-' and not negative_allowed and newchain_first < 10:
-            view.upd_status('[r]N[x]')
+            view.upd_status('[r]C[x]')
             newchain_first += 10
         return f' {operand}{s.del_sign(newchain_number)}', newchain_first, combs
     # 3. (_,_) reduce power negative filters by "adding mass" and try again.

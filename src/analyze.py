@@ -10,7 +10,6 @@ import src.helpers.fo as fo
 import src.helpers.colors as c
 
 view = ViewAnalyze()
-
 def analyze(path):
     view.render_title(f'[y]ANALYZE {path}')
     # validation
@@ -18,37 +17,21 @@ def analyze(path):
     sequence = s.validate_sequence(sequence, 'analyze sequence', exit_policy=2)
     total_is_valid = validate_total(total)
     # density
-    #   - найти самую длинную дробную чать, посчитать количество знаков.
+    #   - посчитать количество знаков в самой длинной дробной чати.
     #   - умножить каждое число на 10^max_f, чтобы избавиться от дробей.
     #   - посчитать density.
     min_i, max_i, min_f, max_f = find_min_max_digits(sequence)
     density_pos, density_neg = get_density(sequence, max_f)
-    # data
-    # TODO: is_fract: digit -> negative_digit
-    # TODO: is_fract: digit -> negative_digit
-    # TODO: is_fract: digit -> negative_digit
-    # TODO: is_fract: digit -> negative_digit
-    # TODO: is_fract: digit -> negative_digit
-    # сместить названия таблиц на 10^(-max_fract_digits).
-    data_fract = density2data(max_f, density_pos, density_neg, is_fract=True)
-    data_integ = density2data(max_i, density_pos, density_neg, is_fract=False)
-    data_total = get_data_total(density_pos, density_neg)
-    data_info  = get_table_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid)
-    # render
-    view.upd_tables(sep, tables_fract, width, tab=tab)
-    view.upd_tables(sep, tables_integ, width, tab=tab)
-    view.upd_tables(sep, tables_final, width, tab=tab)
-    r_header  = render_header(sep, width_tables)
-    r_sepline = render_sepline(sep, width_tables)
-
-    view.display_header()
-    view.display_fract()
-    if view.fract:
-        view.display_sepline()
-    view.display_integ()
-    if view.fract:
-        view.display_sepline()
-    view.display_total()
+    # data/render
+    view.upd_total(get_data_total(density_pos, density_neg))
+    view.upd_info(get_data_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid) spoilers=False)
+    view.upd_sepline()
+    view.render_header()
+    view.render_decim(density2data(max_f, density_pos, density_neg))
+    if view.decim: view.display_sepline()
+    view.render_integ(density2data(max_i, density_pos, density_neg))
+    if view.decim: view.display_sepline()
+    view.render_totalinfo()
 
 # validate
 def validate_total(total):
@@ -66,9 +49,9 @@ def find_min_max_digits(sequence):
     min_i, min_f, max_i, max_f = float('inf'), float('inf'), 0, 0
     for number, decimal_part in numbers:
         if '.' in number:
-            integ_part, fract_part = number.split('.')
-            min_f = min(min_f, len(fract_part))
-            max_f = max(max_f, len(fract_part))
+            integ_part, decim_part = number.split('.')
+            min_f = min(min_f, len(decim_part))
+            max_f = max(max_f, len(decim_part))
         else:
             integ_part = number
         min_i = min(min_i, len(integ_part))
@@ -140,7 +123,7 @@ def y_density2data(y, density, rng):
         row += str(count if count < 9 else 'm')
     return row
 # data.info
-def get_data_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid, spoilers=False):
+def get_data_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid):
     operations = sequence.split()
     start_number = operations.pop(0)
     ops_operands = ' '.join(list(set(s.split_operation(op)[0] for op in sequence.split()))).strip()
@@ -154,8 +137,13 @@ def get_data_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid, spoi
         'dec_exist': bool(max_f),
         'neg_exist': s.apply(lambda total: total < 0, sequence),
         'range_numbers': range_numbers,
-        'range_results': s.apply(get_range_results, sequence)
+        'range_results': s.apply(get_range_results, sequence),
         'total_provided': total,
         'total_valid': total_is_valid,
         'total_correct': s.tonum(total) == s.safe_eval(sequence)
     }
+def get_range_results(total, range_results=(0,0)):
+    min_result, max_result = range_results
+    if total < min_result: min_result = total
+    if total > max_result: max_result = total
+    return (min_result, max_result)

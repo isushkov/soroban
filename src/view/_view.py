@@ -12,10 +12,7 @@ class View():
         self.w, self.h = shutil.get_terminal_size()
         self.tab = ' '
         self.sep = ' '
-    # upds
-    def upd_title(self, title, char='=', color='x'):
-        self.title = c.z(c.ljust(c.z(f'[{color}]{char*9} {title} '), self.w, char, color))
-    # render/display/upd
+    # render/display/upd/calls
     def render(self, attr, *args, **kwargs):
         self.upd(attr, *args, **kwargs)
         self.display(attr)
@@ -29,8 +26,10 @@ class View():
             raise Exception(c.z(f"[r]ERROR: <View>.upd_{attr}():[c] method dosnt exist."))
         # call meth()
         return getattr(self, method_name)(*args, **kwargs)
-    # render/display/upd - magic (run if meth dosnt exist)
+    # render/display/upd/calls - magic (exec if meth dosnt exist)
     def __getattr__(self, name):
+        if name.startswith('calls_'):
+            return 0
         parts = name.split('_')
         if len(parts) > 1:
             method_prefix = parts[0]
@@ -46,6 +45,9 @@ class View():
                         return self.render(attr_name, *args, **kwargs)
                 return method
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+    # upds
+    def upd_title(self, title, char='=', color='x'):
+        self.title = c.z(c.ljust(c.z(f'[{color}]{char*9} {title} '), self.w, char, color))
     # decorate
     def add_padding(self, text, padding, char=' '):
         left, top, right, bottom = padding
@@ -79,32 +81,46 @@ class View():
         if color:
             res = c.z(res)
         return res
+    def merge_columns(self, *args, sep=' '):
+        lines_lists = [arg.strip().split('\n') for arg in args]
+        max_widths = [max(len(line) for line in lines) for lines in lines_lists]
+        max_lines = max(len(lines) for lines in lines_lists)
+        merged_lines = []
+        for i in range(max_lines):
+            merged_line = ''
+            for index, lines in enumerate(lines_lists):
+                if i < len(lines):
+                    line = lines[i] # добавляем строку из текущей колонки, если она существует
+                    # пробелы для выравнивания до максимальной ширины колонки
+                    merged_line += line.ljust(max_widths[index])
+                # пробелы между колонками
+                if index < len(lines_lists) - 1:
+                    merged_line += sep
+            merged_lines.append(merged_line.rstrip())
+        return '\n'.join(merged_lines)
     def wrap(self, text, width):
-        # Функция для удаления цветов из текста
-        def remove_colors(text):
-            return re.sub(r'\x1B\[[^m]*m', '', text)
         text = c.z(text)
-        bw_text = remove_colors(text)  # Текст без ANSI-цветов для подсчёта длины
+        bw_text = c.remove_colors(text)
         lines, line, current_length, i = [], '', 0, 0
-        active_format = ''  # Для сохранения активного форматирования
+        active_format = '' # для сохранения активного форматирования
         while i < len(text):
-            if text[i] == '\x1b':  # Начало escape последовательности
+            if text[i] == '\x1b': # начало последовательности
                 escape_seq = ''
-                while text[i] not in 'mM':  # Читаем до конца последовательности (включительно символ 'm' или 'M')
+                while text[i] not in 'mM': # конец последовательности
                     escape_seq += text[i]
                     i += 1
                 escape_seq += text[i]
-                line += escape_seq  # Добавляем escape-последовательность в текущую строку
-                active_format += escape_seq  # Обновляем активное форматирование
+                line += escape_seq  # добавляем escape-последовательность в текущую строку
+                active_format += escape_seq # обновляем активное форматирование
                 i += 1
             else:
-                if current_length == width:  # Проверка длины строки
+                if current_length == width:
                     lines.append(line)
-                    line = active_format  # Начинаем новую строку с активного форматирования
-                    current_length = 0  # Сброс счётчика длины для новой строки
-                line += text[i]  # Добавляем символ в строку
+                    line = active_format # начинаем новую строку с активного форматирования
+                    current_length = 0 # сброс счётчика длины для новой строки
+                line += text[i] # добавляем символ в строку
                 current_length += 1
                 i += 1
-        if line:  # Добавляем последнюю строку, если она не пуста
+        if line: # добавляем последнюю строку, если она не пуста
             lines.append(line)
         return lines
