@@ -3,4 +3,4 @@ from src.view._view import View
 
 class ViewAnalyze(View):
     def __init__(self):
-        pass
+        super().__init__()

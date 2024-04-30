@@ -1,5 +1,3 @@
-create:
-  upd status format
 run:
   delta_time
   render line

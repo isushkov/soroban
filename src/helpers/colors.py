@@ -34,7 +34,7 @@ def c(msg, color):
     return f'{color}{msg}{Style.RESET_ALL}'
 
 def remove_colors(text):
-    return re.sub(r'\x1b\[[0-9;]*m', '', text)
+    return re.sub(r'\x1b\[[0-9;]*m', '', z(text))
 def get_fill_color(fill_color):
     if not fill_color:
         return ''
@@ -43,14 +43,15 @@ def get_fill_color(fill_color):
        'g': Fore.GREEN,
        'y': Fore.YELLOW,
        'r': Fore.RED,
-       'x': Fore.LIGHTBLACK_EX
+       'x': Fore.LIGHTBLACK_EX,
+       'c': Style.RESET_ALL
     }[fill_color]
 # align
 def ljust(text, width, fill_char=' ', fill_color=False):
     text_length = len(remove_colors(text))
     if text_length < width:
         color = get_fill_color(fill_color)
-        return text + color+fill_char*(width - text_length)
+        return text + color+(fill_char*(width - text_length))
     return text
 def rjust(text, width, fill_char=' ', fill_color=False):
     text_length = len(remove_colors(text))

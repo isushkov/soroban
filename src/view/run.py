@@ -9,8 +9,9 @@ import src.helpers.colors as c
 
 class ViewRun(View):
     def __init__(self):
+        super().__init__()
         self.delta_empty = '--:--:--'
-        self.len_dt = len(self.df_empty)
+        # self.len_dt = len(self.df_empty)
         self.row = {
             'start': None,
             'operations': None,
@@ -23,11 +24,11 @@ class ViewRun(View):
         self.len_start = len('Stage99 x2:')
         self.len_operation = len(max(operations, key=len)) + 1
         # TODO: количество операций в stage * len_operation
-        self.len_operations =
+        # self.len_operations =
         self.len_result = len(s.tostr(reduce(s.get_resNmaxres, operations, (operations[0],0))[1]))
-        self.len_delta = len(self.delta_empty)
-        если study тогда 3 иначе 2
-        self.len_deltas =
+        # self.len_delta = len(self.delta_empty)
+        # если study тогда 3 иначе 2
+        # self.len_deltas =
 
     # view
     def ready(self, mode, start_number):
