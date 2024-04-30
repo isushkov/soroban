@@ -9,106 +9,98 @@ class Config:
         if cls._instance is None:
             cls._instance = super(Config, cls).__new__(cls)
         return cls._instance
+
     def __init__(self):
-        # args/fs
+        # fs/args/data
         self.prepare_fs()
         self.data = fo.yml2dict('config.yml')
         # common
         self.lang = self.get_lang()
-        self.mode = self.get_mode()
         self.user_name = self.get_user_name()
-        self.t2e = self.get_study_switch('training2exam')
-        self.e2t = self.get_study_switch('exam2training')
-        # shared
-        self.spd_speech = self.get_percent(self.mode, 'out', 'speech_percents')
-        self.spd_signals = self.get_percent(self.mode, 'out', 'signals_percents')
-        self.show_plus = self.get_yesno(self.mode, 'in', 'show_unary_plus')
-        self.spd_plus = self.get_percent(self.mode, 'in', 'announce_unary_plus_percents')
-        self.spd_number = self.get_percent(self.mode, 'in', 'announce_number_percents')
-        self.spd_delay = self.get_delay(self.mode)
-        enter_result_key = 'announce_enter_answer_percents' if self.mode == 'exam' else 'announce_enter_stage_result_percents'
-        self.spd_enter_result = self.get_percent(self.mode, 'in', enter_result_key)
+        self.spoilers = self.set_bool('common.analyze_spoilers', default=False)
+        self.t2e = self.set_int('common.study_program.passes_for_exam', default=3)
+        self.e2t = self.set_int('common.study_program.fails_for_retake', default=0, allow_zero=True)
+    def init4mode(self, mode):
+        # exam/training
+        sfx = f'{mode}.non_exercise'
+        self.speech_spd = self.set_percent(f'{sfx}.speech_spdpct', default=100)
+        self.signals_spd = self.set_percent(f'{sfx}.signals_spdpct', default=100)
+        sfx = f'{mode}.during_exercise'
+        self.num_spd = self.set_percent(f'{sfx}.number_spdpct', default=100)
+        self.num_delay = self.set_ms(f'{sfx}.number_delay_ms', default=3000)
+        self.pls_show = self.set_bool(f'{sfx}.unaryplus_show', default=True)
+        self.pls_spd = self.set_percent(f'{sfx}.unaryplus_spdpct', default=0)
+        self.res_entry_spd = self.set_percent(f'{sfx}.result_entry_spdpct', default=100)
         # training
-        self.numbers_per_stage = self.get_number_per_stage()
+        sfx = f'training.during_exercise'
+        self.num_per_stage = self.set_int('training.numbers_per_stage', default=10)
         self.check_method = self.get_check_method()
-        self.spd_stage = self.get_percent('training', 'in', 'announce_stage_percents')
-        self.spd_stage_cont_txt = self.get_percent('training', 'in', 'announce_stage_continue_with_text_percents')
-        self.spd_stage_cont_num = self.get_percent('training', 'in', 'announce_stage_continue_with_number_percents')
-        self.spd_start = self.get_percent('training', 'in', 'signal_start_stage_percents')
-        self.spd_result_txt = self.get_percent('training', 'in', 'announce_stage_result_text_percents')
-        self.spd_result_num = self.get_percent('training', 'in', 'announce_stage_result_number_percents')
-        self.spd_wrong = self.get_percent('training', 'in', 'signal_wrong_stage_result_percents')
-
-    # args/fs
+        self.start_ann_spd = self.get_percent(f'{sfx}.startstage_announce_spdpct')
+        self.start_sig_spd = self.get_percent(f'{sfx}.startstage_signal_spdpct')
+        self.cont_ann_spd = self.get_percent(f'{sfx}.continuewith_announce_spdpct')
+        self.cont_num_spd = self.get_percent(f'{sfx}.continuewith_number_spdpct')
+        self.res_ann_spd = self.get_percent(f'{sfx}.result_announce_spdpct')
+        self.res_num_spd = self.get_percent(f'{sfx}.result_number_spdpct')
+        self.res_wrong_spd = self.get_percent(f'{sfx}.result_wrong_spdpct')
+    # fs
     def prepare_fs(self):
         if not fo.f_exist('config.yml'):
             cmd('copy ./examples/config.yml ./config.yml')
-    def config_error(self, key, val, default):
-        c.p(f'[y]CONFIG ERROR:[c] Invalid config value [r]"{key}: {val}"')
-        c.p(f'[y]CONFIG ERROR:[c] Was replaced by [g]"{default}"')
-    def get_percent(self, mode, direction, key):
-        default = 100
-        direction = 'throughout_the_exercise' if direction == 'in' else 'outside_the_exercise'
-        val = int(self.data[mode]['speed'][direction][key])
+    # common
+    def e404(self, path, default):
+        c.p(f'[y]CONFIG ERROR:[x] Config value [c]not found:')
+        c.p(f'[y]CONFIG ERROR:[x]   [r]".{path}"')
+        c.p(f'[y]CONFIG ERROR:[x] Was replaced by [y]"{default}"')
+        return default
+    def e400(self, path, val, default):
+        c.p(f'[y]CONFIG ERROR:[x] Config value is [c]invalid:')
+        c.p(f'[y]CONFIG ERROR:[x]   ".{path}: [r]{val}[c]"')
+        c.p(f'[y]CONFIG ERROR:[x] Was replaced by [y]"{default}"')
+        return default
+    def find(self, path, default, skip_errors=False):
+        value = self.data
+        for key in path.split('.'):
+            if not key in value:
+                value = default if skip_errors else self.e404(path, default)
+            value = value[key]
+        return value
+    # sets
+    def set_percent(self, path, default):
+        val = int(self.find(path, default))
         if val == 0:
             return False
         if not (50 <= val <= 500):
-            self.config_error(f'.{mode}.{direction}.{key}', val, default)
-            val = default
+            val = self.e400(path, val, default)
         return val / 100
-    def get_delay(self, mode):
-        default = 3
-        val = int(self.data[mode]['speed']['throughout_the_exercise']['delay_between_numbers_ms'])
+    def set_ms(self, path, default):
+        val = int(self.find(path, default))
         if val < 0:
-            self.config_error(f'.{mode}.throughout_the_exercise.delay_between_numbers_ms', val, default)
-            val = default
-        return val / 1000
-
-    # specific
-    def get_lang(self):
-        default = 'en'
-        val = self.data['common']['lang']
+            val = self.e400(path, val, default)
+        return int(val / 1000)
+    def set_int(self, path, default=1, allow_zero=False, allow_negative=False):
+        val = int(self.find(path, default))
+        if not allow_negative and val <  0: val = self.e400(path, val, default)
+        if not allow_zero     and val == 1: val = self.e400(path, val, default)
+        return val
+    def set_bool(self, path, default):
+        val = self.find(path, default)
+        if not isinstance(val, bool):
+            val = self.e400(path, val, default)
+        return val
+    # gets
+    def get_lang(self, path='common.lang', default='en'):
+        val = self.find(path, default)
         if len(val) != 2:
-            self.config_error('.common.lang', val, default)
-            val = default
+            val = self.e400(path, val, default)
         if val not in ['en', 'ru']:
-            c.p('[y]NOTE:[c] Lang [y]{val}[c] Will be generated automatically. May be ugly or not working at all.')
+            c.p(f'[y]NOTE: [x]the language [y]"{val}"[c] has not been tested.')
+            c.p(f'[y]NOTE: [x]the language will be generated automatically - it may be ugly :(')
         return val
-    def get_mode(self):
-        default = 'training'
-        val = self.data['common']['mode']
-        if val not in ['exam', 'training']:
-            self.config_error('.common.mode', val, default)
-            val = default
-        return val
-    def get_user_name(self):
-        user_name = self.data['common'].get('user_name')
-        return user_name.strip()[:6] if user_name else False
-    def get_study_switch(self, kind):
-        key, default = ('training2exam', 1) if kind == 'training2exam' else ('exam2training', 3)
-        val = self.data['common']['study_program']['switch_mode_policy'][key]
-        if (key == 'training2exam' and val <= 1) or (key == 'exam2training' and val <= 0):
-            self.config_error(f'.common.study_program.switch_mode_policy.{key}', val, default)
-            val = default
-        return val
-    def get_yesno(self, mode, direction, key):
-        direction = 'throughout_the_exercise' if direction == 'in' else 'outside_the_exercise'
-        val = self.data[mode]['speed'][direction][key]
-        if val is not True and val is not False:
-            self.config_error(f'.{mode}.speed.{direction}.{key}', val, 'no')
-            val = False
-        return val
-    def get_number_per_stage(self):
-        default = 10
-        val = int(self.data['training']['max_count_numbers_per_stage'])
-        if val < 1:
-            self.config_error('.training.max_count_numbers_per_stage', val, default)
-            val = default
-        return val
-    def get_check_method(self):
-        default = 'yes-no'
-        val = self.data['training']['check_stage_result_method']
+    def get_user_name(self, path='common.user_name', default=False):
+        val = self.find(path, default, skip_errors=True)
+        return val.strip()[:6] if val else default
+    def get_check_method(self, path='training.check_result_method', default='input'):
+        val = self.find(path, default, skip_errors=True)
         if val not in ['input', 'yes-no']:
-            self.config_error('.training.check_stage_result_method', val, default)
-            val = default
+            val = self.e400(path, val, default)
         return val

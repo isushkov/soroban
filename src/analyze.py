@@ -2,6 +2,7 @@ import re
 import shutil
 from collections import Counter
 # src
+from src.config import Config
 import src.sequence as s
 # src/view
 from src.view.analyze import ViewAnalyze
@@ -12,19 +13,23 @@ import src.helpers.colors as c
 view = ViewAnalyze()
 def analyze(path):
     view.render_title(f'[y]ANALYZE {path}')
-    # validation
-    sequence, total = fo.txt2str(path).split('=')
+    config = Config()
+    # exercise
+    sequence, total_provided = fo.txt2str(path).split('=')
     sequence = s.validate_sequence(sequence, 'analyze sequence', exit_policy=2)
-    total_is_valid = validate_total(total)
+    operations = sequence.split()
+    start_number = s.tonum(operations.pop(0))
+    total_provided = validate_total(total)
+    total = s.safe_eval(sequence)
     # density
     #   - посчитать количество знаков в самой длинной дробной чати.
     #   - умножить каждое число на 10^max_f, чтобы избавиться от дробей.
     #   - посчитать density.
     min_i, max_i, min_f, max_f = find_min_max_digits(sequence)
-    density_pos, density_neg = get_density(sequence, max_f)
+    density_pos, density_neg = get_density(start_number, operations, max_f)
     # data/render
     view.upd_total(get_data_total(density_pos, density_neg))
-    view.upd_info(get_data_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid) spoilers=False)
+    view.upd_info(get_data_info(start_number, operations, max_f, total, total_provided), spoilers=config.spoilers)
     view.upd_sepline()
     view.render_header()
     view.render_decim(density2data(max_f, density_pos, density_neg))
@@ -59,21 +64,19 @@ def find_min_max_digits(sequence):
     if min_f == float('inf'): min_f = 0
     if min_f == float('inf'): min_i = 0
     return min_i, max_i, min_f, max_f
-def get_density(sequence, max_f):
+def get_density(start_number, operations, max_f):
     density_pos = {}
     density_neg = {}
-    operations = sequence.split()
-    # для каждой пары чисел
-    total = s.tonum(operations[0])
-    for operation in operations[1:]:
+    total = start_number
+    for operation in operations:
         operand, number_str = s.split_operation(operation)
         # TODO: * / *- /-
         if operand not in ['+', '-']: c.todo(f'density for "{operand}"')
-        # сдвигаем число право на максимальное количество запятых
-        number = s.tonum(number_str) * (10 ** max_f)
         if operand == '+': density = density_pos
         if operand == '-': density = density_neg
+        # сдвигаем число право на максимальное количество запятых
         # для каждого разряда. всего разрядов - длина второго слогаемого
+        number = s.tonum(number_str) * (10 ** max_f)
         for digit in range(len(str(number))):
             d_density = density.get(digit, Counter())
             density[digit] = upd_density(d_density, digit, total, number)
@@ -123,27 +126,31 @@ def y_density2data(y, density, rng):
         row += str(count if count < 9 else 'm')
     return row
 # data.info
-def get_data_info(sequence, min_i,max_i,min_f,max_f, total, total_is_valid):
-    operations = sequence.split()
-    start_number = operations.pop(0)
-    ops_operands = ' '.join(list(set(s.split_operation(op)[0] for op in sequence.split()))).strip()
-    d_min = '.' if min_f else ''
-    d_max = '.' if max_f else ''
-    range_numbers = f"{'x'*min_i}{d_min}{'x'*min_f}-{'x'*max_i}{d_max}{'x'*max_f}"
+def get_data_info(start_number, operations, max_f, total, total_provided):
+    range_results = get_range_results(start_number, operations)
     return {
         'start_number': start_number,
         'ops_count': len(operations),
-        'ops_operands': ops_operands,
+        'ops_operands': list(set(s.split_operation(op)[0] for op in operations)),
         'dec_exist': bool(max_f),
-        'neg_exist': s.apply(lambda total: total < 0, sequence),
-        'range_numbers': range_numbers,
-        'range_results': s.apply(get_range_results, sequence),
-        'total_provided': total,
-        'total_valid': total_is_valid,
-        'total_correct': s.tonum(total) == s.safe_eval(sequence)
+        'neg_exist': range_results[0] < 0 or False
+        'range_numbers': get_range_numbers(operations),
+        'range_results': range_results,
+        'total_provided': total_provided,
+        'total_correct': total == total_provided
     }
-def get_range_results(total, range_results=(0,0)):
-    min_result, max_result = range_results
-    if total < min_result: min_result = total
-    if total > max_result: max_result = total
+def get_range_numbers(operations):
+    min_num, max_num = 0,0
+    for op in operations:
+        _, num = s.split_operation(op)
+        if num < min_num: min_num = num
+        if num > max_num: max_num = num
+    return (min_num, max_num)
+def get_range_results(start_number, operations):
+    total, min_result, max_result = start_number, 0, 0
+    for operation in operations:
+        operand, num = s.split_operation(operation)
+        total = s.do_math(total, operand, num)
+        if total < min_result: min_result = total
+        if total > max_result: max_result = total
     return (min_result, max_result)

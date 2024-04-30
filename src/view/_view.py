@@ -9,9 +9,17 @@ import src.helpers.colors as c
 # upd_attr_2(*args, **kwargs)   : specific upd()-logic for attr_2
 class View():
     def __init__(self):
-        self.w, self.h = shutil.get_terminal_size()
+        self.w_term, self.h_term = shutil.get_terminal_size()
+        self.w_user = 80
+        self.w = self.calc_w()
         self.tab = ' '
         self.sep = ' '
+    def calc_max_w(self):
+        if not self.w_user:
+            return self.w_term
+        if self.w_user > self.w_term:
+            return self.w_term
+        return self.w_user
     # render/display/upd/calls
     def render(self, attr, *args, **kwargs):
         self.upd(attr, *args, **kwargs)

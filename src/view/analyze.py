@@ -20,15 +20,36 @@ class ViewAnalyze(View):
         raise Exception(c.z('[y]todo'))
     def upd_total(self, data):
         raise Exception(c.z('[y]todo'))
+    # TODO: if lost key
+    # TODO: add decorators for values
+    # TODO: merge_columns - check len with colors
     def upd_info(self, data, spoilers):
-        raise Exception(c.z('[y]todo'))
-    def dec_dict(self, dictionary):
-        # TODO: add decorators for values
-        keys = '\n'.join(f"{key}:" for key in dictionary.keys())
-        values = '\n'.join(dictionary.values())
-        # TODO: merge_columns - add colors 'xgc'
-        # TODO: merge_columns - check len with colors
-        self.merge_columns(keys, values, colors='x')
+        # range_numbers     = f"{'x'*min_i}{d_min}{'x'*min_f}-{'x'*max_i}{d_max}{'x'*max_f}"
+        # range_results     = render_range_results(s.apply(get_range_results, sequence), spoilers)
+        # total_provided    = render_yn(total)
+        # total_correct     = render_yn(s.tonum(total) == s.safe_eval(sequence))
+
+       start_number    =                 data['start_number']
+       ops_count       =                 data['ops_count']
+       ops_operands    =                 data['ops_operands']
+       dec_exist       =                 dec_yn(data['dec_exist'])
+       neg_exist       =                 dec_yn(data['neg_exist'])
+       range_numbers   =                 data['range_numbers']
+       range_results   =                 data['range_results']
+       total_provided  =                 data['total_provided']
+       total_correct   =                 data['total_correct']
+        self.info = dedent(f"""
+            [x]Start number:     [c]{start_number}
+            [x]Count operations: [c]{ops_count}
+            [x]Existed operands: [c]{ops_operands}
+            [x]Decimal exist:    [c]{dec_exist}
+            [x]Negative exist:   [c]{neg_exist}
+            [x]Range numbers:    [c]{range_numbers}
+            [x]Range results:    [c]{range_results}
+            [x]Total provided:   [c]{total_provided}
+            [x]Total correct     [c]{total_correct}
+        """).strip()
+
         # c.z(f''),
         # c.z(f''),
         # c.z(f'[x]Start number:     [c]{start_number}'),
@@ -42,6 +63,20 @@ class ViewAnalyze(View):
         # c.z(f'[x]Total valid:      [c]{total_valid}'),
         # c.z(f'[x]Total correct:    [c]{total_correct}'),
         # c.z(f'')
+
+    return {
+        'start_number': start_number,
+        'ops_count': len(operations),
+        'ops_operands': ops_operands,
+        'dec_exist': bool(max_f),
+        'neg_exist': s.apply(lambda total: total < 0, sequence),
+        'range_numbers': range_numbers,
+        'range_results': s.apply(get_range_results, sequence),
+        'total_provided': total,
+        'total_valid': total_is_valid,
+        'total_correct': s.tonum(total) == s.safe_eval(sequence)
+    }
+
     def upd_totalinfo(self, data):
         raise Exception(c.z('[y]todo'))
     def upd_header(self):

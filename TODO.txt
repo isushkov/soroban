@@ -1,5 +1,4 @@
 render:
-  max_width: not only terminal
   analyze
   study
   run
