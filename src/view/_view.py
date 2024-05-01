@@ -10,8 +10,8 @@ import src.helpers.colors as c
 class View():
     def __init__(self):
         self.w_term, self.h_term = shutil.get_terminal_size()
-        self.w_user = 80
-        self.w = self.calc_w()
+        self.w_user = 100
+        self.w = self.calc_max_w()
         self.tab = ' '
         self.sep = ' '
     def calc_max_w(self):
@@ -55,7 +55,9 @@ class View():
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
     # upds
     def upd_title(self, title, char='=', color='x'):
-        self.title = c.z(c.ljust(c.z(f'[{color}]{char*9} {title} '), self.w, char, color))
+        self.title = self.dec_title(title, char, color)
+    def dec_title(self, title, char='=', color='x'):
+        return c.z(c.ljust(c.z(f'[{color}]{char*9} {title} '), self.w, char, color))
     # decorate
     def add_padding(self, text, padding, char=' '):
         left, top, right, bottom = padding
@@ -90,8 +92,10 @@ class View():
             res = c.z(res)
         return res
     def merge_columns(self, *args, sep=' '):
-        lines_lists = [arg.strip().split('\n') for arg in args]
-        max_widths = [max(len(line) for line in lines) for lines in lines_lists]
+        lines_lists = [arg.split('\n') for arg in args]
+        if not lines_lists:
+            return ''
+        max_widths = [max(len(c.remove_colors(line)) for line in lines) for lines in lines_lists]
         max_lines = max(len(lines) for lines in lines_lists)
         merged_lines = []
         for i in range(max_lines):

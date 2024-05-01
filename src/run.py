@@ -22,7 +22,7 @@ view = ViewRun()
 
 def run(path, mode, user_name, goal=False):
     # config
-    mode = mode or cfg.mode
+    cfg.init4mode(mode)
     user_name = user_name or cfg.user_name
     check_method = 'input' if mode == 'exam' else cfg.check_method
     # exercise

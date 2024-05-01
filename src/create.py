@@ -9,9 +9,8 @@ from src.helpers.cmd import cmd
 import src.helpers.colors as c
 import src.helpers.fo as fo
 
-view = ViewCreate()
-
 # init
+view = ViewCreate()
 def create(path, params):
     view.render_title('[y]CREATING')
     prepare_fs()

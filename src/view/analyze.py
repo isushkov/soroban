@@ -1,43 +1,84 @@
+import re
+from pprint import pprint
+from textwrap import dedent
+# src
+import src.sequence as s
 # src/view
 from src.view._view import View
+import src.helpers.colors as c
 
 class ViewAnalyze(View):
     def __init__(self):
         super().__init__()
-        self.decim = None
-        self.integ = None
-        self.total = None
-        self.info = None
-        self.totalinfo = None
-        self.header = None
-        self.sepline = None
+    # tables
+    def upd_decim(self, data_digits):
+        self.decim = self.dec_row_tables(data_digits)
+    def upd_integ(self, data_digits):
+        self.integ = self.dec_row_tables(data_digits)
+    def upd_total(self, data_total):
+        self.total = self.dec_digit_table(data_total, title='TOTAL')
+    def dec_row_tables(self, data_digits):
+        padding, lensep, w_table = [3,0,0,0], 2, 29
+        tables = [self.dec_digit_table(data, digit) for digit,data in data_digits.items()]
+        rows = self.chunk_list(tables, (self.w - 2*padding[0]) // (w_table+lensep))
+        render = ''
+        render, i, len_rows = '', 1, len(rows)
+        for row in rows:
+            render += self.add_padding(self.merge_columns(*row, sep=' '*lensep), padding)
+            if i != len_rows: render += '\n'
+            i += 1
+        return render.strip('\n') or ''
+    def chunk_list(self, lst, chunk_size):
+        return [lst[i:i + chunk_size] for i in range(0, len(lst), chunk_size)]
+    def dec_digit_table(self, data, title):
+        # header
+        if not isinstance(title, str):
+            title = title - self.max_f
+            title = {0:'Units', 1:'Tens', 2:'Hundrds'}.get(title) or f'10^{title+1}'
+        title = f' {title} '
+        table = f'[x]    ┌─────{title.center(9,"─")}─────┐    \n'
+        table += '[x]┌───┴─[ - ]─┬───┬─[ + ]─┴───┐\n'
+        for y in range(9, -1, -1):
+            row_right = self.dec_density_row(data[y]['pos'])
+            row_left  = self.dec_density_row(data[y]['neg'])
+            table += f"[x]│ [c]{row_left}[x] │ {y} │ [c]{row_right}[x] │\n"
+        # footer
+        table += '[x]├───────────┼───┼───────────┤\n'
+        table += '[x]└─987654321─┘   └─123456789─┘'
+        return table
+    def dec_density_row(self, row):
+        return ''.join(self.dec_counter(char) for char in row)
+    def dec_counter(self, count):
+        count = 10 if count == 'm' else int(count)
+        if count == 0: return '[c] '
+        if count == 1: return '[b]x'
+        if count <= 3: return f'[g]{count}'
+        if count <= 5: return f'[y]{count}'
+        if count <= 9: return f'[r]{count}'
+        if count >= 10: return '[r]*'
+        raise Exception(c.z(f'[r]ERROR: dec_count():[c] unknown value {count}'))
 
-    # TODO: check decimals
-    # upds
-    def upd_decim(self, data):
-        raise Exception(c.z('[y]todo'))
-    def upd_integ(self, data):
-        raise Exception(c.z('[y]todo'))
-    def upd_total(self, data):
-        raise Exception(c.z('[y]todo'))
-    # TODO: if lost key
-    # TODO: add decorators for values
-    # TODO: merge_columns - check len with colors
+    # info
     def upd_info(self, data, spoilers):
-        # range_numbers     = f"{'x'*min_i}{d_min}{'x'*min_f}-{'x'*max_i}{d_max}{'x'*max_f}"
-        # range_results     = render_range_results(s.apply(get_range_results, sequence), spoilers)
-        # total_provided    = render_yn(total)
-        # total_correct     = render_yn(s.tonum(total) == s.safe_eval(sequence))
-
-       start_number    =                 data['start_number']
-       ops_count       =                 data['ops_count']
-       ops_operands    =                 data['ops_operands']
-       dec_exist       =                 dec_yn(data['dec_exist'])
-       neg_exist       =                 dec_yn(data['neg_exist'])
-       range_numbers   =                 data['range_numbers']
-       range_results   =                 data['range_results']
-       total_provided  =                 data['total_provided']
-       total_correct   =                 data['total_correct']
+        (start_number, ops_count, ops_operands, dec_exist, neg_exist, range_numbers,
+         range_results, total_provided, total_correct, total_calculated) = data.values()
+        # decorate
+        ops_operands = ''.join(ops_operands)
+        dec_exist = self.dec_yn(dec_exist)
+        neg_exist = self.dec_yn(neg_exist)
+        if not spoilers:
+            range_numbers = self.dec_blur_digits(range_numbers)
+            range_results = self.dec_blur_digits(range_results)
+        # provided
+        color = '[g]' if total_provided else '[r]'
+        if not spoilers:
+            total_provided = self.dec_yn(total_provided)
+        total_provided = color + total_provided
+        # calculated
+        color = '[g]' if total_correct else '[r]'
+        if not spoilers: total_summary = f'Total correct:    {color}{self.dec_yn(total_correct)}'
+        else:            total_summary = f'Total calculated: {color}{total_calculated}'
+        # apply
         self.info = dedent(f"""
             [x]Start number:     [c]{start_number}
             [x]Count operations: [c]{ops_count}
@@ -47,123 +88,32 @@ class ViewAnalyze(View):
             [x]Range numbers:    [c]{range_numbers}
             [x]Range results:    [c]{range_results}
             [x]Total provided:   [c]{total_provided}
-            [x]Total correct     [c]{total_correct}
+            [x]{total_summary}
         """).strip()
-
-        # c.z(f''),
-        # c.z(f''),
-        # c.z(f'[x]Start number:     [c]{start_number}'),
-        # c.z(f'[x]Count operations: [c]{count_numbers}'),
-        # c.z(f'[x]Existed operands: [c]{existed_operands}'),
-        # c.z(f'[x]Decimal exist:    [c]{decimal_exist}'),
-        # c.z(f'[x]Negative results: [c]{negative_results}'),
-        # c.z(f'[x]Range numbers:    [c]{range_numbers}'),
-        # c.z(f'[x]Range results:    [c]{range_results}'),
-        # c.z(f'[x]Total provided:   [c]{total_provided}'),
-        # c.z(f'[x]Total valid:      [c]{total_valid}'),
-        # c.z(f'[x]Total correct:    [c]{total_correct}'),
-        # c.z(f'')
-
-    return {
-        'start_number': start_number,
-        'ops_count': len(operations),
-        'ops_operands': ops_operands,
-        'dec_exist': bool(max_f),
-        'neg_exist': s.apply(lambda total: total < 0, sequence),
-        'range_numbers': range_numbers,
-        'range_results': s.apply(get_range_results, sequence),
-        'total_provided': total,
-        'total_valid': total_is_valid,
-        'total_correct': s.tonum(total) == s.safe_eval(sequence)
-    }
-
-    def upd_totalinfo(self, data):
-        raise Exception(c.z('[y]todo'))
-    def upd_header(self):
-        self.upd_title('[x]COMBINATION DENSITY', char=' ')
-    def upd_sepline(self, sep='.', color='x'):
-        self.sepline = f'[{color}]'+'.'*self.w+'[c]'
-
-    # decs
-    def dec_density_table(self, title, data_left, data_right):
-        raise Exception(c.z('[y]todo'))
-    def dec_merge_tables(self, left_table, right_table):
-        raise Exception(c.z('[y]todo'))
-
-    # def get_table(digit, density_pos, density_neg, is_decim=False):
-    # # # title
-    # # if is_decim:
-    # #     title = f'0.1^{digit+1}'
-    # # else:
-    # #     title = f'10 ^{digit}'
-    # #     shift2title = ['Units', 'Tens', 'Hundreds']
-    #     table = []
-    #     # title
-    #     if digit == 'total':
-    #         title = '──[ TOTAL ]──'
-    #     else:
-    #         if is_decim:
-    #             title = f'──[ 0.1^{digit+1} ]──'
-    #         else:
-    #             shift2title = {0:'──[ Units ]──', 1:'──[ Tens ]───', 2:'[ Hundreds ]─'}
-    #             title = shift2title.get(digit, f'──[ 10 ^{digit} ]──')
-    #     table.append(c.z(f'[x]   ┌───{title}───┐     '))
-    #     table.append(c.z( '[x]┌───┴─[ - ]─┬───┬─[ + ]─┴───┐'))
-    #     # rows
-    #     for y in range(9, -1, -1):
-    #         row_middle = f' │ {y} │ '
-    #         row_left   = get_density_row(y, density_neg, range(9, 0, -1))
-    #         row_right  = get_density_row(y, density_pos, range(1, 10))
-    #         table.append(c.z(f"[x]│ [c]{row_left}[x]{row_middle}[c]{row_right}[x] │"))
-    #     # footer
-    #     table.append(c.z('[x]├───────────┼───┼───────────┤'))
-    #     table.append(c.z('[x]└─987654321─┘   └─123456789─┘'))
-    #     return table
-    # def render_tables(sep, tables, term_width, tab=' '*3):
-    #     if not tables:
-    #         return ''
-    #     # Определяем максимальное количество строк среди всех таблиц
-    #     max_rows = max(len(table) for table in tables)
-    #     # Ширина одной таблицы с учетом сепаратора
-    #     table_width = max(len(c.remove_colors(table[0])) for table in tables) + len(sep)
-    #     tables_per_row = (term_width - len(tab)) // table_width
-    #     if tables_per_row == 0:
-    #         tables_per_row = 1
-    #     result = ''
-    #     # Обрабатываем каждую строку максимального количества строк среди таблиц
-    #     for row_index in range(max_rows):
-    #         # Разделяем вывод на строки по tables_per_row таблиц в каждой
-    #         for start in range(0, len(tables), tables_per_row):
-    #             end = min(start + tables_per_row, len(tables))
-    #             line_parts = []
-    #             for i in range(start, end):
-    #                 # Добавляем строки таблицы, если строка существует
-    #                 if row_index < len(tables[i]):
-    #                     line_parts.append(tables[i][row_index])
-    #                 else:
-    #                     # Добавляем пустое место, если строк в таблице меньше
-    #                     line_parts.append(' ' * len(tables[i][0]))
-    #             result += tab + sep.join(line_parts).rstrip() + '\n'
-    #     return result
-
-    def dec_yn(self, value):
-        return 'Yes' if value else 'No'
-    def dec_blur_numbers(self, number):
+    def dec_yn(self, value, colors=False, reverse=False):
+        msg = 'Yes' if value else 'No'
+        if not reverse:
+            c = ('[g]' if value else '[r]') if value else ''
+        else:
+            c = '' if colors else ('[g]' if value else '[r]')
+        return c+msg
+    def dec_blur_digits(self, number):
         return re.sub(r'\d', 'x', str(number))
     def dec_range(self, range_results, spoilers):
         min_result, max_result = range_results
         if not spoilers:
-            min_result = self.dec_blur_numbers(min_result)
-            max_result = self.dec_blur_numbers(max_result)
+            min_result = self.dec_blur_digits(min_result)
+            max_result = self.dec_blur_digits(max_result)
         return f'{min_result}-{max_result}'
-    def dec_counter(count, one_digit_format=True):
-        if count == 0: return '[c] '
-        if count == 1: return '[b]x'
-        if count <= 3: return f'[g]{count}'
-        if count <= 5: return f'[y]{count}'
-        if count <= 9: return f'[r]{count}'
-        if count > 9:
-            if one_digit_format:
-                return '[r]*'
-            return f'[r]{count}'
-        raise Exception(c.z(f'[r]ERROR: dec_count():[c] unknown value {count}'))
+
+    # totalinfo/header/sepline
+    def upd_totalinfo(self):
+        self.totalinfo = self.add_padding(
+            self.merge_columns(self.total, '\n\n'+self.info, sep=' '*2),
+            [3,0,0,1]
+        )
+    def upd_header(self):
+        w_tables = max(map(lambda s: s.find('\n'), [self.decim, self.integ, self.total]))
+        self.header = '\n' + c.center('[x]COMBINATION DENSITY', w_tables)
+    def upd_sepline(self, sep='.', color='x'):
+        self.sepline = f'[{color}]'+'.'*self.w+'[c]' + '\n'

@@ -1,6 +1,6 @@
 # src/view
 from src.view._view import View
-from textwrap import dedent, wrap
+from textwrap import dedent
 import src.helpers.colors as c
 
 class ViewCreate(View):
@@ -25,18 +25,18 @@ class ViewCreate(View):
               [r]C     [x]: (y,_)+ newchain: artificially increase the sum.
               [r]R     [x]: (_,_)+ random : adding a random number to increase the sum.
         """).strip() + '\n'
-        self.legend = dedent("""
+        self.legend_random = dedent("""
             [x]random-operation:
               [r]e[x]50x50 [y]f[x]75x75
               [b]R     [x]: operation created.
               [r]e     [x]: Impossible to maintain conditions for the use of non-negative numbers.
-                            once change the operation to "+" and increase the range of numbers
+              [x]      [x]  once change the operation to "+" and increase the range of numbers
               [y]n     [x]: Failed to maintain conditions for the use of non-negative numbers.
-                            once reduce the range of numbers.
+              [x]      [x]  once reduce the range of numbers.
               [x]99x99 [x]: new value of the numbers range.
         """).strip() + '\n'
-        self.status = ''
         self.legend = ''
+        self.status = ''
     # legend
     def upd_legend(self, kind):
         calls_attr = f'calls_legend_{kind}'

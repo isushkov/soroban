@@ -7,12 +7,12 @@ import src.helpers.colors as c
 def tonum(val, rnd=None):
     max_rnd = 6
     if not isinstance(val, (str, int, float)):
-        raise ValueError(f'[r]ERROR - tonum():[c] unknown type {type(val)} ({val}).')
+        raise ValueError(c.z(f'[r]ERROR - tonum():[c] unknown type {type(val)} ({val}).'))
     if isinstance(val, str):
         try:
             val = float(val)
         except ValueError:
-            raise ValueError(f'[r]ERROR - tonum():[c] Cannot convert {val} to a number.')
+            raise ValueError(c.z(f'[r]ERROR - tonum():[c] Cannot convert {val} to a number.'))
     # определение необходимости округления
     if isinstance(val, float):
         current_precision = len(str(val).split('.')[-1])
@@ -31,7 +31,7 @@ def tonum(val, rnd=None):
 # num/str
 def tostr(val, rnd=None):
     if not isinstance(val, (str, int, float)):
-        raise ValueError(f'[r]ERROR - tostr():[c] unknown type {type(val)} ({val}).')
+        raise ValueError(c.z(f'[r]ERROR - tostr():[c] unknown type {type(val)} ({val}).'))
     return str(tonum(val, rnd))
 # num/num
 def do_math(x, operand, y, rnd=None):
@@ -52,7 +52,7 @@ def safe_eval(sequence, rnd=2):
     try:
         tree = ast.parse(sequence, mode='eval')
     except SyntaxError:
-        raise ValueError("Invalid syntax in sequence.")
+        raise ValueError(c.z(f'{e} Invalid syntax in sequence.'))
     def eval_(node):
         if isinstance(node, ast.Expression):
             return eval_(node.body)
@@ -67,7 +67,7 @@ def safe_eval(sequence, rnd=2):
                 return left * right
             elif isinstance(node.op, ast.Div):
                 if right == tonum(0, rnd):
-                    raise ZeroDivisionError(f"{e} Division by zero is not allowed.")
+                    raise ZeroDivisionError(c.z(f'{e} Division by zero is not allowed.'))
                 return left / right
         elif isinstance(node, ast.UnaryOp):
             operand = eval_(node.operand)
@@ -78,7 +78,7 @@ def safe_eval(sequence, rnd=2):
         elif isinstance(node, ast.Num):
             return tonum(str(node.n), rnd)
         else:
-            raise TypeError(f"{e} Unsupported type")
+            raise TypeError(c.z(f'{e} Unsupported type'))
     return tonum(eval_(tree), rnd)
 
 # seq/seq
@@ -153,7 +153,7 @@ def validate_sequence(sequence, pfx=False, exit_policy=0):
     return sequence
 def apply_exit_policy(exit_policy, msg):
     if exit_policy == 0: print(msg)
-    if exit_policy == 1: raise ValueError(msg)
+    if exit_policy == 1: raise ValueError(c.z(msg))
     if exit_policy == 2: print(msg); exit(2)
 
 # analyze

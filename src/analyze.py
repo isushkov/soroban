@@ -1,4 +1,5 @@
 import re
+import pprint
 import shutil
 from collections import Counter
 # src
@@ -13,40 +14,48 @@ import src.helpers.colors as c
 view = ViewAnalyze()
 def analyze(path):
     view.render_title(f'[y]ANALYZE {path}')
-    config = Config()
+    cnf = Config()
     # exercise
     sequence, total_provided = fo.txt2str(path).split('=')
     sequence = s.validate_sequence(sequence, 'analyze sequence', exit_policy=2)
     operations = sequence.split()
     start_number = s.tonum(operations.pop(0))
-    total_provided = validate_total(total)
+    total_provided = validate_total(total_provided)
     total = s.safe_eval(sequence)
     # density
     #   - посчитать количество знаков в самой длинной дробной чати.
     #   - умножить каждое число на 10^max_f, чтобы избавиться от дробей.
     #   - посчитать density.
     min_i, max_i, min_f, max_f = find_min_max_digits(sequence)
-    density_pos, density_neg = get_density(start_number, operations, max_f)
-    # data/render
-    view.upd_total(get_data_total(density_pos, density_neg))
-    view.upd_info(get_data_info(start_number, operations, max_f, total, total_provided), spoilers=config.spoilers)
+    density = get_density(start_number, operations, max_f)
+    # data
+    data_decim = density2data((1, max_f+1), density)
+    data_integ = density2data((max_f, max_f+max_i), density)
+    data_total = get_data_total(density)
+    data_info  = get_data_info(start_number, operations, max_f, total, total_provided)
+    view.max_f, view.max_i = max_f, max_i
+    view.upd_decim(data_decim)
+    view.upd_integ(data_integ)
+    view.upd_total(data_total)
+    view.upd_info(data_info, spoilers=cnf.spoilers)
     view.upd_sepline()
+    # render
     view.render_header()
-    view.render_decim(density2data(max_f, density_pos, density_neg))
+    view.display_decim()
     if view.decim: view.display_sepline()
-    view.render_integ(density2data(max_i, density_pos, density_neg))
-    if view.decim: view.display_sepline()
+    view.display_integ()
+    view.display_sepline()
     view.render_totalinfo()
 
 # validate
 def validate_total(total):
     total = s.validate_sequence(total, 'analyze total', exit_policy=1)
-    msg = c.z(f"[y]NOTE:[c] total is invalid - [r]'{total}'")
+    msg = c.z(f"[r]NOTE:[c] provided total is invalid.")
     if not total:
-        print(msg); return False
+        print(msg)
     if not bool(re.match(r'^-?\d+(\.\d+)?$', total)):
-        print(msg); return False
-    return True
+        print(msg)
+    return total
 
 # density
 def find_min_max_digits(sequence):
@@ -84,7 +93,7 @@ def get_density(start_number, operations, max_f):
         if operand == '+': density_pos = density
         if operand == '-': density_neg = density
         total = s.do_math(total, operand, number)
-    return density_pos, density_neg
+    return [density_neg, density_pos]
 def upd_density(d_density, digit, total, number):
     y,x = get_yx(total, number, digit)
     d_density[(y,x)] += 1 # сколько раз встретилась комбинация
@@ -96,32 +105,31 @@ def get_yx(total, number, digit):
     return y,x
 
 # data.density
-def density2data(max_d, density_pos, density_neg):
+def density2data(digits_range, density):
+    density_neg = density[0]
+    density_pos = density[1]
     data = {}
-    for digit in range(0, max_d):
-        data[digit] = {}
-        data[digit]['pos'] = digit_density2data(density_pos.get(digit))
-        data[digit]['neg'] = digit_density2data(density_neg.get(digit))
+    for digit in range(*digits_range):
+        data[digit] = digit_density2data(density_pos.get(digit), density_neg.get(digit))
     return data
-def get_data_total(density_pos, density_neg):
+def get_data_total(density):
+    density_neg, density_pos = density
     density_total_pos = Counter()
     density_total_neg = Counter()
-    for counter in density_pos.values():
-        density_total_pos += counter
-    for counter in density_neg.values():
-        density_total_neg += counter
-    data['total']['pos'] = digit_density2data(density_total_pos)
-    data['total']['neg'] = digit_density2data(density_total_neg)
-    return data_total
-def digit_density2data(density):
+    for counter in density_pos.values(): density_total_pos += counter
+    for counter in density_neg.values(): density_total_neg += counter
+    data = digit_density2data(density_total_pos, density_total_neg)
+    return data
+def digit_density2data(density_pos, density_neg):
     data_digit = {}
     for y in range(9, -1, -1):
-        data_digit[y]['pos'] = y_density2data(y, density_neg, range(9, 0, -1))
-        data_digit[y]['neg'] = y_density2data(y, density_pos, range(1, 10))
+        data_digit[y] = {}
+        data_digit[y]['pos'] = y_density2data(y, density_pos, range(1, 10))
+        data_digit[y]['neg'] = y_density2data(y, density_neg, range(9, 0, -1))
     return data_digit
-def y_density2data(y, density, rng):
+def y_density2data(y, density, x_range):
     row = ''
-    for x in rng:
+    for x in x_range:
         count = density.get((y, x), 0) if density else 0
         row += str(count if count < 9 else 'm')
     return row
@@ -133,16 +141,17 @@ def get_data_info(start_number, operations, max_f, total, total_provided):
         'ops_count': len(operations),
         'ops_operands': list(set(s.split_operation(op)[0] for op in operations)),
         'dec_exist': bool(max_f),
-        'neg_exist': range_results[0] < 0 or False
+        'neg_exist': range_results[0] < 0 or False,
         'range_numbers': get_range_numbers(operations),
         'range_results': range_results,
         'total_provided': total_provided,
-        'total_correct': total == total_provided
+        'total_correct': s.tonum(total_provided) == total,
+        'total_calculated': total
     }
 def get_range_numbers(operations):
     min_num, max_num = 0,0
     for op in operations:
-        _, num = s.split_operation(op)
+        num = s.tonum(s.split_operation(op)[1])
         if num < min_num: min_num = num
         if num > max_num: max_num = num
     return (min_num, max_num)
