@@ -16,7 +16,7 @@ class Config:
         self.data = fo.yml2dict('config.yml')
         # common
         self.lang = self.get_lang()
-        self.user_name = self.get_user_name()
+        self.uname = self.get_uname()
         self.spoilers = self.set_bool('common.analyze_spoilers', default=False)
         self.t2e = self.set_int('common.study_program.passes_for_exam', default=3)
         self.e2t = self.set_int('common.study_program.fails_for_retake', default=0, allow_zero=True)
@@ -35,13 +35,13 @@ class Config:
         sfx = f'training.during_exercise'
         self.num_per_stage = self.set_int('training.numbers_per_stage', default=10)
         self.check_method = self.get_check_method()
-        self.start_ann_spd = self.get_percent(f'{sfx}.startstage_announce_spdpct')
-        self.start_sig_spd = self.get_percent(f'{sfx}.startstage_signal_spdpct')
-        self.cont_ann_spd = self.get_percent(f'{sfx}.continuewith_announce_spdpct')
-        self.cont_num_spd = self.get_percent(f'{sfx}.continuewith_number_spdpct')
-        self.res_ann_spd = self.get_percent(f'{sfx}.result_announce_spdpct')
-        self.res_num_spd = self.get_percent(f'{sfx}.result_number_spdpct')
-        self.res_wrong_spd = self.get_percent(f'{sfx}.result_wrong_spdpct')
+        self.start_ann_spd = self.set_percent(f'{sfx}.startstage_announce_spdpct', 100)
+        self.start_sig_spd = self.set_percent(f'{sfx}.startstage_signal_spdpct', 100)
+        self.cont_ann_spd = self.set_percent(f'{sfx}.continuewith_announce_spdpct', 100)
+        self.cont_num_spd = self.set_percent(f'{sfx}.continuewith_number_spdpct', 100)
+        self.res_ann_spd = self.set_percent(f'{sfx}.result_announce_spdpct', 100)
+        self.res_num_spd = self.set_percent(f'{sfx}.result_number_spdpct', 100)
+        self.res_wrong_spd = self.set_percent(f'{sfx}.result_wrong_spdpct', 100)
     # fs
     def prepare_fs(self):
         if not fo.f_exist('config.yml'):
@@ -96,7 +96,7 @@ class Config:
             c.p(f'[y]NOTE: [x]the language [y]"{val}"[c] has not been tested.')
             c.p(f'[y]NOTE: [x]the language will be generated automatically - it may be ugly :(')
         return val
-    def get_user_name(self, path='common.user_name', default=False):
+    def get_uname(self, path='common.user_name', default=False):
         val = self.find(path, default, skip_errors=True)
         return val.strip()[:6] if val else default
     def get_check_method(self, path='training.check_result_method', default='input'):

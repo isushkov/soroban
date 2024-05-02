@@ -1,6 +1,7 @@
+from textwrap import dedent
 # src/view
 from src.view._view import View
-from textwrap import dedent
+# src/helpers
 import src.helpers.colors as c
 
 class ViewCreate(View):
@@ -50,12 +51,12 @@ class ViewCreate(View):
         self.status += info
     def upd_status_random(self, kind, new_range):
         self.status += '{}[x]{}x{}'.format(kind, *new_range)
-    def display_status(self):
+    def disp_status(self):
         if not self.status:
             return
         status_wrapped = '\n'.join(self.wrap(c.z(self.status), 60))
-        c.p(self.add_padding(self.legend, [3,1,0,1]))
-        c.p(self.add_padding(status_wrapped, [3,0,0,1]))
+        c.p(self.padding(self.legend, [3,1,0,1]))
+        c.p(self.padding(status_wrapped, [3,0,0,1]))
     # notes
     def upd_cover_len(self, kind, len_param, len_new_seq):
         if kind == 'less':

@@ -41,10 +41,10 @@ def analyze(path):
     view.upd_sepline()
     # render
     view.render_header()
-    view.display_decim()
-    if view.decim: view.display_sepline()
-    view.display_integ()
-    view.display_sepline()
+    view.disp_decim()
+    if view.decim: view.disp_sepline()
+    view.disp_integ()
+    view.disp_sepline()
     view.render_totalinfo()
 
 # validate

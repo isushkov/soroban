@@ -19,18 +19,19 @@ def would_like_repeat():
         else:
             print("Invalid input. Please enter 'y' for yes or 'n' for no.")
 def init_run(args):
-    if args.style == 'mental':
-        c.todo('style mental')
     user_name = (args.user.strip()[:6] or False) if args.user else False
     if args.command == 'study':
         study(user_name)
-    elif args.command == 'run':
-        analyze(args.path)
-        run(path, args.mode, user_name)
     else:
-        path = create(args.path, args.params)
-        analyze(path)
-        run(path, args.mode, user_name)
+        if args.style == 'mental':
+            c.todo('style mental')
+        if args.command == 'run':
+            analyze(args.path)
+            run(path, args.mode, user_name)
+        else:
+            path = create(args.path, args.params)
+            analyze(path)
+            run(path, args.mode, user_name)
     if not would_like_repeat():
         return
     init_run(args)

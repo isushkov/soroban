@@ -57,7 +57,7 @@ def parse_sequence_progression(req, opt):
     }
     # optional
     optional = {
-        'negative_allowed': parse_negative(opt),
+        'allow_neg': parse_neg(opt),
         'decimal': { 'precision': False, 'probability': False },
         'roundtrip': parse_roundtrip(opt)
     }
@@ -90,7 +90,7 @@ def parse_sequence_randcover(kind, req, opt):
     # optional
     decimal, decimal_str = parse_decimal(opt)
     optional = {
-        'negative_allowed': parse_negative(opt),
+        'allow_neg': parse_neg(opt),
         'decimal': decimal,
         'roundtrip': parse_roundtrip(opt)
     }
@@ -111,7 +111,7 @@ def parse_operands(operands_param):
 def parse_range(range_param):
     validate(range_param, r'^[1-9]\d*-[1-9]\d*$', 'range')
     return range_param.split('-')
-def parse_negative(opt):
+def parse_neg(opt):
     return True if 'n' in opt else False
 def parse_decimal(opt):
     float_match = re.search(r'\.([1-9]\d*)(?:%([1-9][0-9]?|100))?', opt, re.IGNORECASE)
@@ -156,7 +156,7 @@ def seq_params2seq_name(kind, seq_params):
     decimal_params = seq_params['optional']['decimal']
     precision = 1 if decimal_params['precision'] else 0
     probability = 1 if decimal_params['probability'] else 0
-    negative = f"{1 if seq_params['optional']['negative_allowed'] else 0}"
+    neg = f"{1 if seq_params['optional']['allow_neg'] else 0}"
     decimal = f'{precision}x{probability}'
     roundtrip = f"{1 if seq_params['optional']['roundtrip'] else 0}"
-    return f'{kind}{operands}-{range_params}w{length}-n{negative}d{decimal}r{roundtrip}'
+    return f'{kind}{operands}-{range_params}w{length}-n{neg}d{decimal}r{roundtrip}'

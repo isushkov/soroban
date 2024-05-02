@@ -2,7 +2,13 @@ import re
 from colorama import Fore, Style, init
 init(autoreset=True)
 
-colors_map = {
+def todo(text):
+    p(f'[y]TODO:[c] {text}..')
+    exit(2)
+
+
+# do colors
+char2color_map = {
    'b': Fore.BLUE,
    'g': Fore.GREEN,
    'y': Fore.YELLOW,
@@ -10,30 +16,26 @@ colors_map = {
    'x': Fore.LIGHTBLACK_EX,
    'c': Style.RESET_ALL
 }
-
-def todo(msg):
-    p(f'[y]TODO:[c] {msg}..')
-    exit(2)
-
-# do colors
-def p(msg):
-    print(z(msg))
-def b(msg): return colorize(msg, Fore.BLUE)
-def g(msg): return colorize(msg, Fore.GREEN)
-def y(msg): return colorize(msg, Fore.YELLOW)
-def r(msg): return colorize(msg, Fore.RED)
-def x(msg): return colorize(msg, Fore.LIGHTBLACK_EX)
-def colorize(char, msg): return char2color(char) + msg + Style.RESET_ALL
-def z(msg):
-    msg = str(msg)
-    for char, color in colors_map.items():
-        msg = msg.replace('['+char+']', color)
-    return msg + Style.RESET_ALL
+def p(text):
+    print(z(text))
+def z(text):
+    text = str(text)
+    for char, color in char2color_map.items():
+        text = text.replace('['+char+']', color)
+    return text + Style.RESET_ALL
+def b(text): return colorize(text, Fore.BLUE)
+def g(text): return colorize(text, Fore.GREEN)
+def y(text): return colorize(text, Fore.YELLOW)
+def r(text): return colorize(text, Fore.RED)
+def x(text): return colorize(text, Fore.LIGHTBLACK_EX)
+def colorize(char, text): return char2color(char) + text + Style.RESET_ALL
 def char2color(char):
-    color = colors_map.get(char)
+    color = char2color_map.get(char)
     if color:
         return color
     raise Exception(z(f'[r]ERROR:char2color():[c] invalid char "{char}"'))
+def ln(text):
+    return len(remove_colors(text))
 def remove_colors(text):
     return re.sub(r'\x1b\[[0-9;]*m', '', z(text))
 

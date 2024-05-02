@@ -62,8 +62,8 @@ class Tui:
         sys.stdout.flush()
 
     # clear
-    def clear(self, mode=False):
-        modes = {False: '2J', 'end': 'K', 'start': '1K', 'line': '2K', 'down': 'J', 'up': '1J'}
+    def clear(self, mode):
+        modes = {'all': '2J', 'end': 'K', 'start': '1K', 'line': '2K', 'down': 'J', 'up': '1J'}
         char = modes.get(mode)
         if char is None:
             raise Exception(f'clear: unknown mode - {mode}')

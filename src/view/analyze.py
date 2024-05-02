@@ -24,7 +24,7 @@ class ViewAnalyze(View):
         render = ''
         render, i, len_rows = '', 1, len(rows)
         for row in rows:
-            render += self.add_padding(self.merge_columns(*row, sep=' '*lensep), padding)
+            render += self.padding(self.merge(*row, sep=' '*lensep), padding)
             if i != len_rows: render += '\n'
             i += 1
         return render.strip('\n') or ''
@@ -106,14 +106,12 @@ class ViewAnalyze(View):
             max_result = self.dec_blur_digits(max_result)
         return f'{min_result}-{max_result}'
 
-    # totalinfo/header/sepline
-    def upd_totalinfo(self):
-        self.totalinfo = self.add_padding(
-            self.merge_columns(self.total, '\n\n'+self.info, sep=' '*2),
-            [3,0,0,1]
-        )
+    # header/totalinfo
     def upd_header(self):
         w_tables = max(map(lambda s: s.find('\n'), [self.decim, self.integ, self.total]))
-        self.header = '\n' + c.center('[x]COMBINATION DENSITY', w_tables)
-    def upd_sepline(self, sep='.', color='x'):
-        self.sepline = f'[{color}]'+'.'*self.w+'[c]' + '\n'
+        self.header = self.padding(c.center('[x]COMBINATION DENSITY', w_tables), [3,1,0,0])
+    def upd_totalinfo(self):
+        self.totalinfo = self.padding(
+            self.merge(self.total, '\n\n'+self.info, sep=' '*2),
+            [3,0,0,1]
+        )

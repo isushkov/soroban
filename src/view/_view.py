@@ -2,15 +2,15 @@ import re
 import shutil
 import src.helpers.colors as c
 
-# render(attr, *args, **kwargs) : обновить и показать
-# display(attr)                 : показать
-# upd(attr, *args, **kwargs)    : обновить
-# upd_attr_1(*args, **kwargs)   : specific upd()-logic for attr_1
-# upd_attr_2(*args, **kwargs)   : specific upd()-logic for attr_2
+# magic:
+#     render_<attr>(*args, end='\n', **kwargs) : upd and disp <attr>
+#     upd_<attr>(*args, **kwargs)              : specific-logic for <attr>
+#     disp_<attr>(end='\n')                    : print <attr> or set specific-logic for print
+#     calls_<attr>                             : auto-init counter for <attr>
 class View():
     def __init__(self):
         self.w_term, self.h_term = shutil.get_terminal_size()
-        self.w_user = 100
+        self.w_user = 80
         self.w = self.calc_max_w()
         self.tab = ' '
         self.sep = ' '
@@ -20,21 +20,24 @@ class View():
         if self.w_user > self.w_term:
             return self.w_term
         return self.w_user
-    # render/display/upd/calls
-    def render(self, attr, *args, **kwargs):
+    # render/disp/upd/calls
+    def render(self, attr, *args, end='\n', **kwargs):
         self.upd(attr, *args, **kwargs)
-        self.display(attr)
-    def display(self, attr):
+        self.disp(attr, end=end)
+    def disp(self, attr, end='\n'):
         if not hasattr(self, attr):
             raise Exception(c.z(f"[r]ERROR: <View>.get('{attr}'):[c] attr dosnt exist."))
-        print(c.z(getattr(self, attr)))
+        if end:
+            print(c.z(getattr(self, attr)), end=end, flush=True)
+        else:
+            print(c.z(getattr(self, attr)))
     def upd(self, attr, *args, **kwargs):
         method_name = 'upd_'+attr
         if not hasattr(self, method_name):
             raise Exception(c.z(f"[r]ERROR: <View>.upd_{attr}():[c] method dosnt exist."))
         # call meth()
         return getattr(self, method_name)(*args, **kwargs)
-    # render/display/upd/calls - magic (exec if meth dosnt exist)
+    # render/disp/upd/calls - magic (exec if meth dosnt exist)
     def __getattr__(self, name):
         if name.startswith('calls_'):
             return 0
@@ -42,11 +45,11 @@ class View():
         if len(parts) > 1:
             method_prefix = parts[0]
             attr_name = '_'.join(parts[1:])
-            if method_prefix in ['display', 'upd', 'render']:
+            if method_prefix in ['disp', 'upd', 'render']:
                 # Генерируем функцию на лету
                 def method(*args, **kwargs):
-                    if method_prefix == 'display':
-                        return self.display(attr_name)
+                    if method_prefix == 'disp':
+                        return self.disp(attr_name)
                     elif method_prefix == 'upd':
                         return self.upd(attr_name, *args, **kwargs)
                     elif method_prefix == 'render':
@@ -55,18 +58,18 @@ class View():
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
     # upds
     def upd_title(self, title, char='=', color='x'):
-        self.title = self.dec_title(title, char, color)
-    def dec_title(self, title, char='=', color='x'):
-        return c.z(c.ljust(c.z(f'[{color}]{char*9} {title} '), self.w, char, color))
+        self.title = c.ljust(f'[{color}]{char*9} {title} ', self.w, char, color)
+    def upd_sepline(self, char='.', color='x'):
+        self.sepline = f'[{color}]' + char * self.w + '[c]'
     # decorate
-    def add_padding(self, text, padding, char=' '):
+    def padding(self, text, padding, char=' '):
         left, top, right, bottom = padding
         lines = text.splitlines()
         padded_lines = [char * left + line + char * right for line in lines]
         top_padding = [char * (left + right + max(len(c.remove_colors(line)) for line in lines))] * top
         bottom_padding = [char * (left + right + max(len(c.remove_colors(line)) for line in lines))] * bottom
         return '\n'.join(top_padding + padded_lines + bottom_padding)
-    def add_border(self, text, style=False, style_custom=False, color='', title=None):
+    def border(self, text, style=False, style_custom=False, color='', title=None):
         text = c.z(text)
         color = c.get_fill_color(color or 'c')
         if style == 'custom':
@@ -91,7 +94,7 @@ class View():
         if color:
             res = c.z(res)
         return res
-    def merge_columns(self, *args, sep=' '):
+    def merge(self, *args, sep=' '):
         lines_lists = [arg.split('\n') for arg in args]
         if not lines_lists:
             return ''
@@ -136,3 +139,49 @@ class View():
         if line: # добавляем последнюю строку, если она не пуста
             lines.append(line)
         return lines
+    # TODO: дата и время, валюты, проценты - совсем уже другая история
+    color2cleantokens = {
+        'g': ['yes', 'true', 'ok', 'success', 'approved', 'positive', 'correct', 'valid', 'affirmative', 'confirmed'],
+        'r': ['no', 'false', 'error', 'fail', 'denied', 'negative', 'incorrect', 'invalid', 'rejected', 'fault'],
+        'y': ['note', 'please', 'attention', 'caution', 'observe', 'warning', 'important', 'notice', 'alert', 'advise'],
+        'x': ['none', 'nothing', 'empty', 'void', 'null', 'missing', 'absent', 'blank', 'clear']
+    }
+    def dtrmc(self, val):
+        if val is None: return 'x'
+        if isinstance(val, bool): return 'g' if val else 'r'
+        if isinstance(val, (int, float)): return 'r' if val < 0 else ('g' if val > 0 else 'x')
+        if isinstance(val, dict):
+            tokens = []
+            for k,v in val.items():
+                tokens.append(k)
+                tokens.append(v)
+            return dtrmc(tokens)
+        if isinstance(val, (list, set, tuple)):
+            color_count, total = {'g': 0, 'r': 0, 'x': 0, 'y': 0}, 0
+            for token in val:
+                color_count[dtrmc(token)] += 1
+                total += 1
+            dominant_color = max(color_count, key=color_count.get)
+            if total == 0 or color_count[dominant_color] / total < 0.3:
+                return 'c'
+            return dominant_color
+        if isinstance(val, str):
+            # convert to tokens
+            val = val.split()
+            if len(val) > 1:
+                return dtrmc(val)
+            # convert to number
+            val = val.strip().lower()
+            if re.match(r'^[+-]?\d+(\.\d+)?$', val):
+                val = float(val)
+                return 'r' if val < 0 else ('g' if val > 0 else 'x')
+            # содержит ли строка буквенные символы или цифры
+            if not bool(re.search(r'[a-zA-Z0-9]', s)):
+                return 'x'
+            # specific tokens to color
+            for color, tokens in self.color2cleantokens.items():
+                val = re.sub(r'[^a-zA-Z]', '', val)
+                if val in tokens:
+                    return color
+            return 'c'
+        raise ValueError(c.z(f'[r]ERROR:dtrmc()[c]: unknown type {type(val)}: {val}'))

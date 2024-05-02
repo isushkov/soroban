@@ -17,49 +17,42 @@ import src.helpers.pdo as pdo
 import src.helpers.colors as c
 
 view = ViewStudy()
-
-def study(arg_user_name):
+def study(arg_uname):
+    view.render_title(f'[y]STUDY PROGRAM', char='_')
     # args/conf/fs
     prepare_fs()
     conf = Config()
-    user_name = arg_user_name or conf.user_name
-    if not user_name:
-        c.p(f'[y]NOTE:[c] You can specify a temporary username using the optional argument [y]--user-name=<user-name>')
-        c.p(f'[y]NOTE:[c] or set a permanent one in [g]config.yml[c] (--user-name has a higher priority):')
-        c.p(f'[y]NOTE:[c]     [g].common.user_name:[c] <user-name> [x]# 1-6 chars')
-        user_name = input('Please enter your name: ').strip()[:6]
-        if not user_name:
-            c.p(f'[r]EXIT:[c] The user-name [r]is required[y] for the study-mode.')
-    view.render_title(f'[y]STUDY PROGRAM: {user_name}')
+    uname = arg_uname or conf.uname
+    if not uname:
+        view.disp_uname_note()
+        uname = input('Please enter your name: ').strip()[:6]
+        if not uname:
+            view.disp_uname_err()
     # load/filter data
     study_attempts_columns = ['id','user_name','step','trainings_passed','exams_failed']
     df_study_attempts = pdo.load('./src/__study_attempts.csv', study_attempts_columns)
-    df_records = pdo.load('./src/__records.csv', empty_allowed=True)
-    df_study_attempts4user = pdo.filter(df_study_attempts, where={'user_name': user_name }, empty_allowed=True)
-    df_records4user = pdo.filter(df_records, where={'user_name': user_name }, empty_allowed=True, many_allowed=True)
+    df_records = pdo.load('./src/__records.csv', allow_empty=True)
+    df_study_attempts4user = pdo.filter(df_study_attempts, where={'user_name': uname }, allow_empty=True)
+    df_records4user = pdo.filter(df_records, where={'user_name': uname }, allow_empty=True, allow_many=True)
     data_study_program = get_study_program()
-    # step/create/analyze
-    step, target, params, exercise = identify_step(df_records4user, data_study_program)
-    print(c.ljust('', 94, '.', 'x'))
+    # create/analyze
+    step, target, params, exercise = idstep(df_records4user, data_study_program)
+    view.render_sepline('>')
     path = create(path=False, params=params)
     analyze(path)
-    print(c.ljust('', 94, '.', 'x'))
+    view.render_sepline('<')
     # mode
     trainings_passed, exams_failed = get_attempts(df_study_attempts)
-    mode = identify_mode(df_records4user, user_name, exercise, target, trainings_passed, exams_failed, conf.t2e, conf.e2t)
-    # get-ready
-    color = 'r' if mode == 'exam' else 'y'
-    c.p(f'[y]>>> {user_name}:')
-    c.p(f'[b]>>> Step {step}: [{color}]{mode.upper()}. [x]target-time: [r]{target}[x]. exercise: "{params}"')
-    c.p(f'[x]>>> trainings-passed: [c]{trainings_passed}[g]/{conf.t2e}[c]')
-    c.p(f'[x]>>> exams-failed:     [c]{exams_failed}[r]/{conf.e2t}')
+    mode = idmode(df_records4user, uname, exercise, target, trainings_passed, exams_failed, conf.t2e, conf.e2t)
+    view.disp_idmode_status()
     # interrupt-handler/run
-    interrupt_handler(df_study_attempts, user_name, mode, trainings_passed, exams_failed)
-    is_passed, time_seconds = run(path, mode, user_name, target)
+    view.render_ready(uname, step, mode, target, params, trainings_passed, exams_failed, conf)
+    interrupt_handler(df_study_attempts, uname, mode, trainings_passed, exams_failed)
+    is_passed, time_seconds = run(path, mode, uname, target)
     # result/save
     result = get_result(is_passed, time_seconds, target)
     trainings_passed, exams_failed = upd_attempts(mode, result, trainings_passed, exams_failed)
-    save_study_attempts(df_study_attempts, user_name, trainings_passed, exams_failed)
+    save_study_attempts(df_study_attempts, uname, trainings_passed, exams_failed)
 
 # common/attempts/result
 def prepare_fs():
@@ -96,54 +89,49 @@ def get_result(is_passed, time_seconds, target):
     if time_seconds <= target2seconds(target):
         return True
     return False
-def save_study_attempts(df_study_attempts, user_name, trainings_passed, exams_failed):
+def save_study_attempts(df_study_attempts, uname, trainings_passed, exams_failed):
     values = {'trainings_passed':str(trainings_passed), 'exams_failed':str(exams_failed)}
-    df = pdo.update(df_study_attempts, where={'user_name':user_name}, values=values, addnew_allowed=True, many_allowed=False)
+    df = pdo.update(df_study_attempts, where={'user_name':uname}, values=values, allow_addnew=True, allow_many=False)
     pdo.save(df, './src/__study_attempts.csv')
-def interrupt_handler(df_study_attempts, user_name, mode, trainings_passed, exams_failed):
+def interrupt_handler(df_study_attempts, uname, mode, trainings_passed, exams_failed):
     trainings_passed, exams_failed = upd_attempts(mode, False, trainings_passed, exams_failed)
-    save_study_attempts(df_study_attempts, user_name, trainings_passed, exams_failed)
-# inentify
-def identify_step(df_records4user, data_study_program):
-    c.p(f'[b]INFO: >>>[c] Identifying the STUDY-STEP..')
+    save_study_attempts(df_study_attempts, uname, trainings_passed, exams_failed)
+# idstep
+def idstep(df_records4user, data_study_program):
+    view.disp_idstep_start()
     if df_records4user.empty:
         step = 0
         target, params = data_study_program[step]
         exercise = params2basename(parse_params(params))
-        c.p(f'[b]INFO:[c] records not found.')
-        c.p(f'[b]INFO:[c] Current step is {step} ({exercise}).')
+        view.render_idstep_404(step, exercise)
         return step, target, params, exercise
     for step, [target, params] in enumerate(data_study_program):
         exercise = params2basename(parse_params(params))
         where = {'exercise':exercise,'is_exam':1,'is_passed':1}
-        df_passed_exams = pdo.filter(df_records4user, where=where, empty_allowed=True, many_allowed=True)
+        df_passed_exams = pdo.filter(df_records4user, where=where, allow_empty=True, allow_many=True)
         if df_passed_exams[df_passed_exams['time_seconds'] <= target2seconds(target)].empty:
-            c.p(f'[g]INFO:[c] Current step is {step} ({exercise}).')
+            view.render_idstep_found(step, exercise)
             return step, target, params, exercise
-        c.p(f'[b]INFO: Step {step}[c] - passed ({exercise}).')
-    c.p(f'[y]NOTE:[c] Study-step not identified:')
-    c.p(f'[y]NOTE:[c] [g]You\'ve already passed everything?')
+        view.render_idstep_passed(step, exercise)
+    view.disp_idstep_unknown()
     exit(0)
-def identify_mode(df_records4user, user_name, exercise, target, trainings_passed, exams_failed, t2e, e2t):
-    c.p(f'[b]INFO: >>>[c] Identifying the MODE for study-step..')
-    mode, sfx_time = 'training', f'within the specified time ({target})'
+# idmode
+def idmode(df_records4user, uname, exercise, target, trainings_passed, exams_failed, t2e, e2t):
+    mode = 'training'
     where = {'exercise':exercise,'is_exam':0,'is_passed':1}
-    df_passed_trainings = pdo.filter(df_records4user, where=where, empty_allowed=True, many_allowed=True)
+    df_passed_trainings = pdo.filter(df_records4user, where=where, allow_empty=True, allow_many=True)
+    view.render_idmode_start()
     if df_passed_trainings.empty:
-        c.p(f'[b]INFO:[c] So far, no trainings have been passed for this exercise.')
-        return info_mode(mode)
+        view.render_idmode_training('404')
+        return mode
     if df_passed_trainings[df_passed_trainings['time_seconds'] <= target2seconds(target)].empty:
-        c.p(f'[b]INFO:[c] So far, no training have been passed {sfx_time} for this exercise.')
-        return info_mode(mode)
+        view.render_idmode_training('422')
+        return mode
     if trainings_passed < t2e:
-        c.p(f'[y]INFO:[c] The training was completed fewer times in a row than necessary {sfx_time} for this exercise.')
-        return info_mode(mode)
+        view.render_idmode_training('t2e')
+        return mode
     if exams_failed > e2t:
-        c.p(f'[r]INFO:[c] The exam is failed more times in a row than possible {sfx_time}.')
-        return info_mode(mode)
-    c.p('[g]INFO: Admission to the exam has been received.')
-    return info_mode('exam')
-def info_mode(mode):
-    color = 'r' if mode == 'exam' else 'y'
-    c.p(f'[g]INFO:[c] Current mode is [{color}]"{mode}".')
-    return mode
+        view.render_idmode_training('e2t')
+        return mode
+    view.render_idmode_exam()
+    return 'exam'
