@@ -11,6 +11,8 @@ from src.study import study
 import src.helpers.fo as fo
 import src.helpers.exit_handler
 
+sys.setrecursionlimit(150)
+
 def would_like_repeat():
     while True:
         answer = input("Would you like to repeat? (y/n): ").strip().lower()

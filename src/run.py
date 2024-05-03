@@ -18,9 +18,8 @@ import src.helpers.colors as c
 
 cfg = Config()
 tui = Tui()
-view = ViewRun()
+view = ViewRun(cfg.w)
 def run(path, mode, uname, goal=False):
-    view.render_title('[y]RUNNING')
     # config
     cfg.init4mode(mode)
     uname = uname or cfg.uname
@@ -38,16 +37,17 @@ def run(path, mode, uname, goal=False):
     df_records = pdo.load('./src/__records.csv', columns=records_columns, allow_empty=True)
     df_run = pdo.filter(df_records, where=where, allow_empty=True, allow_many=True)
     timing = get_timing(df_run, uname, goal)
-    # fs/sounds/view
-    prepare_fs()
+    # view
     tui.noecho()
-    view.render_title(exercise_name, char='.')
-    generate_sounds_texts()
-    generate_sounds_numbers(operations)
+    view.render_title(f'[y]RUNNING {exercise_name}')
     uname = uname or get_uname()
     view.init_params(mode, goal, uname)
     view.init_ws(sequence, cfg.num_per_stage, cfg.pls_show)
-    # sounds/run
+    # fs/sounds
+    prepare_fs()
+    generate_sounds_texts()
+    generate_sounds_numbers(operations)
+    # run
     ready(start_number)
     view.render_top(is_passed=True, timing=timing)
     start_time = round(time.time(), 2)

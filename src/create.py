@@ -1,5 +1,6 @@
 import random
 # src
+from src.config import Config
 from src.params import parse_params, params2basename
 import src.sequence as s
 # src/view
@@ -10,7 +11,8 @@ import src.helpers.colors as c
 import src.helpers.fo as fo
 
 # init
-view = ViewCreate()
+cfg = Config()
+view = ViewCreate(cfg.w)
 def create(path, params):
     view.render_title('[y]CREATING')
     prepare_fs()
@@ -18,9 +20,7 @@ def create(path, params):
     sequence = create_sequence_start(params[0], params[1]) + '\n'
     for i,seq_params in enumerate(params[1:]):
         kind = seq_params['kind']
-        c.p(f'[g]sequence {i} ({render_kind(kind)}):')
-        c.p(f'  [g]required:[c] {seq_params["required"]}')
-        c.p(f'  [g]optional:[c] {seq_params["optional"]}')
+        view.render_seq_header(i, kind, seq_params)
         is_roundtrip = seq_params['optional']['roundtrip']
         new_sequence = ''
         if kind == 'p':  new_sequence += create_sequence_progression(seq_params, s.safe_eval(sequence))
@@ -34,13 +34,11 @@ def create(path, params):
     path = path if path else f"./data/{params2basename(params)}.txt"
     save_file(path, data)
     return path
-# common
+
+# fs
 def prepare_fs():
     cmd('mkdir -p ./data')
-def render_kind(kind):
-    return {'p':'progression', 'r':'random', 'c':'covered'}[kind]
 def save_file(path, data):
-    cmd('mkdir -p ./data')
     fo.str2txt(data, path)
     c.p(f'[g]Exercise was created:[c] {path}')
 
@@ -170,6 +168,7 @@ def create_sequence_cover(seq_params, first):
     len_seq += 1
     while len_seq < int(length):
         if not view.calls_cover_len_more:
+            view.upd_legend('random')
             view.render_cover_len('more', length, len_seq)
             view.calls_cover_len_more += 1
         operand = choose_operand(operands)

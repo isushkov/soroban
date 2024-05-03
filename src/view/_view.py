@@ -3,75 +3,71 @@ import shutil
 import src.helpers.colors as c
 
 # magic:
-#     render_<attr>(*args, end='\n', **kwargs) : upd and disp <attr>
-#     upd_<attr>(*args, **kwargs)              : specific-logic for <attr>
-#     disp_<attr>(end='\n')                    : print <attr> or set specific-logic for print
-#     calls_<attr>                             : auto-init counter for <attr>
+#   render_<attr>() : upd_<attr>() and then disp_<attr>()
+#      upd_<attr>() : set cpecific logic for upd <attr>
+#     disp_<attr>() : print <attr> or set specific-logic for print
+#    calls_<attr>   : auto-init counter for <attr>
 class View():
-    def __init__(self):
+    def __init__(self, w_settings):
         self.w_term, self.h_term = shutil.get_terminal_size()
-        self.w_user = 80
-        self.w = self.calc_max_w()
+        self.w = self.upd_w(w_settings)
         self.tab = ' '
         self.sep = ' '
-    def calc_max_w(self):
-        if not self.w_user:
+    def upd_w(self, w_settings=0):
+        if not w_settings:
             return self.w_term
-        if self.w_user > self.w_term:
+        if w_settings > self.w_term:
             return self.w_term
-        return self.w_user
-    # render/disp/upd/calls
-    def render(self, attr, *args, end='\n', **kwargs):
-        self.upd(attr, *args, **kwargs)
-        self.disp(attr, end=end)
-    def disp(self, attr, end='\n'):
-        if not hasattr(self, attr):
-            raise Exception(c.z(f"[r]ERROR: <View>.get('{attr}'):[c] attr dosnt exist."))
-        if end:
-            print(c.z(getattr(self, attr)), end=end, flush=True)
-        else:
-            print(c.z(getattr(self, attr)))
-    def upd(self, attr, *args, **kwargs):
-        method_name = 'upd_'+attr
-        if not hasattr(self, method_name):
-            raise Exception(c.z(f"[r]ERROR: <View>.upd_{attr}():[c] method dosnt exist."))
-        # call meth()
-        return getattr(self, method_name)(*args, **kwargs)
-    # render/disp/upd/calls - magic (exec if meth dosnt exist)
+        return w_settings
+    # magic: render/upd/disp/calls (exec if meth dosnt exist)
     def __getattr__(self, name):
+        # calls
         if name.startswith('calls_'):
             return 0
+        # render/disp
         parts = name.split('_')
         if len(parts) > 1:
-            method_prefix = parts[0]
-            attr_name = '_'.join(parts[1:])
-            if method_prefix in ['disp', 'upd', 'render']:
-                # Генерируем функцию на лету
+            meth_pfx = parts[0]
+            attr_sfx = '_'.join(parts[1:])
+            if meth_pfx in ['disp', 'render']:
                 def method(*args, **kwargs):
-                    if method_prefix == 'disp':
-                        return self.disp(attr_name)
-                    elif method_prefix == 'upd':
-                        return self.upd(attr_name, *args, **kwargs)
-                    elif method_prefix == 'render':
-                        return self.render(attr_name, *args, **kwargs)
+                    if meth_pfx == 'render': return self._render(attr_sfx, *args, **kwargs)
+                    if meth_pfx == 'disp':   return self._disp(attr_sfx, oneline=False)
                 return method
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+    # render/upd/disp
+    def _render(self, attr, *args, oneline=False, **kwargs):
+        # run upd
+        upd_meth = getattr(self, 'upd_'+attr)
+        upd_meth(*args, **kwargs)
+        # run disp
+        self._disp(attr, oneline=oneline)
+    def _disp(self, attr, oneline=False):
+        if not getattr(self, attr):
+            return
+        if oneline:
+            print(c.z(getattr(self, attr)), end='', flush=True)
+        else:
+            print(c.z(getattr(self, attr)))
+
     # upds
     def upd_title(self, title, char='=', color='x'):
         self.title = c.ljust(f'[{color}]{char*9} {title} ', self.w, char, color)
     def upd_sepline(self, char='.', color='x'):
-        self.sepline = f'[{color}]' + char * self.w + '[c]'
+        self.sepline = f'[{color}]' + char * self.w + '\n'
     # decorate
+    def join(self, lst, char='\n'):
+        return char.join(s for s in lst if s)
     def padding(self, text, padding, char=' '):
         left, top, right, bottom = padding
         lines = text.splitlines()
         padded_lines = [char * left + line + char * right for line in lines]
         top_padding = [char * (left + right + max(len(c.remove_colors(line)) for line in lines))] * top
         bottom_padding = [char * (left + right + max(len(c.remove_colors(line)) for line in lines))] * bottom
-        return '\n'.join(top_padding + padded_lines + bottom_padding)
+        return self.join(top_padding + padded_lines + bottom_padding)
     def border(self, text, style=False, style_custom=False, color='', title=None):
         text = c.z(text)
-        color = c.get_fill_color(color or 'c')
+        color = c.char2color(color or 'c')
         if style == 'custom':
             h,v,tl,tr,bl,br = style_custom
         else:
@@ -83,14 +79,14 @@ class View():
         top_border = color + tl + (h * max_length) + tr
         bottom_border = color + bl + (h * max_length) + br
         padded_lines = [color + v + '[c]' + line + ' ' * (max_length - len(c.remove_colors(line))) + color + v for line in lines]
-        res = '\n'.join([top_border] + padded_lines + [bottom_border])
+        res = self.join([top_border] + padded_lines + [bottom_border])
         if title:
             title_text = title.center(max_length)
             top_border = color + tl + (h * max_length) + tr
             title_line = color + v + title_text + color + v
         else:
             top_border = color + tl + (h * max_length) + tr
-        res = '\n'.join([top_border] + ([title_line] if title else []) + padded_lines + [bottom_border])
+        res = self.join([top_border] + ([title_line] if title else []) + padded_lines + [bottom_border])
         if color:
             res = c.z(res)
         return res
@@ -112,7 +108,7 @@ class View():
                 if index < len(lines_lists) - 1:
                     merged_line += sep
             merged_lines.append(merged_line.rstrip())
-        return '\n'.join(merged_lines)
+        return self.join(merged_lines)
     def wrap(self, text, width):
         text = c.z(text)
         bw_text = c.remove_colors(text)
@@ -138,7 +134,7 @@ class View():
                 i += 1
         if line: # добавляем последнюю строку, если она не пуста
             lines.append(line)
-        return lines
+        return self.join(lines)
     # TODO: дата и время, валюты, проценты - совсем уже другая история
     color2cleantokens = {
         'g': ['yes', 'true', 'ok', 'success', 'approved', 'positive', 'correct', 'valid', 'affirmative', 'confirmed'],

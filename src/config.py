@@ -5,18 +5,21 @@ import src.helpers.fo as fo
 
 class Config:
     _instance = None
+    _initialized = False
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(Config, cls).__new__(cls)
         return cls._instance
 
     def __init__(self):
-        # fs/args/data
+        if self._initialized:
+            return
+        self._initialized = True
         self.prepare_fs()
         self.data = fo.yml2dict('config.yml')
-        # common
         self.lang = self.get_lang()
         self.uname = self.get_uname()
+        self.w = self.set_int('common.view_width', allow_zero=True, default=80)
         self.spoilers = self.set_bool('common.analyze_spoilers', default=False)
         self.t2e = self.set_int('common.study_program.passes_for_exam', default=3)
         self.e2t = self.set_int('common.study_program.fails_for_retake', default=0, allow_zero=True)
@@ -49,13 +52,13 @@ class Config:
     # common
     def e404(self, path, default):
         c.p(f'[y]CONFIG ERROR:[x] Config value [c]not found:')
-        c.p(f'[y]CONFIG ERROR:[x]   [r]".{path}"')
-        c.p(f'[y]CONFIG ERROR:[x] Was replaced by [y]"{default}"')
+        c.p(f'[y]CONFIG ERROR:[x]   [r].{path}')
+        c.p(f'[y]CONFIG ERROR:[x]   Was replaced by [y]{default}')
         return default
     def e400(self, path, val, default):
         c.p(f'[y]CONFIG ERROR:[x] Config value is [c]invalid:')
-        c.p(f'[y]CONFIG ERROR:[x]   ".{path}: [r]{val}[c]"')
-        c.p(f'[y]CONFIG ERROR:[x] Was replaced by [y]"{default}"')
+        c.p(f'[y]CONFIG ERROR:[x]   .{path}: [r]{val}[c]')
+        c.p(f'[y]CONFIG ERROR:[x]   Was replaced by [y]{default}')
         return default
     def find(self, path, default, skip_errors=False):
         value = self.data

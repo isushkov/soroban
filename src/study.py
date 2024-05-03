@@ -16,13 +16,13 @@ import src.helpers.fo as fo
 import src.helpers.pdo as pdo
 import src.helpers.colors as c
 
-view = ViewStudy()
+cfg = Config()
+view = ViewStudy(cfg.w)
 def study(arg_uname):
     view.render_title(f'[y]STUDY PROGRAM', char='_')
-    # args/conf/fs
+    # args/cfg/fs
     prepare_fs()
-    conf = Config()
-    uname = arg_uname or conf.uname
+    uname = arg_uname or cfg.uname
     if not uname:
         view.disp_uname_note()
         uname = input('Please enter your name: ').strip()[:6]
@@ -43,10 +43,9 @@ def study(arg_uname):
     view.render_sepline('<')
     # mode
     trainings_passed, exams_failed = get_attempts(df_study_attempts)
-    mode = idmode(df_records4user, uname, exercise, target, trainings_passed, exams_failed, conf.t2e, conf.e2t)
-    view.disp_idmode_status()
+    mode = idmode(df_records4user, uname, exercise, target, trainings_passed, exams_failed, cfg.t2e, cfg.e2t)
     # interrupt-handler/run
-    view.render_ready(uname, step, mode, target, params, trainings_passed, exams_failed, conf)
+    view.render_status(uname, step, mode, target, params, trainings_passed, exams_failed, cfg)
     interrupt_handler(df_study_attempts, uname, mode, trainings_passed, exams_failed)
     is_passed, time_seconds = run(path, mode, uname, target)
     # result/save
@@ -103,16 +102,16 @@ def idstep(df_records4user, data_study_program):
         step = 0
         target, params = data_study_program[step]
         exercise = params2basename(parse_params(params))
-        view.render_idstep_404(step, exercise)
+        view.render_idstep_not_found(step, params)
         return step, target, params, exercise
     for step, [target, params] in enumerate(data_study_program):
         exercise = params2basename(parse_params(params))
         where = {'exercise':exercise,'is_exam':1,'is_passed':1}
         df_passed_exams = pdo.filter(df_records4user, where=where, allow_empty=True, allow_many=True)
         if df_passed_exams[df_passed_exams['time_seconds'] <= target2seconds(target)].empty:
-            view.render_idstep_found(step, exercise)
+            view.render_idstep_not_passed(step, params)
             return step, target, params, exercise
-        view.render_idstep_passed(step, exercise)
+        view.render_idstep_passed(step, params)
     view.disp_idstep_unknown()
     exit(0)
 # idmode
@@ -120,7 +119,7 @@ def idmode(df_records4user, uname, exercise, target, trainings_passed, exams_fai
     mode = 'training'
     where = {'exercise':exercise,'is_exam':0,'is_passed':1}
     df_passed_trainings = pdo.filter(df_records4user, where=where, allow_empty=True, allow_many=True)
-    view.render_idmode_start()
+    view.disp_idmode_start()
     if df_passed_trainings.empty:
         view.render_idmode_training('404')
         return mode

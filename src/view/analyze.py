@@ -8,8 +8,8 @@ from src.view._view import View
 import src.helpers.colors as c
 
 class ViewAnalyze(View):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, w_user):
+        super().__init__(w_user)
     # tables
     def upd_decim(self, data_digits):
         self.decim = self.dec_row_tables(data_digits)
@@ -18,16 +18,15 @@ class ViewAnalyze(View):
     def upd_total(self, data_total):
         self.total = self.dec_digit_table(data_total, title='TOTAL')
     def dec_row_tables(self, data_digits):
-        padding, lensep, w_table = [3,0,0,0], 2, 29
+        padding, wsep, w_table = [3,0,0,1], 2, 29
         tables = [self.dec_digit_table(data, digit) for digit,data in data_digits.items()]
-        rows = self.chunk_list(tables, (self.w - 2*padding[0]) // (w_table+lensep))
+        tables4row = self.chunk_list(tables, (self.w - 2*padding[0]) // (w_table+wsep))
         render = ''
-        render, i, len_rows = '', 1, len(rows)
-        for row in rows:
-            render += self.padding(self.merge(*row, sep=' '*lensep), padding)
-            if i != len_rows: render += '\n'
-            i += 1
-        return render.strip('\n') or ''
+        for table4row in tables4row:
+            row = self.merge(*table4row, sep=' '*wsep)
+            if row:
+                render += self.padding(row, padding) + '\n'
+        return render.strip('\n')
     def chunk_list(self, lst, chunk_size):
         return [lst[i:i + chunk_size] for i in range(0, len(lst), chunk_size)]
     def dec_digit_table(self, data, title):
@@ -108,8 +107,8 @@ class ViewAnalyze(View):
 
     # header/totalinfo
     def upd_header(self):
-        w_tables = max(map(lambda s: s.find('\n'), [self.decim, self.integ, self.total]))
-        self.header = self.padding(c.center('[x]COMBINATION DENSITY', w_tables), [3,1,0,0])
+        w = max(map(lambda s:s.find('\n'), [self.decim, self.integ, self.total]))
+        self.header = self.padding(c.center('[x]COMBINATION DENSITY', w-2), [3,1,0,1])
     def upd_totalinfo(self):
         self.totalinfo = self.padding(
             self.merge(self.total, '\n\n'+self.info, sep=' '*2),

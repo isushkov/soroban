@@ -43,6 +43,7 @@ def do_math(x, operand, y, rnd=None):
         '/': lambda x, y: x / y
     }
     return tonum(map_operations[operand](x,y), rnd)
+# TODO: fix setrecursionlimit
 def safe_eval(sequence, rnd=2):
     e = c.z('[r]ERROR:[c]')
     n = c.z('[y]NOTE:[c]')

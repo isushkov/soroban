@@ -11,10 +11,10 @@ from src.view.analyze import ViewAnalyze
 import src.helpers.fo as fo
 import src.helpers.colors as c
 
-view = ViewAnalyze()
+cnf = Config()
+view = ViewAnalyze(cnf.w)
 def analyze(path):
     view.render_title(f'[y]ANALYZE {path}')
-    cnf = Config()
     # exercise
     sequence, total_provided = fo.txt2str(path).split('=')
     sequence = s.validate_sequence(sequence, 'analyze sequence', exit_policy=2)

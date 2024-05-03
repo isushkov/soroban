@@ -1,8 +1,8 @@
-render:
-  study
-  run
-    delta_time
-    render line
+tests
+  create:
+    check 3seq-random
+    note if cover range 1-3
+
 todo:
   oop:
     params to object
@@ -11,10 +11,6 @@ todo:
   redo params + redo progressions:
     "<first_sequence>,<sequence>,<sequence>,..."
     decimal.precision -> range.procision
-  tests
-    create:
-      check 3seq-random
-      note if cover range 1-3
   upd readme
 
 backlog:

@@ -1,5 +1,6 @@
 class Singleton:
-    _instance, _initialized = None, False
+    _instance = None
+    _initialized = False
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(Storage, cls).__new__(cls)
@@ -8,6 +9,4 @@ class Singleton:
     def __init__(self):
         if self._initialized:
             return
-        self._initialized = True
-        # code..
         self.hi = 'hi'
