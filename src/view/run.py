@@ -22,8 +22,9 @@ class ViewRun(View):
         self.sep = '[x]│'
         self.wtab = c.ln(self.tab)
         self.wsep = c.ln(self.sep)
-        self.ft_empty = '[x]--:--.--'
-        self.dt_empty = '[x] -:--.--'
+        # self.ft_empty = '[x]--:--.--'
+        self.ft_empty = '[x]__:__.__'
+        self.dt_empty = '[x] _:__.__'
         self.mode = None # init_params
         self.t_goal = None # init_params
         self.t_usr = None # upd_acc
@@ -43,7 +44,7 @@ class ViewRun(View):
         self.acc_result = '[x]Result'
         self.acc_timing = None # upd_top
         self.acc_t_goal = None # upd_top (ft_goal)
-        self.acc_t_now = '[c]00:00:00'
+        self.acc_t_now = '[x]00:00:00'
         self.acc_t_usr = None # upd_top (ft_usr)
         self.acc_t_oth = None # upd_top (ft_oth)
         # stage
@@ -66,7 +67,7 @@ class ViewRun(View):
     # init
     def init_params(self, mode, goal, uname):
         self.mode = mode
-        self.t_goal = s.tonum(goal)*60
+        self.t_goal = goal
         self.head_t_usr = '[x]t.'+uname
     def init_ws(self, sequence, num_per_stage, pls_show):
         operations = sequence.split()
@@ -80,11 +81,6 @@ class ViewRun(View):
                              - self.wtab - self.w_start - self.wsep
                              - self.w_result - self.wsep
                              - self.w_timing)
-        # print(self.w_start*'s')
-        # print(self.w_operations*'o')
-        # print(self.w_result*'r')
-        # print(self.w_timing*'t')
-
     # dynamic
     def upd_ready(self, start_number):
         color = '[r]' if self.mode == 'exam' else '[g]'
@@ -121,9 +117,9 @@ class ViewRun(View):
         # timing.goal
         k,color = ('passed','[y]') if is_passed else ('repeat','[x]')
         self.acc_t_goal = (color + self.dec_t2ft(self.t_goal)) if self.t_goal else ''
-        self.acc_t_now  = '[c]00:00:00'
-        self.acc_t_usr  = '[x]'+ self.dec_t2ft(float(timing[k]['usr']))
-        self.acc_t_oth  = '[x]'+ self.dec_t2ft(float(timing[k]['oth']))
+        # self.acc_t_now = self.acc_t_now
+        self.acc_t_usr  = '[x]'+ self.dec_t2ft(timing[k]['usr'])
+        self.acc_t_oth  = '[x]'+ self.dec_t2ft(timing[k]['oth'])
         self.acc_timing = self.dec_top_timing(self.acc_t_goal, self.acc_t_now, self.acc_t_usr, self.acc_t_oth)
         # acc
         self.acc = self.join([self.acc_start, self.acc_operations, self.acc_result, self.acc_timing], char='')
@@ -136,22 +132,22 @@ class ViewRun(View):
     # stage
     def upd_stage_start(self, stage_number, user_errors):
         user_errors += 1
-        user_errors = '' if user_errors == 1 else f" [r]x{user_errors if user_errors < 10 else '*'}"
+        user_errors = '' if user_errors == 1 else f"[r]x{user_errors if user_errors < 10 else '9'}"
         stage_number = min(stage_number, 9) if stage_number < 10 else 'X'
-        self.stage_start = c.ljust(f'[x]Stage-{stage_number}{user_errors}', self.w_start) + self.sep
+        self.stage_start = self.tab + c.ljust(f'[x]Stage-{stage_number}{user_errors}', self.w_start) + self.sep
     def upd_stage_operation(self, operand, pls_show, number):
         operand = '' if (operand == '+' and not pls_show) else operand
         self.stage_operation = c.rjust(f'[c]{operand}{number}', self.w_operation)
         self.stage_operations += self.stage_operation
-    def upd_stage_result(self, total, color):
+    def upd_stage_result(self, total):
         self.stage_operations_pfx = ' '*(self.w_operations - c.ln(self.stage_operations)) + self.sep
-        self.disp_stage_operations_pfx(oneline=True) # justify operations
-        self.stage_result = c.ljust(f'[{color}]={s.tostr(total)}', self.w_result) + self.sep
-        return -len(self.stage_result)
-    def upd_stage_result_ok(self, total, color):
-        self.upd_stage_result(total, color)
-        self.stage_result_ok = self.stage_result
+        self.disp_stage_operations_pfx(end='', flush=True) # justify operations
+        self.stage_result = '[c]'+c.ljust(s.tostr(total), self.w_result) + self.sep
+        return -c.ln(self.stage_result)
+    def upd_stage_result_ok(self, total):
+        self.stage_result_ok = '[g]' + self.stage_result
     def upd_stage_timing(self, is_passed, timing, start_time, now):
+        self.t_now = now - start_time
         # goal - dt
         if self.t_goal:
             if is_passed:
@@ -166,19 +162,21 @@ class ViewRun(View):
         self.ft_now = self.dec_t2ft(self.t_now) # ft, not dt
         self.stage_t_now = c.ljust('[c]'+self.ft_now, self.wt) # ft, not dt
         # usr/oth - dt
-        k = 'g','passed' if is_passed else 'repeat'
+        k = 'passed' if is_passed else 'repeat'
         self.t_usr = float(timing[k]['usr'])
         self.t_oth = float(timing[k]['oth'])
         self.dt_usr = self.dec_t2dt(self.t_usr - self.t_now)
         self.dt_oth = self.dec_t2dt(self.t_oth - self.t_now)
-        self.stage_t_usr = c.ljust(self.dt_usr, self.wt)
-        self.stage_t_oth = c.ljust(self.dt_oth, self.wt)
+        self.stage_t_usr = c.rjust(self.dt_usr, self.wt)
+        self.stage_t_oth = c.rjust(self.dt_oth, self.wt)
         # render
         self.stage_timing = self.stage_t_goal + self.sep.join([
             self.stage_t_now, self.stage_t_usr, self.stage_t_oth,
         ])
-    def dec_t2ft(self, seconds_total):
-        seconds_total = abs(seconds_total)
+    def dec_t2ft(self, timing_time):
+        if not timing_time:
+            return self.ft_empty
+        seconds_total = abs(float(timing_time))
         max_seconds = 99 * 60 + 99.99
         if seconds_total >= max_seconds:
             return '99:59.99'
@@ -200,7 +198,7 @@ class ViewRun(View):
             minutes = int(abs_seconds // 60)
             seconds = abs_seconds % 60
             render = f'{sign}{minutes}:{seconds:.2f}'
-        color = ('[g]' if seconds_total < 0 else '[r]') if color else ''
+        color = ('[g]' if seconds_total >= 0 else '[r]') if color else ''
         return  color + render
 
     # finish

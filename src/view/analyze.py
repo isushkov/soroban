@@ -112,5 +112,5 @@ class ViewAnalyze(View):
     def upd_totalinfo(self):
         self.totalinfo = self.padding(
             self.merge(self.total, '\n\n'+self.info, sep=' '*2),
-            [3,0,0,1]
+            [3,1,0,1]
         )

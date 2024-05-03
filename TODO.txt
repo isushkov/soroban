@@ -1,4 +1,41 @@
-tests
+tests:
+  stage:
+    yes-no
+      passed
+      repeat
+    input
+      passed
+      repeat
+    min num_per_stage
+      yes-no
+        passed
+        repeat
+      input
+        passed
+        repeat
+    max num_per_stage
+      yes-no
+        passed
+        repeat
+      input
+        passed
+        repeat
+  run:
+    yes-no
+      passed
+      repeat
+      change num_per_stage
+        passed
+        repeat
+    input
+      passed
+      repeat
+      change num_per_stage
+        passed
+        repeat
+study: program to csv + comment
+
+tests-script:
   create:
     check 3seq-random
     note if cover range 1-3

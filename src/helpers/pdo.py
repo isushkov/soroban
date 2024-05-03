@@ -4,7 +4,7 @@ import src.helpers.colors as c
 # fs
 def load(csvfile, columns=False, allow_empty=False):
     try:
-        df = pd.read_csv(csvfile)
+        df = pd.read_csv(csvfile, sep=',', quotechar='"')
         df = df.rename(columns=lambda x: x.strip())
         df = df.apply(lambda col: col.apply(lambda x: x.strip() if isinstance(x, str) else x))
         df.set_index('id', inplace=True)
@@ -12,7 +12,7 @@ def load(csvfile, columns=False, allow_empty=False):
         if columns:
             df = pd.DataFrame(columns=columns).set_index('id')
         if not allow_empty:
-            raise FileNotFoundError(c.z(f'[r]ERROR:[c] csvfile not found - {csvfile}'))
+            raise FileNotFoundError(c.z(f'[r]ERROR:[c] csv-file not found: {csvfile}'))
     return df
 def save(df, csvfile):
     df = df.reset_index().rename(columns={'index': 'id'})

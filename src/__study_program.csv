@@ -1,0 +1,16 @@
+id,goal,"params",comment
+0,04:00,"s0 c+,1-9,100",Starting with basics: addition of single-digit numbers covering all combinations.
+1,04:00,"s500 c-,1-9,100",Continuing with basics: now subtraction.
+2,08:00,"s0 c+,1-9,100:<",Great. You now know the basics! Let's consolidate the skills.
+3,08:00,"s500 c+-,1-9,200",Speed check: basic operations.
+4,03:00,"s500 r+-,1-9,100",Practicing with real-life numbers.
+5,04:00,"s0 c+,1-99,100",Moving on to addition of two-digit numbers.
+6,04:00,"s500 c-,1-99,100",Now subtraction with two-digit numbers.
+7,08:00,"s0 c+,1-99,100:<",Consolidating material with two-digit numbers.
+8,08:00,"s500 c+-,1-99,200",Speed exercise with two-digit numbers.
+9,03:00,"s500 r+-,1-99,100",Real-life conditions: two-digit numbers.
+10,05:00,"s0 c+,1-99,100",Moving on to addition of three-digit numbers.
+11,05:00,"s5000 c-,1-99,100",Subtraction of three-digit numbers.
+12,10:00,"s0 c+,1-99,100:<",Consolidating skills with three-digit numbers.
+13,10:00,"s5000 c+-,1-99,200",Speed exercise with three-digit and two-digit numbers.
+14,03:00,"s5000 r+-,1-9,100",Real-life conditions: three-digit numbers.

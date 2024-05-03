@@ -1,0 +1,20 @@
+# basics_mental_x-x
+# basics_mental_xx-xx
+# basics_mental_xxx-xxx
+#
+# advanced(.n)_abacus_x-x
+# advanced(.n)_abacus_xx-xx
+# advanced(.n)_abacus_xxx-xxx
+# advanced(.n)_mental_x-x
+# advanced(.n)_mental_xx-xx
+# advanced(.n)_mental_xxx-xxx
+#
+# extra(*/)_abacus_x-x
+# extra(*/)_abacus_xx-xx
+# extra(*/)_abacus_xxx-xxx
+# extra(*/)_mental_x-x
+# extra(*/)_mental_xx-xx
+# extra(*/)_mental_xxx-xxx
+#
+# magic(???)_abacus
+# magic(???)_mental

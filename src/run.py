@@ -102,23 +102,22 @@ def run_stage(mode, stage_number, total, stage_ops, check_method, is_passed,
               is_restart_stage, is_last_stage, user_errors, timing, start_time):
     # stage_start
     if mode == 'training':
-        view.render_stage_start(stage_number, user_errors, oneline=True)
+        view.render_stage_start(stage_number, user_errors, end='', flush=True)
         say_stage_start(stage_number, total, is_restart_stage)
     # operations
     run_operations(stage_ops)
     # answer
+    total_bac = total
     total = total + s.safe_eval(' '.join(stage_ops))
     if check_method == 'yes-no':
-        x_curs_shift = view.render_stage_result(total, color='c', oneline=True)
-        print(x_curs_shift)
-        exit()
+        x_curs_shift = view.render_stage_result(total)
         say_text('answer' if is_last_stage else 'stage-result', cfg.res_ann_spd)
         say_number(total, cfg.res_num_spd)
         view.render_yesno(is_last_stage)
         answer = ask_yesno()
         tui.clear_lines(3)
     else:
-        view.render_input(is_last_stage, oneline=True)
+        view.render_input(is_last_stage, end='', flush=True)
         sound = 'enter-answer' if is_last_stage else 'enter-stage-result'
         say_text(sound, cfg.res_entry_spd)
         answer = True if ask_input() == total else False
@@ -129,15 +128,15 @@ def run_stage(mode, stage_number, total, stage_ops, check_method, is_passed,
         is_passed = False
         say_beep('wrong', cfg.res_wrong_spd)
         tui.clear_lines(1)
-        run_stage(mode, stage_number, total, stage_ops, check_method, is_passed,
+        return run_stage(mode, stage_number, total_bac, stage_ops, check_method, is_passed,
                   is_restart_stage, is_last_stage, user_errors, timing, start_time)
     # result.ok
     now = round(time.time(), 2)
     # rewrite result
     tui.cursor_shift(x=x_curs_shift)
     tui.clear('end')
-    view.render_stage_result_ok(total, color='g', oneline=True)
-    view.render_stage_timing(is_passed, timing, start_time, now, oneline=True)
+    view.render_stage_result_ok(total, end='', flush=True)
+    view.render_stage_timing(is_passed, timing, start_time, now)
     return is_passed
 
 # stage.start
@@ -159,7 +158,7 @@ def say_stage_start(stage_number, start_number, is_restart_stage):
 def run_operations(stage_ops):
     for operation in stage_ops:
         operand, number = s.split_operation(operation)
-        view.render_stage_operation(operand, cfg.pls_show, number, oneline=True)
+        view.render_stage_operation(operand, cfg.pls_show, number, end='', flush=True)
         speed_operand = cfg.pls_spd if operand == '+' else cfg.num_spd
         say_text(operand, speed_operand)
         say_number(number, cfg.num_spd)

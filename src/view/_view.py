@@ -32,29 +32,32 @@ class View():
             if meth_pfx in ['disp', 'render']:
                 def method(*args, **kwargs):
                     if meth_pfx == 'render': return self._render(attr_sfx, *args, **kwargs)
-                    if meth_pfx == 'disp':   return self._disp(attr_sfx, oneline=False)
+                    if meth_pfx == 'disp':   return self._disp(attr_sfx, *args, **kwargs)
                 return method
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
     # render/upd/disp
-    def _render(self, attr, *args, oneline=False, **kwargs):
+    def _render(self, attr, *args, **kwargs):
+        # Extract 'end' and 'flush' from kwargs with defaults
+        end = kwargs.pop('end', '\n')
+        flush = kwargs.pop('flush', False)
         # run upd
         upd_meth = getattr(self, 'upd_'+attr)
-        upd_meth(*args, **kwargs)
+        result_upd = upd_meth(*args, **kwargs)
         # run disp
-        self._disp(attr, oneline=oneline)
-    def _disp(self, attr, oneline=False):
+        result_disp = self._disp(attr, end=end, flush=flush)
+        return result_upd or result_disp
+    def _disp(self, attr, end='\n', flush=False):
         if not getattr(self, attr):
             return
-        if oneline:
-            print(c.z(getattr(self, attr)), end='', flush=True)
-        else:
-            print(c.z(getattr(self, attr)))
+        content = c.z(getattr(self, attr))
+        print(content, end=end, flush=flush)
+        return content
 
     # upds
     def upd_title(self, title, char='=', color='x'):
         self.title = c.ljust(f'[{color}]{char*9} {title} ', self.w, char, color)
-    def upd_sepline(self, char='.', color='x'):
-        self.sepline = f'[{color}]' + char * self.w + '\n'
+    def upd_sepline(self, char='.', color='x', end=''):
+        self.sepline = f'[{color}]' + char * self.w + end
     # decorate
     def join(self, lst, char='\n'):
         return char.join(s for s in lst if s)
