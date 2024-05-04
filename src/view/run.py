@@ -205,7 +205,7 @@ class ViewRun(View):
         # cache
         self.stage += self.stage_timing
         self.donestages = '\n'.join([self.donestages, self.stage]).strip()
-    def dec_t2ft(self, seconds_total, v_color='c', z_color='x'):
+    def dec_t2ft(self, seconds_total, v_color='c', z_color='x', colorize=True):
         if not seconds_total:
             return '[x]' + self.t_empty
         abs_seconds = abs(float(seconds_total))
@@ -219,6 +219,8 @@ class ViewRun(View):
             seconds = min(seconds, 59.99)
         ft = f'{minutes:02d}:{seconds:05.2f}'
         # colorize
+        if not colorize:
+            return ft
         v_color, z_color = '['+v_color+']', '['+z_color+']'
         match = re.search('[1-9]\d*', ft)
         if match:

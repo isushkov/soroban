@@ -208,7 +208,7 @@ def add_record(df_records, uname, exercise_name, mode, is_passed, end_time):
         'exercise': exercise_name,
         'is_exam': 1 if mode == 'exam' else 0,
         'is_passed': 1 if is_passed else 0,
-        'time': view.dec_ft(end_time, pls=False),
+        'time': view.dec_t2ft(end_time, colorize=False),
         'time_seconds': end_time,
         'date': datetime.fromtimestamp(time.time()).strftime('%d.%m.%y')
     })
