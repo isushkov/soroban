@@ -3,6 +3,7 @@ import termios
 import tty
 import atexit
 import signal
+from src.helpers import colors as c
 
 class Tui:
     def __init__(self):
@@ -62,6 +63,7 @@ class Tui:
         sys.stdout.flush()
 
     # clear
+    # TODO: redo to magic
     def clear(self, mode):
         modes = {'all': '2J', 'end': 'K', 'start': '1K', 'line': '2K', 'down': 'J', 'up': '1J'}
         char = modes.get(mode)
@@ -78,5 +80,25 @@ class Tui:
         old_settings = termios.tcgetattr(fd)
         tty.setraw(sys.stdin.fileno())
         key = sys.stdin.read(1)
+        if key == '\x03': # ctrl+C back
+            c.p('[r]Exit.')
+            exit(130)
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return key
+
+    # menus
+    def yesno(self):
+        key = self.getch()
+        if key in [' ', '\r', '\n']:
+            return True
+        elif key == '\x1b':
+            c.p('[g]Exit.')
+            exit(130)
+        else:
+            return False
+    def input(self):
+        self.echo()
+        answer = input()
+        self.noecho()
+        self.clear_lines(1)
+        return answer

@@ -19,7 +19,7 @@ class Config:
         self.data = fo.yml2dict('config.yml')
         self.lang = self.get_lang()
         self.uname = self.get_uname()
-        self.w = self.set_int('common.view_width', allow_zero=True, default=80)
+        self.w = self.set_int('common.view_width', allow_zero=True, default=120)
         self.spoilers = self.set_bool('common.analyze_spoilers', default=False)
         self.t2e = self.set_int('common.study_program.passes_for_exam', default=3)
         self.e2t = self.set_int('common.study_program.fails_for_retake', default=0, allow_zero=True)
@@ -36,7 +36,7 @@ class Config:
         self.res_entry_spd = self.set_percent(f'{sfx}.result_entry_spdpct', default=100)
         # training
         sfx = f'training.during_exercise'
-        self.num_per_stage = self.set_int('training.numbers_per_stage', default=10)
+        self.ops_per_stage = self.set_int('training.numbers_per_stage', default=10)
         self.check_method = self.get_check_method()
         self.start_ann_spd = self.set_percent(f'{sfx}.startstage_announce_spdpct', 100)
         self.start_sig_spd = self.set_percent(f'{sfx}.startstage_signal_spdpct', 100)
@@ -65,7 +65,8 @@ class Config:
         for key in path.split('.'):
             if not key in value:
                 value = default if skip_errors else self.e404(path, default)
-            value = value[key]
+            else:
+                value = value[key]
         return value
     # sets
     def set_percent(self, path, default):

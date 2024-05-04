@@ -13,12 +13,20 @@ class View():
         self.w = self.upd_w(w_settings)
         self.tab = ' '
         self.sep = ' '
+        self.tstyle_default = 'solid'
+        self.tstyles = {
+            'classic': '-|+++++++++',
+            'solid':   '─│┌┐└┘├┬┤┴┼',
+            'round':   '─│╭╮╰╯├┬┤┴┼',
+            'double':  '═║╔╗╚╝╠╦╣╩╬'}
+        self.set_tstyle()
     def upd_w(self, w_settings=0):
         if not w_settings:
             return self.w_term
         if w_settings > self.w_term:
             return self.w_term
         return w_settings
+
     # magic: render/upd/disp/calls (exec if meth dosnt exist)
     def __getattr__(self, name):
         # calls
@@ -44,14 +52,12 @@ class View():
         upd_meth = getattr(self, 'upd_'+attr)
         result_upd = upd_meth(*args, **kwargs)
         # run disp
-        result_disp = self._disp(attr, end=end, flush=flush)
-        return result_upd or result_disp
+        self._disp(attr, end=end, flush=flush)
+        return result_upd
     def _disp(self, attr, end='\n', flush=False):
         if not getattr(self, attr):
             return
-        content = c.z(getattr(self, attr))
-        print(content, end=end, flush=flush)
-        return content
+        print(c.z(getattr(self, attr)), end=end, flush=flush)
 
     # upds
     def upd_title(self, title, char='=', color='x'):
@@ -59,37 +65,35 @@ class View():
     def upd_sepline(self, char='.', color='x', end=''):
         self.sepline = f'[{color}]' + char * self.w + end
     # decorate
-    def join(self, lst, char='\n'):
-        return char.join(s for s in lst if s)
+    # def join(self, lst, char='\n'):
+    #     return char.join(s.strip() for s in lst if s)
+    def join(self, *args, char='\n'):
+        return char.join(s.strip() for s in args if s)
     def padding(self, text, padding, char=' '):
         left, top, right, bottom = padding
         lines = text.splitlines()
         padded_lines = [char * left + line + char * right for line in lines]
         top_padding = [char * (left + right + max(len(c.remove_colors(line)) for line in lines))] * top
         bottom_padding = [char * (left + right + max(len(c.remove_colors(line)) for line in lines))] * bottom
-        return self.join(top_padding + padded_lines + bottom_padding)
-    def border(self, text, style=False, style_custom=False, color='', title=None):
+        return '\n'.join(top_padding + padded_lines + bottom_padding)
+    def border(self, text, tstyle=False, color='', title=None):
         text = c.z(text)
         color = c.char2color(color or 'c')
-        if style == 'custom':
-            h,v,tl,tr,bl,br = style_custom
-        else:
-            styles = {'classic': '-|++++', 'solid': '─│┌┐└┘', 'round': '─│╭╮╰╯', 'double': '═║╔╗╚╝'}
-            h,v,tl,tr,bl,br = styles['solid'] if not style else styles[style]
+        h,v,tl,tr,bl,br,_,_,_,_,_ = self.tstyles[self.tstyle_default] if not tstyle else self.tstyles[tstyle]
         lines = text.splitlines()
         max_length = max(len(c.remove_colors(line)) for line in lines)
         max_length = max(max_length, len(title) if title else 0) # убедиться, что место есть для заголовка
         top_border = color + tl + (h * max_length) + tr
         bottom_border = color + bl + (h * max_length) + br
         padded_lines = [color + v + '[c]' + line + ' ' * (max_length - len(c.remove_colors(line))) + color + v for line in lines]
-        res = self.join([top_border] + padded_lines + [bottom_border])
+        res = self.join(top_border, padded_lines, bottom_border)
         if title:
             title_text = title.center(max_length)
             top_border = color + tl + (h * max_length) + tr
             title_line = color + v + title_text + color + v
         else:
             top_border = color + tl + (h * max_length) + tr
-        res = self.join([top_border] + ([title_line] if title else []) + padded_lines + [bottom_border])
+        res = self.join(top_border, title_line if title else '', padded_lines, bottom_border)
         if color:
             res = c.z(res)
         return res
@@ -111,7 +115,7 @@ class View():
                 if index < len(lines_lists) - 1:
                     merged_line += sep
             merged_lines.append(merged_line.rstrip())
-        return self.join(merged_lines)
+        return self.join(*merged_lines)
     def wrap(self, text, width):
         text = c.z(text)
         bw_text = c.remove_colors(text)
@@ -137,7 +141,7 @@ class View():
                 i += 1
         if line: # добавляем последнюю строку, если она не пуста
             lines.append(line)
-        return self.join(lines)
+        return self.join(*lines)
     # TODO: дата и время, валюты, проценты - совсем уже другая история
     color2cleantokens = {
         'g': ['yes', 'true', 'ok', 'success', 'approved', 'positive', 'correct', 'valid', 'affirmative', 'confirmed'],
@@ -184,3 +188,38 @@ class View():
                     return color
             return 'c'
         raise ValueError(c.z(f'[r]ERROR:dtrmc()[c]: unknown type {type(val)}: {val}'))
+
+    # tables
+    def set_tstyle(self, tstyle=False):
+        if not tstyle: tstyle = self.tstyle_default
+        (self.h, self.v,
+         self.tl, self.tr, self.bl, self.br,
+         self.lx, self.tx, self.rx, self.bx, self.cx) = self.tstyles[tstyle]
+    def h_table(self, column_lengths, color='x'):
+        return self.dec_table_line(column_lengths, color, left=self.tl, center=self.tx, right=self.tr, filler=self.h)
+    def t_table(self, titles, edges=' ', color='x'):
+        return self.dec_table_text(titles,        # titles = {
+                                   filler=self.h, #   title: [justify-direction, col-length]
+                                   left=self.v,   #   title: [justify-direction, col-length]
+                                   center=self.v, # }
+                                   right=self.v,
+                                   edges=edges)   # края заголовков
+    def th_table(self, titles, color='x', edges=' '):
+        return self.dec_table_text(titles, color, edges, filler=self.h, left=self.tl, center=self.tx, right=self.tr)
+    def s_table(self, column_lengths, color='x'):
+        return self.dec_table_line(column_lengths, color, left=self.lx, center=self.cx, right=self.rx, filler=self.h)
+    def b_table(self, column_lengths, color='x'):
+        return self.dec_table_line(column_lengths, color, left=self.bl, center=self.bx, right=self.br, filler=self.h)
+    # dec_tables
+    def dec_table_text(self, texts, color, edges, filler='-', left='+', center='+', right='+'):
+        cells = []
+        for text, (justify, length) in texts.items():
+            cells.append(self.dec_table_text_justify(text, justify, length, color, edges, filler))
+        return '['+color+']' + left + center.join(cells) + right
+    def dec_table_text_justify(self, text, justify, length, color, edges, filler='-'):
+        if justify in ['c','center']: return c.center(edges + text + edges, length, char=filler, color=color)
+        if justify in ['l','left']:   return c.ljust(edges + text, length, char=filler, color=color)
+        if justify in ['r','right']:  return c.rjust(text + edges, length, char=filler, color=color)
+        raise Exception(c.z(f'[r]ERROR: unknown justify "{justify}": can be c/center, l/left, r/right.'))
+    def dec_table_line(self, lengths, color, left='+', center='+', right='+', filler='-'):
+        return '['+color+']' + left + center.join([filler * length for length in lengths]) + right

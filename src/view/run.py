@@ -1,4 +1,5 @@
 import time
+import re
 from textwrap import dedent
 from pprint import pprint
 # src
@@ -18,33 +19,31 @@ class ViewRun(View):
         # dt    : +0:00:00
         # loc_dt: +0:00:00 +color +justify
         # self.sep = '[x]|'
-        self.tab = '[b]│'
+        self.tab = '[x]│'
         self.sep = '[x]│'
         self.wtab = c.ln(self.tab)
         self.wsep = c.ln(self.sep)
-        # self.ft_empty = '[x]--:--.--'
-        self.ft_empty = '[x]__:__.__'
-        self.dt_empty = '[x] _:__.__'
+        self.t_empty = '[x]--:--.--'
         self.mode = None # init_params
         self.t_goal = None # init_params
         self.t_usr = None # upd_acc
         self.t_oth = None # upd_acc
-        self.t_now = None # upd_stage
+        self.t_spent = None # upd_stage
         # top.head
         self.head_start = ''
-        self.head_status = '[x]Status: [g]PASSING'
+        self.head_status = '[x]Status: [y]TRAINING'
         self.head_timing = None # upd_top
         self.head_t_goal = '[x]t.Goal'
-        self.head_t_now = '[x]t.Now'
+        self.head_t_spent = '[x]t.Now'
         self.head_t_usr = None # init_params (uname)
-        self.head_t_oth = '[x]t.Others'
+        self.head_t_oth = '[x]t.Oth'
         # top.acc
-        self.acc_start = ''
-        self.acc_operations = '[x]Operations'
+        self.acc_start = '[x]┌─'
+        self.acc_operations = '[x] Operations'
         self.acc_result = '[x]Result'
         self.acc_timing = None # upd_top
         self.acc_t_goal = None # upd_top (ft_goal)
-        self.acc_t_now = '[x]00:00:00'
+        self.acc_t_spent = '[x]00:00:00'
         self.acc_t_usr = None # upd_top (ft_usr)
         self.acc_t_oth = None # upd_top (ft_oth)
         # stage
@@ -54,7 +53,7 @@ class ViewRun(View):
         self.stage_result = ''
         self.stage_timing = None # upd_stage_timing
         self.stage_t_goal = None # upd_stage_timing
-        self.stage_t_now = None # upd_stage_timing
+        self.stage_t_spent = None # upd_stage_timing
         self.stage_t_usr = None # upd_stage_timing
         self.stage_t_oth = None # upd_stage_timing
         # w
@@ -63,28 +62,32 @@ class ViewRun(View):
         self.w_operation = None # init_ws
         self.w_result = None # init_ws
         self.w_timing = None # init_ws
-        self.wt = len('__:__.__')
+        self.wt = c.ln(self.t_empty)
+        # cache
+        self.stage = None
+        self.donestages = ''
+        self.donestages_count = 0
     # init
-    def init_params(self, mode, goal, uname):
-        self.mode = mode
-        self.t_goal = goal
-        self.head_t_usr = '[x]t.'+uname
-    def init_ws(self, sequence, num_per_stage, pls_show):
+    def init_params(self, mode, goal, uname, sequence, ops_per_stage, pls_show):
         operations = sequence.split()
         start_number = operations.pop(0)
         total = s.safe_eval(sequence)
+        # common
+        self.mode = mode
+        self.t_goal = goal
+        self.head_t_usr = '[x]t.'+uname
+        # for delta time
+        self.operations_count = len(operations)
+        self.ops_per_stage = ops_per_stage
+        # calc width
         self.w_operation = len(max(operations, key=len)) + (1 if pls_show else 0)
-        # w_result: либо title / либо сумма
         self.w_result = max(len(self.acc_result), len(s.tostr(s.maxsum(start_number, operations))))
         self.w_timing = (self.wt + self.wsep) * (4 if self.t_goal else 3) + self.wtab
-        self.w_operations = (self.w
-                             - self.wtab - self.w_start - self.wsep
-                             - self.w_result - self.wsep
-                             - self.w_timing)
+        self.w_operations = (self.w -
+                             self.wtab - self.w_start -
+                             self.wsep - self.w_result -
+                             self.wsep - self.w_timing)
     # dynamic
-    def upd_ready(self, start_number):
-        color = '[r]' if self.mode == 'exam' else '[g]'
-        self.ready = c.z(f'{color}{self.mode.upper()}. [y]Get ready.[x] Start number:[c] {start_number}')
     def upd_input(self, is_last_stage):
         self.input = f"[y]Your {'answer' if is_last_stage else 'stage-res'} is: "
     def upd_yesno(self, is_last_stage):
@@ -95,111 +98,157 @@ class ViewRun(View):
         """).strip()
 
     # top
-    def upd_top(self, is_passed, timing):
+    def upd_top(self, timing):
+        is_passed = True if self.calls_top == 0 else False
         self.upd_head(is_passed)
-        # 0: init acc-row
-        # 1: switch acc-row to repetitions
-        if self.calls_upd_acc <= 1:
-            self.upd_acc(is_passed, timing)
-            self.calls_upd_acc += 1
-        self.top = self.join([self.head, self.acc], char='')
+        self.upd_acc(is_passed, timing)
+        self.top = '\n'.join([self.head, self.acc])
+        # cache
+        self.calls_top += 1
     def upd_head(self, is_passed):
-        self.head_start = self.tab + c.ljust(self.head_start, self.w_start) + self.sep
-        if not is_passed: self.head_status = '[x]Status: [r]REPETITION'
-        self.head_status = c.ljust(self.head_status, self.w_operations + self.wsep + self.w_result) + self.sep
-        self.head_timing = self.dec_top_timing(self.head_t_goal, self.head_t_now, self.head_t_usr, self.head_t_oth)
-        # head
-        self.head = self.join([self.head_start, self.head_status, self.head_timing], char='') + '\n'
+        self.head_start = c.ljust(self.head_start, self.w_start + self.wtab)
+        if is_passed:
+            color = '[r]' if self.mode == 'exam' else '[g]'
+            self.head_status = '[x]Status: ' + color + self.mode.upper()
+        else:
+            self.head_status = '[x]Status: REPETITION'
+        # self.head_status = c.ljust(self.head_status, self.w_operations + self.wsep + self.w_result)
+        # self.head_status = c.ljust(self.head_status, self.w_operations + self.wsep + self.w_result)
+        if not self.t_goal:
+            self.head_t_goal = ''
+        # self.head_timing = self.dec_top_timing(self.head_t_spent, self.head_t_goal, self.head_t_usr, self.head_t_oth)
+        # self.head = self.tab + self.sep.join([self.head_start,
+        #                                       self.head_status,
+        #                                       self.head_timing]) + self.tab
+        self.head = self.head_start + self.th_table({
+            ' ' + self.head_status  + ' ': ['left', self.w_operations],
+                                       '': ['center', self.w_result],
+            ' ' + self.head_t_spent + ' ': ['center', self.wt],
+            ' ' + self.head_t_goal  + ' ': ['center', self.wt],
+            ' ' + self.head_t_usr   + ' ': ['center', self.wt],
+            ' ' + self.head_t_oth   + ' ': ['center', self.wt]
+        }, edges='')
     def upd_acc(self, is_passed, timing):
-        self.acc_start = self.tab + c.ljust(self.acc_start, self.w_start) + self.sep
-        self.acc_operations = c.ljust(self.acc_operations, self.w_operations) + self.sep
-        self.acc_result = c.ljust(self.acc_result, self.w_result) + self.sep
-        # timing.goal
-        k,color = ('passed','[y]') if is_passed else ('repeat','[x]')
-        self.acc_t_goal = (color + self.dec_t2ft(self.t_goal)) if self.t_goal else ''
-        # self.acc_t_now = self.acc_t_now
-        self.acc_t_usr  = '[x]'+ self.dec_t2ft(timing[k]['usr'])
-        self.acc_t_oth  = '[x]'+ self.dec_t2ft(timing[k]['oth'])
-        self.acc_timing = self.dec_top_timing(self.acc_t_goal, self.acc_t_now, self.acc_t_usr, self.acc_t_oth)
-        # acc
-        self.acc = self.join([self.acc_start, self.acc_operations, self.acc_result, self.acc_timing], char='')
-    def dec_top_timing(self, goal, now, usr, oth):
+        self.acc_start = c.ljust(self.acc_start, self.w_start + self.wtab, char='─', color='x')
+        self.acc_operations = c.ljust(self.acc_operations, self.w_operations)
+        self.acc_result = c.center(self.acc_result, self.w_result)
+        k,color = ('passed','y') if is_passed else ('repeat','x')
+        self.acc_t_goal = self.dec_t2ft(self.t_goal, v_color=color) if self.t_goal else ''
+        self.acc_t_usr  = self.dec_t2ft(timing[k]['usr'], v_color='c')
+        self.acc_t_oth  = self.dec_t2ft(timing[k]['oth'], v_color='c')
+        self.acc_timing = self.dec_top_timing(self.acc_t_spent, self.acc_t_goal, self.acc_t_usr, self.acc_t_oth)
+        self.acc = self.sep.join([self.acc_start, self.acc_operations, self.acc_result, self.acc_timing]) + self.tab
+    def dec_top_timing(self, goal, spent, usr, oth):
         goal = c.center(goal, self.wt) + self.sep if goal else ''
-        now, usr = map(lambda x: c.center(x, self.wt) + self.sep, [now, usr])
-        oth = c.center(oth, self.wt) + self.tab
-        return goal + now + usr + oth
+        spent, usr = map(lambda x: c.center(x, self.wt) + self.sep, [spent, usr])
+        oth = c.center(oth, self.wt)
+        return goal + spent + usr + oth
 
     # stage
     def upd_stage_start(self, stage_number, user_errors):
         user_errors += 1
         user_errors = '' if user_errors == 1 else f"[r]x{user_errors if user_errors < 10 else '9'}"
         stage_number = min(stage_number, 9) if stage_number < 10 else 'X'
-        self.stage_start = self.tab + c.ljust(f'[x]Stage-{stage_number}{user_errors}', self.w_start) + self.sep
+        self.stage_start = self.tab + c.center(f'[x]Stage-{stage_number}{user_errors}', self.w_start) + self.sep
+        # cache
+        self.stage = self.stage_start
+        self.stage_operations = ''
+    def upd_stage_ready(self, start_number):
+        self.stage_ready = f'[x] Start-with: [c]{start_number} [y]<Any-key>[x] to start..'
+        # cache
+        self.calls_stage_ready += 1
     def upd_stage_operation(self, operand, pls_show, number):
         operand = '' if (operand == '+' and not pls_show) else operand
         self.stage_operation = c.rjust(f'[c]{operand}{number}', self.w_operation)
+        # cache
+        self.stage += self.stage_operation
         self.stage_operations += self.stage_operation
+    # stage result: yes-no - before answer
     def upd_stage_result(self, total):
         self.stage_operations_pfx = ' '*(self.w_operations - c.ln(self.stage_operations)) + self.sep
         self.disp_stage_operations_pfx(end='', flush=True) # justify operations
-        self.stage_result = '[c]'+c.ljust(s.tostr(total), self.w_result) + self.sep
-        return -c.ln(self.stage_result)
+        self.stage_result = '[c]'+c.center(s.tostr(total), self.w_result) + self.sep
+        # cache
+        self.stage += self.stage_operations_pfx
+    # stage result: yes-no - after correct answer
     def upd_stage_result_ok(self, total):
         self.stage_result_ok = '[g]' + self.stage_result
-    def upd_stage_timing(self, is_passed, timing, start_time, now):
-        self.t_now = now - start_time
-        # goal - dt
+        # cache
+        self.stage += self.stage_result_ok
+    def upd_stage_timing(self, t_spent, timing, is_passed, is_last_stage):
+        self.donestages_count += 1 # for delta time
+        self.t_spent = t_spent
+        # spent
+        self.ft_spent = self.dec_t2ft(self.t_spent, v_color='c') # ft, not dt
+        self.stage_t_spent = c.ljust(self.ft_spent, self.wt) + self.sep # ft, not dt
+        # goal. if study
         if self.t_goal:
+            # if no mistakes
             if is_passed:
-                self.dt_goal = self.dec_t2dt(self.t_goal - self.t_now)
-                self.stage_t_goal = c.ljust(self.dt_goal, self.wt) + self.sep
+                self.dt_goal = self.dec_t2dt(self.t_spent, self.t_goal, is_last_stage)
+                self.stage_t_goal = c.rjust(self.dt_goal, self.wt) + self.sep
             else:
-                self.stage_t_goal = c.ljust(self.dt_empty, self.wt) + self.sep
+                self.stage_t_goal = ' '*self.wt + self.sep
         else:
             self.stage_t_goal = ''
-        # now - ft
-        self.t_now = now - start_time
-        self.ft_now = self.dec_t2ft(self.t_now) # ft, not dt
-        self.stage_t_now = c.ljust('[c]'+self.ft_now, self.wt) # ft, not dt
-        # usr/oth - dt
+        # usr/oth
         k = 'passed' if is_passed else 'repeat'
         self.t_usr = float(timing[k]['usr'])
         self.t_oth = float(timing[k]['oth'])
-        self.dt_usr = self.dec_t2dt(self.t_usr - self.t_now)
-        self.dt_oth = self.dec_t2dt(self.t_oth - self.t_now)
-        self.stage_t_usr = c.rjust(self.dt_usr, self.wt)
-        self.stage_t_oth = c.rjust(self.dt_oth, self.wt)
+        self.dt_usr = self.dec_t2dt(self.t_spent, self.t_usr, is_last_stage)
+        self.dt_oth = self.dec_t2dt(self.t_spent, self.t_oth, is_last_stage)
+        self.stage_t_usr = c.rjust(self.dt_usr, self.wt) + self.sep
+        self.stage_t_oth = c.rjust(self.dt_oth, self.wt) + self.tab
         # render
-        self.stage_timing = self.stage_t_goal + self.sep.join([
-            self.stage_t_now, self.stage_t_usr, self.stage_t_oth,
-        ])
-    def dec_t2ft(self, timing_time):
-        if not timing_time:
-            return self.ft_empty
-        seconds_total = abs(float(timing_time))
+        self.stage_timing = (self.stage_t_spent + self.stage_t_goal +
+                             self.stage_t_usr   + self.stage_t_oth)
+        # cache
+        self.stage += self.stage_timing
+        self.donestages = '\n'.join([self.donestages, self.stage]).strip()
+    def dec_t2ft(self, seconds_total, v_color='c', z_color='x'):
+        if not seconds_total:
+            return '[x]' + self.t_empty
+        abs_seconds = abs(float(seconds_total))
         max_seconds = 99 * 60 + 99.99
-        if seconds_total >= max_seconds:
+        if abs_seconds >= max_seconds:
             return '99:59.99'
-        minutes = int(seconds_total // 60)
-        seconds = round(seconds_total % 60, 2)
+        minutes = int(abs_seconds // 60)
+        seconds = round(abs_seconds % 60, 2)
         if minutes >= 99:
             minutes = 99
             seconds = min(seconds, 59.99)
-        formatted_time = f'{minutes:02d}:{seconds:05.2f}'
-        return formatted_time
-    def dec_t2dt(self, seconds_total, color=True):
-        sign = '+' if seconds_total >= 0 else '-'
-        abs_seconds = abs(seconds_total)
-        if abs_seconds < 10:
-            render = f'{sign}{abs_seconds:.2f}'
-        elif abs_seconds < 60:
-            render = f'{sign}{abs_seconds:.2f}'
+        ft = f'{minutes:02d}:{seconds:05.2f}'
+        # colorize
+        v_color, z_color = '['+v_color+']', '['+z_color+']'
+        match = re.search('[1-9]\d*', ft)
+        if match:
+            zeros = ft[:match.start()]
+            values = ft[match.start():]
+            ft = z_color + zeros + v_color + values
         else:
-            minutes = int(abs_seconds // 60)
-            seconds = abs_seconds % 60
+            ft = v_color + ft
+        return ft
+    def dec_t2dt(self, spent, target, is_last_stage):
+        if not target:
+            return ' ' * self.wt
+        delta = self.calc_delta(spent, target, is_last_stage)
+        sign = '+' if delta >= 0 else '-'
+        abs_delta = abs(delta)
+        if abs_delta < 60:
+            render = f'{sign}{abs_delta:.2f}'
+        else:
+            minutes = int(abs_delta // 60)
+            seconds = abs_delta % 60
             render = f'{sign}{minutes}:{seconds:.2f}'
-        color = ('[g]' if seconds_total >= 0 else '[r]') if color else ''
-        return  color + render
+        return  ('[g]' if delta >= 0 else '[r]') + render
+    def calc_delta(self, spent, target, is_last_stage):
+        if not is_last_stage:
+            done_ops = self.donestages_count * self.ops_per_stage
+        else:
+            done_ops = self.operations_count - (self.operations_count % self.ops_per_stage)
+        time4stage = round((target / self.operations_count) * done_ops, 2)
+        delta = time4stage - spent
+        return delta
 
     # finish
     def upd_finish(self, is_passed, end_time):
@@ -207,7 +256,7 @@ class ViewRun(View):
             msg = '[g]Exam was passed!' if is_passed else '[r]The exam was not passed.'
         else:
             msg = '[g]Exercise was finished!'
-        self.finish = f'{msg}[c] Your time is: [y]{self.dec_t2ft(end_time, pls=False)}'
+        self.finish = self.padding(f"{msg}[x] Your time is: {self.dec_t2ft(end_time, v_color='g')}", [3,1,0,1])
     # leaderboard
     def upd_leaderboard(self, df, user_data):
         df_exam = df.loc[(df['is_exam'] == 1)]

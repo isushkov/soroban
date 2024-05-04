@@ -40,26 +40,26 @@ def remove_colors(text):
     return re.sub(r'\x1b\[[0-9;]*m', '', z(text))
 
 # align
-def ljust(text, width, fill_char=' ', fill_color='c'):
+def ljust(text, width, char=' ', color='c'):
     text_length = len(remove_colors(text))
     if text_length < width:
-        color = char2color(fill_color)
-        return text + color+(fill_char*(width - text_length))
+        color = char2color(color)
+        return text + color+(char*(width - text_length))
     return text
-def rjust(text, width, fill_char=' ', fill_color='c'):
+def rjust(text, width, char=' ', color='c'):
     text_length = len(remove_colors(text))
     if text_length < width:
-        color = char2color(fill_color)
-        return color+fill_char*(width - text_length) + text
+        color = char2color(color)
+        return color+char*(width - text_length) + text
     return text
-def edgesjust(text_left, text_right, width, fill_char=' ', fill_color=False):
-    color = char2color(fill_color)
+def edgesjust(text_left, text_right, width, char=' ', color=False):
+    color = char2color(color)
     len_center  = width - len(remove_colors(text_left)) - len(remove_colors(text_right))
-    return text_left + (color+len_center*fill_char) + text_right
-def center(text, width, fill_char=' ', fill_color='c'):
+    return text_left + (color+len_center*char) + text_right
+def center(text, width, char=' ', color='c'):
     text_length = len(remove_colors(text))
     total_padding = width - text_length
     padding_left = total_padding // 2
     padding_right = total_padding - padding_left
-    color = char2color(fill_color)
-    return (color+fill_char*padding_left) + text + (color+fill_char*padding_right)
+    color = char2color(color)
+    return (color+char*padding_left) + text + (color+char*padding_right)
