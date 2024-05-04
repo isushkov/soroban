@@ -15,6 +15,7 @@ cfg = Config()
 view = ViewCreate(cfg.w)
 def create(path, params):
     view.render_title('[y]CREATING')
+    view.status = ''
     prepare_fs()
     params = parse_params(params)
     sequence = create_sequence_start(params[0], params[1]) + '\n'

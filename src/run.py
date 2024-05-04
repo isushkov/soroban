@@ -33,7 +33,7 @@ def run(path, mode, uname, goal=False):
     total = s.safe_eval(sequence)
     # reocords
     records_columns = ['id', 'rank', 'user_name', 'exercise', 'is_exam', 'is_passed', 'time', 'time_seconds', 'date']
-    where = {'exercise': exercise_name, 'is_exam': '1' if mode == 'exam' else '0'}
+    where = {'exercise': exercise_name, 'is_exam': 1 if mode == 'exam' else 0}
     df_records = pdo.load('./src/__records.csv', columns=records_columns, allow_empty=True)
     df_run = pdo.filter(df_records, where=where, allow_empty=True, allow_many=True)
     timing = get_timing(df_run, uname, goal)
@@ -51,6 +51,7 @@ def run(path, mode, uname, goal=False):
     start_time, is_passed = run_stages(mode, start_number, operations, check_method, timing)
     end_time = round(round(time.time(), 2) - start_time, 2)
     # finish
+    view.render_bottom()
     view.render_finish(is_passed, end_time)
     say_beep('end-game-passed' if is_passed else 'end-game', cfg.signals_spd)
     # upd_records
@@ -95,7 +96,7 @@ def run_stage(mode, stage_number, total, stage_ops, check_method, is_passed,
     # start/ready
     if mode == 'training':
         view.render_stage_start(stage_number, user_errors, end='', flush=True)
-    if stage_number == 1:
+    if stage_number == 1 and not is_restart_stage:
         # say "get ready. start-number is N"
         view.render_stage_ready(total, end='', flush=False)
         say_text('get-ready', cfg.speech_spd)
@@ -105,7 +106,7 @@ def run_stage(mode, stage_number, total, stage_ops, check_method, is_passed,
         # say "stage_number is N" (+"continue-with N" if needed)
         say_stage_start(stage_number, total, is_restart_stage)
     # operations
-    if stage_number == 1:
+    if stage_number == 1 and not is_restart_stage:
         input()
         # re-render row
         tui.clear('start')
@@ -140,7 +141,7 @@ def run_stage(mode, stage_number, total, stage_ops, check_method, is_passed,
         tui.clear_lines(1) # clear current stage row
         if view.calls_top == 1: # upd top when fail only once
             tui.clear_lines(view.donestages_count)
-            tui.clear_lines(2) # clear top
+            tui.clear_lines(3) # clear top
             view.render_top(timing)
             view.disp_donestages()
         return run_stage(mode, stage_number, total_bac, stage_ops, check_method, is_passed,
@@ -181,11 +182,11 @@ def run_operations(stage_ops):
 # stage.deltas
 def get_timing(df_run, uname, goal):
     timing = {'passed':{},'repeat':{}}
-    is_passed = '1'
+    is_passed = 1
     df = pdo.filter(df_run, where={'is_passed': is_passed}, allow_empty=True, allow_many=True)
     timing['passed']['usr'] = df2besttime(pdo.filter(df, where={'user_name': uname}, allow_empty=True, allow_many=True))
     timing['passed']['oth'] = df2besttime(pdo.filter(df, where_not={'user_name': uname}, allow_empty=True, allow_many=True))
-    is_passed = '0'
+    is_passed = 0
     df = pdo.filter(df_run, where={'is_passed': is_passed}, allow_empty=True, allow_many=True)
     timing['repeat']['usr'] = df2besttime(pdo.filter(df, where={'user_name': uname}, allow_empty=True, allow_many=True))
     timing['repeat']['oth'] = df2besttime(pdo.filter(df, where_not={'user_name': uname}, allow_empty=True, allow_many=True))

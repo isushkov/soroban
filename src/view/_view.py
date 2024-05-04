@@ -13,6 +13,8 @@ class View():
         self.w = self.upd_w(w_settings)
         self.tab = ' '
         self.sep = ' '
+        self.color_default = 'x'
+        self.tcolor_default = 'x'
         self.tstyle_default = 'solid'
         self.tstyles = {
             'classic': '-|+++++++++',
@@ -60,10 +62,12 @@ class View():
         print(c.z(getattr(self, attr)), end=end, flush=flush)
 
     # upds
-    def upd_title(self, title, char='=', color='x'):
+    def upd_title(self, title, char='=', color=False):
+        if not color: color = self.color_default
         self.title = c.ljust(f'[{color}]{char*9} {title} ', self.w, char, color)
-    def upd_sepline(self, char='.', color='x', end=''):
-        self.sepline = f'[{color}]' + char * self.w + end
+    def upd_sepline(self, char='.', color=False):
+        if not color: color = self.color_default
+        self.sepline = f'[{color}]' + char * self.w
     # decorate
     # def join(self, lst, char='\n'):
     #     return char.join(s.strip() for s in lst if s)
@@ -189,37 +193,48 @@ class View():
             return 'c'
         raise ValueError(c.z(f'[r]ERROR:dtrmc()[c]: unknown type {type(val)}: {val}'))
 
-    # tables
-    def set_tstyle(self, tstyle=False):
+    # table
+    def set_tstyle(self, tstyle=False, tcolor=False):
         if not tstyle: tstyle = self.tstyle_default
-        (self.h, self.v,
+        (self.h,  self.v,
          self.tl, self.tr, self.bl, self.br,
          self.lx, self.tx, self.rx, self.bx, self.cx) = self.tstyles[tstyle]
-    def h_table(self, column_lengths, color='x'):
+    # table.lines
+    def table_th(self, titles, color=False, edges=' '):
+        return self.dec_table_text(titles, color=color, edges=edges, left=self.tl, center=self.tx, right=self.tr, filler=self.h)
+    def table_l(self, titles, color=False, edges=' '):
+        return self.dec_table_text(titles,        # titles = [
+                                   color=color,   #   [title_1, justify-direction, col-length, edges4title(optional)]
+                                   edges=edges,   #   [title_2, ...],
+                                   left=self.v,   #   ...,
+                                   center=self.v, # ]
+                                   right=self.v,  # color: цвет табличных chars (default=self.tcolor_default)
+                                   filler=' ')    # edges: края заголовков (default=' ')
+    # table.seps
+    def table_h(self, column_lengths, color=False):
         return self.dec_table_line(column_lengths, color, left=self.tl, center=self.tx, right=self.tr, filler=self.h)
-    def t_table(self, titles, edges=' ', color='x'):
-        return self.dec_table_text(titles,        # titles = {
-                                   filler=self.h, #   title: [justify-direction, col-length]
-                                   left=self.v,   #   title: [justify-direction, col-length]
-                                   center=self.v, # }
-                                   right=self.v,
-                                   edges=edges)   # края заголовков
-    def th_table(self, titles, color='x', edges=' '):
-        return self.dec_table_text(titles, color, edges, filler=self.h, left=self.tl, center=self.tx, right=self.tr)
-    def s_table(self, column_lengths, color='x'):
+    def table_s(self, column_lengths, color=False):
         return self.dec_table_line(column_lengths, color, left=self.lx, center=self.cx, right=self.rx, filler=self.h)
-    def b_table(self, column_lengths, color='x'):
+    def table_b(self, column_lengths, color=False):
         return self.dec_table_line(column_lengths, color, left=self.bl, center=self.bx, right=self.br, filler=self.h)
-    # dec_tables
-    def dec_table_text(self, texts, color, edges, filler='-', left='+', center='+', right='+'):
+    # table.dec
+    def dec_table_text(self, texts, color, edges, left,center,right, filler):
+        if not color: color = self.tcolor_default
         cells = []
-        for text, (justify, length) in texts.items():
-            cells.append(self.dec_table_text_justify(text, justify, length, color, edges, filler))
-        return '['+color+']' + left + center.join(cells) + right
-    def dec_table_text_justify(self, text, justify, length, color, edges, filler='-'):
+        for opts in texts:
+            loc_edges = edges
+            if   len(opts) == 3: text, justify, length = opts
+            elif len(opts) == 4: text, justify, length, loc_edges = opts
+            else:
+                raise Exception(c.z(f'[r]ERROR: wrong options for table-title:[c] can has only 3 or 4 items: "{opts}".'))
+            cells.append(self.dec_table_text_justify(text, justify, length, color, loc_edges, filler))
+        color = '['+color+']'
+        return color+left + (color+center+'[c]').join(cells) + color+right
+    def dec_table_text_justify(self, text, justify, length, color, edges, filler):
         if justify in ['c','center']: return c.center(edges + text + edges, length, char=filler, color=color)
-        if justify in ['l','left']:   return c.ljust(edges + text, length, char=filler, color=color)
-        if justify in ['r','right']:  return c.rjust(text + edges, length, char=filler, color=color)
-        raise Exception(c.z(f'[r]ERROR: unknown justify "{justify}": can be c/center, l/left, r/right.'))
-    def dec_table_line(self, lengths, color, left='+', center='+', right='+', filler='-'):
+        if justify in ['l','left']:   return  c.ljust(edges + text + edges, length, char=filler, color=color)
+        if justify in ['r','right']:  return  c.rjust(edges + text + edges, length, char=filler, color=color)
+        raise Exception(c.z(f'[r]ERROR: unknown justify "{justify}": [c]can be c/center, l/left, r/right.'))
+    def dec_table_line(self, lengths, color, left,center,right, filler):
+        if not color: color = self.tcolor_default
         return '['+color+']' + left + center.join([filler * length for length in lengths]) + right

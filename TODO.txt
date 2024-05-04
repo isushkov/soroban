@@ -1,26 +1,23 @@
-stage:
-  stage-1 -> 1/10 + add title Stages
-первый стейдж гет-реади повторно
-not-study: goal колонка не удалена полностью
-добавить подчеркивание нижнее
+exam:
+  -stage_start -timing
+  перенос строки + training тоже
+repeat - объекты не создаются новые экземпляры
 
-tests прогнать до конца:
-  yes-no
-  input
-  stydy/run
-  training/exam
-    exam: -stage_start -timing
-
-tests-script:
-  create:
-    check 3seq-random
-    note if cover range 1-3
-перенос строки если operations не умещается в указанный width
+tests run/study:
+  прогнать 2 ок, 1 ошибка, проход до конца:
+    study/training/yes-no
+    study/training/input
+    study/exam/yes-no
+    study/exam/input
+    run/training/yes-no
+    run/training/input
+    run/exam/yes-no
+    run/exam/input
+tests create/analyze:
+  run scripts
+  check 3seq-random
+  note if cover range 1-3
 todo:
-  oop:
-    params to object
-    sequence to object Exercise
-  вынести todo из кода в main.py
   redo params + redo progressions:
     "<first_sequence>,<sequence>,<sequence>,..."
     decimal.precision -> range.procision

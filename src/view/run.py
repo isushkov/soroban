@@ -18,12 +18,9 @@ class ViewRun(View):
         # loc_ft: 00:00:00 +color +justify
         # dt    : +0:00:00
         # loc_dt: +0:00:00 +color +justify
-        # self.sep = '[x]|'
-        self.tab = '[x]│'
-        self.sep = '[x]│'
-        self.wtab = c.ln(self.tab)
+        self.sep = '[x]'+self.v
         self.wsep = c.ln(self.sep)
-        self.t_empty = '[x]--:--.--'
+        self.t_empty = '[x]__:__.__'
         self.mode = None # init_params
         self.t_goal = None # init_params
         self.t_usr = None # upd_acc
@@ -38,8 +35,8 @@ class ViewRun(View):
         self.head_t_usr = None # init_params (uname)
         self.head_t_oth = '[x]t.Oth'
         # top.acc
-        self.acc_start = '[x]┌─'
-        self.acc_operations = '[x] Operations'
+        self.acc_start = '[x]─ Stage ─'
+        self.acc_operations = '[x]Operations'
         self.acc_result = '[x]Result'
         self.acc_timing = None # upd_top
         self.acc_t_goal = None # upd_top (ft_goal)
@@ -57,7 +54,7 @@ class ViewRun(View):
         self.stage_t_usr = None # upd_stage_timing
         self.stage_t_oth = None # upd_stage_timing
         # w
-        self.w_start = len('Stage-9x2')
+        self.w_start = c.ln(self.acc_start)
         self.w_operations = None # init_ws
         self.w_operation = None # init_ws
         self.w_result = None # init_ws
@@ -73,20 +70,29 @@ class ViewRun(View):
         start_number = operations.pop(0)
         total = s.safe_eval(sequence)
         # common
+        self.uname = uname
         self.mode = mode
         self.t_goal = goal
         self.head_t_usr = '[x]t.'+uname
-        # for delta time
+        # stage-start/delta-time
         self.operations_count = len(operations)
         self.ops_per_stage = ops_per_stage
+        self.stages_total = self.operations_count // self.ops_per_stage + (1 if self.operations_count % self.ops_per_stage else 0)
         # calc width
-        self.w_operation = len(max(operations, key=len)) + (1 if pls_show else 0)
-        self.w_result = max(len(self.acc_result), len(s.tostr(s.maxsum(start_number, operations))))
-        self.w_timing = (self.wt + self.wsep) * (4 if self.t_goal else 3) + self.wtab
+        # если среди операндов если только плюсы
+        existed_operands = list(set(s.split_operation(op)[0] for op in operations))
+        if len(existed_operands) == 1 and existed_operands[0] == '+':
+            if pls_show: space_for_operand = 1
+            else:        space_for_operand = 0
+        else:
+            space_for_operand = 1
+        self.w_operation = len(max(operations, key=len)) + space_for_operand
+        self.w_result = max(c.ln(self.acc_result)+2, len(s.tostr(s.maxsum(start_number, operations))))
+        self.w_timing = (self.wt + self.wsep) * (4 if self.t_goal else 3)
         self.w_operations = (self.w -
-                             self.wtab - self.w_start -
+                             self.wsep - self.w_start -
                              self.wsep - self.w_result -
-                             self.wsep - self.w_timing)
+                             self.wsep - self.w_timing - self.wsep)
     # dynamic
     def upd_input(self, is_last_stage):
         self.input = f"[y]Your {'answer' if is_last_stage else 'stage-res'} is: "
@@ -96,60 +102,45 @@ class ViewRun(View):
             [y]<a-Z>          [c]Restart the stage
             [y]<Esc>          [c]Exit
         """).strip()
-
     # top
     def upd_top(self, timing):
         is_passed = True if self.calls_top == 0 else False
         self.upd_head(is_passed)
         self.upd_acc(is_passed, timing)
-        self.top = '\n'.join([self.head, self.acc])
+        self.top = '\n'+'\n'.join([self.head, self.acc])
         # cache
         self.calls_top += 1
     def upd_head(self, is_passed):
-        self.head_start = c.ljust(self.head_start, self.w_start + self.wtab)
-        if is_passed:
-            color = '[r]' if self.mode == 'exam' else '[g]'
-            self.head_status = '[x]Status: ' + color + self.mode.upper()
-        else:
-            self.head_status = '[x]Status: REPETITION'
-        # self.head_status = c.ljust(self.head_status, self.w_operations + self.wsep + self.w_result)
-        # self.head_status = c.ljust(self.head_status, self.w_operations + self.wsep + self.w_result)
-        if not self.t_goal:
-            self.head_t_goal = ''
-        # self.head_timing = self.dec_top_timing(self.head_t_spent, self.head_t_goal, self.head_t_usr, self.head_t_oth)
-        # self.head = self.tab + self.sep.join([self.head_start,
-        #                                       self.head_status,
-        #                                       self.head_timing]) + self.tab
-        self.head = self.head_start + self.th_table({
-            ' ' + self.head_status  + ' ': ['left', self.w_operations],
-                                       '': ['center', self.w_result],
-            ' ' + self.head_t_spent + ' ': ['center', self.wt],
-            ' ' + self.head_t_goal  + ' ': ['center', self.wt],
-            ' ' + self.head_t_usr   + ' ': ['center', self.wt],
-            ' ' + self.head_t_oth   + ' ': ['center', self.wt]
-        }, edges='')
+        row = []
+        status = '[x]Status:'
+        if is_passed: status += f"[{'r' if self.mode == 'exam' else 'g'}]{self.mode.upper()}"
+        else:         status += 'REPETITION'
+        row.append([status, 'left', self.w_operations])
+        row.append(['', 'left', self.w_result, ''])
+        row.append([self.head_t_spent, 'center', self.wt])
+        if self.t_goal:
+            row.append([self.head_t_goal, 'center', self.wt])
+        edges = '' if len(self.uname) > 4 else ' '
+        row.append([self.head_t_usr, 'center', self.wt, edges])
+        row.append([self.head_t_oth, 'center', self.wt])
+        start = ' '*(self.wsep + self.w_start)
+        self.head = start + self.table_th(row)
     def upd_acc(self, is_passed, timing):
-        self.acc_start = c.ljust(self.acc_start, self.w_start + self.wtab, char='─', color='x')
-        self.acc_operations = c.ljust(self.acc_operations, self.w_operations)
-        self.acc_result = c.center(self.acc_result, self.w_result)
+        row = []
+        row.append([self.acc_operations, 'left', self.w_operations])
+        row.append([self.acc_result, 'center', self.w_result])
         k,color = ('passed','y') if is_passed else ('repeat','x')
-        self.acc_t_goal = self.dec_t2ft(self.t_goal, v_color=color) if self.t_goal else ''
-        self.acc_t_usr  = self.dec_t2ft(timing[k]['usr'], v_color='c')
-        self.acc_t_oth  = self.dec_t2ft(timing[k]['oth'], v_color='c')
-        self.acc_timing = self.dec_top_timing(self.acc_t_spent, self.acc_t_goal, self.acc_t_usr, self.acc_t_oth)
-        self.acc = self.sep.join([self.acc_start, self.acc_operations, self.acc_result, self.acc_timing]) + self.tab
-    def dec_top_timing(self, goal, spent, usr, oth):
-        goal = c.center(goal, self.wt) + self.sep if goal else ''
-        spent, usr = map(lambda x: c.center(x, self.wt) + self.sep, [spent, usr])
-        oth = c.center(oth, self.wt)
-        return goal + spent + usr + oth
-
+        row.append([self.acc_t_spent, 'center', self.wt, ''])
+        if self.t_goal:
+            row.append([self.dec_t2ft(self.t_goal, v_color=color), 'center', self.wt, ''])
+        row.append([self.dec_t2ft(timing[k]['usr'], v_color='c'), 'center', self.wt, ''])
+        row.append([self.dec_t2ft(timing[k]['oth'], v_color='c'), 'center', self.wt, ''])
+        self.acc = self.tl + self.acc_start + self.table_l(row)
     # stage
     def upd_stage_start(self, stage_number, user_errors):
         user_errors += 1
         user_errors = '' if user_errors == 1 else f"[r]x{user_errors if user_errors < 10 else '9'}"
-        stage_number = min(stage_number, 9) if stage_number < 10 else 'X'
-        self.stage_start = self.tab + c.center(f'[x]Stage-{stage_number}{user_errors}', self.w_start) + self.sep
+        self.stage_start = self.sep + c.center(f'[x]{stage_number}/{self.stages_total}{user_errors}', self.w_start) + self.sep
         # cache
         self.stage = self.stage_start
         self.stage_operations = ''
@@ -177,31 +168,19 @@ class ViewRun(View):
         self.stage += self.stage_result_ok
     def upd_stage_timing(self, t_spent, timing, is_passed, is_last_stage):
         self.donestages_count += 1 # for delta time
-        self.t_spent = t_spent
-        # spent
-        self.ft_spent = self.dec_t2ft(self.t_spent, v_color='c') # ft, not dt
-        self.stage_t_spent = c.ljust(self.ft_spent, self.wt) + self.sep # ft, not dt
-        # goal. if study
+        row = []
+        row.append([self.dec_t2ft(t_spent, v_color='c'), 'center', self.wt])
         if self.t_goal:
-            # if no mistakes
             if is_passed:
-                self.dt_goal = self.dec_t2dt(self.t_spent, self.t_goal, is_last_stage)
-                self.stage_t_goal = c.rjust(self.dt_goal, self.wt) + self.sep
+                stage_t_goal = self.dec_t2dt(t_spent, self.t_goal, is_last_stage)
             else:
-                self.stage_t_goal = ' '*self.wt + self.sep
-        else:
-            self.stage_t_goal = ''
-        # usr/oth
+                stage_t_goal = ' '*self.wt
+            row.append([stage_t_goal, 'right', self.wt])
         k = 'passed' if is_passed else 'repeat'
-        self.t_usr = float(timing[k]['usr'])
-        self.t_oth = float(timing[k]['oth'])
-        self.dt_usr = self.dec_t2dt(self.t_spent, self.t_usr, is_last_stage)
-        self.dt_oth = self.dec_t2dt(self.t_spent, self.t_oth, is_last_stage)
-        self.stage_t_usr = c.rjust(self.dt_usr, self.wt) + self.sep
-        self.stage_t_oth = c.rjust(self.dt_oth, self.wt) + self.tab
-        # render
-        self.stage_timing = (self.stage_t_spent + self.stage_t_goal +
-                             self.stage_t_usr   + self.stage_t_oth)
+        # pprint(timing)
+        row.append([self.dec_t2dt(t_spent, float(timing[k]['usr']), is_last_stage), 'right', self.wt])
+        row.append([self.dec_t2dt(t_spent, float(timing[k]['oth']), is_last_stage), 'right', self.wt])
+        self.stage_timing = self.table_l(row, edges='')[len(self.sep):] # remove first sep for result
         # cache
         self.stage += self.stage_timing
         self.donestages = '\n'.join([self.donestages, self.stage]).strip()
@@ -244,15 +223,17 @@ class ViewRun(View):
             render = f'{sign}{minutes}:{seconds:.2f}'
         return  ('[g]' if delta >= 0 else '[r]') + render
     def calc_delta(self, spent, target, is_last_stage):
-        if not is_last_stage:
-            done_ops = self.donestages_count * self.ops_per_stage
-        else:
-            done_ops = self.operations_count - (self.operations_count % self.ops_per_stage)
+        if is_last_stage:
+            return target - spent
+        done_ops = self.donestages_count * self.ops_per_stage
         time4stage = round((target / self.operations_count) * done_ops, 2)
         delta = time4stage - spent
         return delta
 
     # finish
+    def upd_bottom(self):
+        row = [self.w_start, self.w_operations, self.w_result] + ([self.wt] * (4 if self.t_goal else 3))
+        self.bottom = self.table_b(row)
     def upd_finish(self, is_passed, end_time):
         if self.mode == 'exam':
             msg = '[g]Exam was passed!' if is_passed else '[r]The exam was not passed.'
@@ -268,7 +249,7 @@ class ViewRun(View):
         table_training = self.get_leaderboard_table(df_training, '[b]', user_data)
         table_repetitions = self.get_leaderboard_table(df_repetitions, '[x]', user_data)
         leaderboard_list = self.merge_tables(table_exam, table_training, table_repetitions)
-        self.leaderboard = '\n'.join(leaderboard_list)
+        self.leaderboard = self.padding('\n'.join(leaderboard_list),[3,0,0,0])
     def get_leaderboard_table(self, df, row_color, user_data):
         if user_data:
             user_id = user_data['id']

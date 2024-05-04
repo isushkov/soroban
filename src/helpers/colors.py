@@ -16,8 +16,8 @@ char2color_map = {
    'x': Fore.LIGHTBLACK_EX,
    'c': Style.RESET_ALL
 }
-def p(text):
-    print(z(text))
+def p(text, end='\n', flush=False):
+    print(z(text), end=end, flush=flush)
 def z(text):
     text = str(text)
     for char, color in char2color_map.items():
@@ -50,16 +50,16 @@ def rjust(text, width, char=' ', color='c'):
     text_length = len(remove_colors(text))
     if text_length < width:
         color = char2color(color)
-        return color+char*(width - text_length) + text
+        return color + char*(width - text_length) + '[c]' + text
     return text
 def edgesjust(text_left, text_right, width, char=' ', color=False):
     color = char2color(color)
     len_center  = width - len(remove_colors(text_left)) - len(remove_colors(text_right))
-    return text_left + (color+len_center*char) + text_right
+    return text_left + (color+len_center*char) + '[c]' + text_right
 def center(text, width, char=' ', color='c'):
     text_length = len(remove_colors(text))
     total_padding = width - text_length
     padding_left = total_padding // 2
     padding_right = total_padding - padding_left
     color = char2color(color)
-    return (color+char*padding_left) + text + (color+char*padding_right)
+    return (color + char*padding_left) + '[c]' + text + (color + char*padding_right)

@@ -80,12 +80,11 @@ class Tui:
         old_settings = termios.tcgetattr(fd)
         tty.setraw(sys.stdin.fileno())
         key = sys.stdin.read(1)
-        if key == '\x03': # ctrl+C back
-            c.p('[r]Exit.')
+        if key == '\x03': # ctrl+C
+            c.p('[r]Exit.', end='')
             exit(130)
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return key
-
     # menus
     def yesno(self):
         key = self.getch()
