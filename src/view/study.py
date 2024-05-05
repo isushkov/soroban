@@ -10,10 +10,10 @@ class ViewStudy(View):
         # uname
         self.uname_note = dedent('''
             [y]NOTE: [x]You can specify a temporary username using the optional argument [b]--user-name=[x]<user-name>
-            [y]NOTE: [x]or set a permanent one in [b]config.yml[c] (--user-name has a higher priority)[x]:
+            [y]NOTE: [x]or set a permanent one in [b]config.yml [x](--user-name has a higher priority):
             [y]NOTE: [x]    [b].common.user_name:[c] <user-name> [x]# 1-6 chars
         ''').strip()
-        self.uname_err = '[r]EXIT:[c] The user-name [r]is required[y] for the study-mode.'
+        self.uname_err = 'The user-name [r]is required[y] for the study-mode.'
         # idstep/idmode
         self.idstep_start = '[b]>>> INFO: [x]Identifying [b]the STUDY-STEP..'
         self.idstep_unknown = dedent('''
@@ -57,7 +57,7 @@ class ViewStudy(View):
         self.status = self.padding(dedent(f'''
             [x]{comment}
 
-            [x]{uname+':'.ljust(6)}        [g]Step-{step}:[{color}]{mode.upper()}
+            [x]{c.ljust(uname+':',7)}           [g]Step-{step}.[{color}]{mode.upper()}
             [x]Exercise:         [b]{params}
             [x]Goal time:        [r]{goal}
             [x]Trainings passed: [{'g' if trainings_passed else 'x'}]{trainings_passed}[x]/{t2e}

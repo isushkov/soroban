@@ -1,18 +1,24 @@
-exam:
-  -stage_start -timing
-  перенос строки + training тоже
+stage_start:
+  дорисовывать пустой row
+  дорисовывать table_b
+  возвращать каретку
+перенос строки:
+  training/exam
+
 repeat - объекты не создаются новые экземпляры
 
 tests run/study:
-  прогнать 2 ок, 1 ошибка, проход до конца:
-    study/training/yes-no
-    study/training/input
-    study/exam/yes-no
-    study/exam/input
-    run/training/yes-no
-    run/training/input
-    run/exam/yes-no
-    run/exam/input
+  cases:
+    ++++
+    ++E++
+    +EE+++
+    E++++
+  study/training/yes-no
+  study/training/input
+  study/exam/input
+  run/training/yes-no
+  run/training/input
+  run/exam/input
 tests create/analyze:
   run scripts
   check 3seq-random

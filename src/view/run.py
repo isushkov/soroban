@@ -64,16 +64,20 @@ class ViewRun(View):
         self.stage = None
         self.donestages = ''
         self.donestages_count = 0
+        self.uname_note = dedent('''
+            [y]NOTE: [x]You can specify a temporary username using the optional argument [b]--user-name=[x]<user-name>
+            [y]NOTE: [x]or set a permanent one in [b]config.yml [x](--user-name has a higher priority):
+            [y]NOTE: [x]    [b].common.user_name:[c] <user-name> [x]# 1-6 chars
+        ''').strip()
     # init
     def init_params(self, mode, goal, uname, sequence, ops_per_stage, pls_show):
         operations = sequence.split()
         start_number = operations.pop(0)
-        total = s.safe_eval(sequence)
         # common
         self.uname = uname
         self.mode = mode
         self.t_goal = goal
-        self.head_t_usr = '[x]t.'+uname
+        self.total = s.safe_eval(sequence) # for final msg
         # stage-start/delta-time
         self.operations_count = len(operations)
         self.ops_per_stage = ops_per_stage
@@ -88,101 +92,140 @@ class ViewRun(View):
             space_for_operand = 1
         self.w_operation = len(max(operations, key=len)) + space_for_operand
         self.w_result = max(c.ln(self.acc_result)+2, len(s.tostr(s.maxsum(start_number, operations))))
-        self.w_timing = (self.wt + self.wsep) * (4 if self.t_goal else 3)
-        self.w_operations = (self.w -
-                             self.wsep - self.w_start -
-                             self.wsep - self.w_result -
-                             self.wsep - self.w_timing - self.wsep)
-    # dynamic
-    def upd_input(self, is_last_stage):
-        self.input = f"[y]Your {'answer' if is_last_stage else 'stage-res'} is: "
-    def upd_yesno(self, is_last_stage):
-        self.yesno = dedent(f"""
-            [y]<Space/Enter>  [c]{'FINISH' if is_last_stage else 'Continue'}
-            [y]<a-Z>          [c]Restart the stage
-            [y]<Esc>          [c]Exit
-        """).strip()
+        if self.mode == 'exam':
+            self.w_operations = self.w - self.wsep - self.wsep
+        else:
+            self.w_timing = (self.wt + self.wsep) * (4 if self.t_goal else 3)
+            self.w_operations = (self.w -
+                                 self.wsep - self.w_start -
+                                 self.wsep - self.w_result -
+                                 self.wsep - self.w_timing - self.wsep)
     # top
     def upd_top(self, timing):
+        self.top = '\n'
         is_passed = True if self.calls_top == 0 else False
         self.upd_head(is_passed)
-        self.upd_acc(is_passed, timing)
-        self.top = '\n'+'\n'.join([self.head, self.acc])
+        if self.mode == 'exam':
+            self.top += self.head
+        else:
+            self.upd_acc(is_passed, timing)
+            self.top += '\n'.join([self.head, self.acc])
         # cache
         self.calls_top += 1
     def upd_head(self, is_passed):
         row = []
         status = '[x]Status:'
-        if is_passed: status += f"[{'r' if self.mode == 'exam' else 'g'}]{self.mode.upper()}"
-        else:         status += 'REPETITION'
-        row.append([status, 'left', self.w_operations])
-        row.append(['', 'left', self.w_result, ''])
-        row.append([self.head_t_spent, 'center', self.wt])
-        if self.t_goal:
-            row.append([self.head_t_goal, 'center', self.wt])
-        edges = '' if len(self.uname) > 4 else ' '
-        row.append([self.head_t_usr, 'center', self.wt, edges])
-        row.append([self.head_t_oth, 'center', self.wt])
-        start = ' '*(self.wsep + self.w_start)
-        self.head = start + self.table_th(row)
+        if self.mode == 'exam':
+            status += '[r]'+self.mode.upper()
+            if self.t_goal:
+                t_goal = self.dec_t2ft(self.t_goal, v_color='y')
+                status += self.tcolor+self.h + f' Goal:{t_goal} '
+            self.head = self.table_th([[status, 'left', self.w_operations]])
+        else:
+            # status/result
+            status += '[g]'+self.mode.upper() if is_passed else 'REPETITION'
+            row.append([status, 'left', self.w_operations])
+            row.append(['', 'left', self.w_result, ''])
+            # timing
+            row.append([self.head_t_spent, 'center', self.wt])
+            if self.t_goal:
+                row.append([self.head_t_goal, 'center', self.wt])
+            uname = '[x]t.'+self.uname
+            edges = '' if c.ln(uname) > 4 else ' '
+            row.append([uname, 'center', self.wt, edges])
+            row.append([self.head_t_oth, 'center', self.wt])
+            # render
+            self.head = ' '*(self.wsep + self.w_start) + self.table_th(row)
     def upd_acc(self, is_passed, timing):
         row = []
+        # start
+        start = self.tl + self.acc_start
+        # operations/result
         row.append([self.acc_operations, 'left', self.w_operations])
         row.append([self.acc_result, 'center', self.w_result])
+        # timing
         k,color = ('passed','y') if is_passed else ('repeat','x')
         row.append([self.acc_t_spent, 'center', self.wt, ''])
         if self.t_goal:
             row.append([self.dec_t2ft(self.t_goal, v_color=color), 'center', self.wt, ''])
         row.append([self.dec_t2ft(timing[k]['usr'], v_color='c'), 'center', self.wt, ''])
         row.append([self.dec_t2ft(timing[k]['oth'], v_color='c'), 'center', self.wt, ''])
-        self.acc = self.tl + self.acc_start + self.table_l(row)
+        self.acc = start + self.table_l(row)
     # stage
     def upd_stage_start(self, stage_number, user_errors):
-        user_errors += 1
-        user_errors = '' if user_errors == 1 else f"[r]x{user_errors if user_errors < 10 else '9'}"
-        self.stage_start = self.sep + c.center(f'[x]{stage_number}/{self.stages_total}{user_errors}', self.w_start) + self.sep
+        if self.mode == 'exam':
+            self.stage_start = self.sep
+        else:
+            user_errors += 1
+            user_errors = '' if user_errors == 1 else f"[r]x{user_errors if user_errors < 10 else '9'}"
+            self.stage_start = self.sep + c.center(f'[x]{stage_number}/{self.stages_total}{user_errors}', self.w_start) + self.sep
         # cache
         self.stage = self.stage_start
         self.stage_operations = ''
-    def upd_stage_ready(self, start_number):
-        self.stage_ready = f'[x] Start-with: [c]{start_number} [y]<Any-key>[x] to start..'
-        # cache
-        self.calls_stage_ready += 1
     def upd_stage_operation(self, operand, pls_show, number):
         operand = '' if (operand == '+' and not pls_show) else operand
         self.stage_operation = c.rjust(f'[c]{operand}{number}', self.w_operation)
         # cache
         self.stage += self.stage_operation
         self.stage_operations += self.stage_operation
-    # stage result: yes-no - before answer
+    # stage.result.answer
     def upd_stage_result(self, total):
         self.stage_operations_pfx = ' '*(self.w_operations - c.ln(self.stage_operations)) + self.sep
         self.disp_stage_operations_pfx(end='', flush=True) # justify operations
         self.stage_result = '[c]'+c.center(s.tostr(total), self.w_result) + self.sep
         # cache
         self.stage += self.stage_operations_pfx
-    # stage result: yes-no - after correct answer
-    def upd_stage_result_ok(self, total):
-        self.stage_result_ok = '[g]' + self.stage_result
-        # cache
-        self.stage += self.stage_result_ok
+        self.stage += self.stage_result
+    # menus
+    # stage.ready
+    def upd_stage_ready(self, start_number):
+        self.stage_ready = '\n' + self.dec_menu(
+            f'[x]Start-with: [c]{start_number} [y]<Any-key>[x] to start..'
+        )
+    # stage.result.yes-no
+    def upd_yesno(self, is_last_stage):
+        self.yesno = self.dec_menu(dedent(f'''
+            [y]<Space/Enter>  [c]{'FINISH' if is_last_stage else 'Continue'}
+            [y]<a-Z>          [c]Restart the stage
+            [y]<Esc>          [c]Exit
+        '''))
+    # stage.result.input
+    def upd_input(self, total, is_last_stage):
+        self.upd_stage_result(total)
+        msg = f"[x]Your [y]{'answer' if is_last_stage else 'stage result'} is: [c]"
+        self.input = '\n' + self.dec_menu(msg)
+        return self.wsep + c.ln(msg) + 2 # border + padding_left
+    # menus.dec
+    def dec_menu(self, msg):
+        max_length = max(c.ln(line) for line in msg.split('\n'))
+        padding_left = 1
+        padding_right = self.calc_w4menu() - (padding_left + max_length + 2) # for border
+        return self.border(self.padding(msg.strip(), [padding_left,0,padding_right,0])).strip()
+    def calc_w4menu(self):
+        min_w = 30
+        if self.mode == 'exam': w = self.wsep + self.w_operations // 2 + self.wsep
+        else: w = self.wsep + self.w_start + self.wsep + self.w_operations + self.wsep
+        return w if w > min_w else min_w
+
+    # stage.timing
     def upd_stage_timing(self, t_spent, timing, is_passed, is_last_stage):
         self.donestages_count += 1 # for delta time
-        row = []
-        row.append([self.dec_t2ft(t_spent, v_color='c'), 'center', self.wt])
-        if self.t_goal:
-            if is_passed:
-                stage_t_goal = self.dec_t2dt(t_spent, self.t_goal, is_last_stage)
-            else:
-                stage_t_goal = ' '*self.wt
-            row.append([stage_t_goal, 'right', self.wt])
-        k = 'passed' if is_passed else 'repeat'
-        # pprint(timing)
-        row.append([self.dec_t2dt(t_spent, float(timing[k]['usr']), is_last_stage), 'right', self.wt])
-        row.append([self.dec_t2dt(t_spent, float(timing[k]['oth']), is_last_stage), 'right', self.wt])
-        self.stage_timing = self.table_l(row, edges='')[len(self.sep):] # remove first sep for result
-        # cache
-        self.stage += self.stage_timing
+        if self.mode != 'exam':
+            row = []
+            row.append([self.dec_t2ft(t_spent, v_color='c'), 'center', self.wt])
+            if self.t_goal:
+                if is_passed:
+                    stage_t_goal = self.dec_t2dt(t_spent, self.t_goal, is_last_stage)
+                else:
+                    stage_t_goal = ' '*self.wt
+                row.append([stage_t_goal, 'right', self.wt])
+            k = 'passed' if is_passed else 'repeat'
+            # pprint(timing)
+            row.append([self.dec_t2dt(t_spent, float(timing[k]['usr']), is_last_stage), 'right', self.wt])
+            row.append([self.dec_t2dt(t_spent, float(timing[k]['oth']), is_last_stage), 'right', self.wt])
+            self.stage_timing = self.table_l(row, edges='')[len(self.sep):] # remove first sep for result
+            # cache
+            self.stage += self.stage_timing
         self.donestages = '\n'.join([self.donestages, self.stage]).strip()
     def dec_t2ft(self, seconds_total, v_color='c', z_color='x', colorize=True):
         if not seconds_total:
@@ -200,15 +243,7 @@ class ViewRun(View):
         # colorize
         if not colorize:
             return ft
-        v_color, z_color = '['+v_color+']', '['+z_color+']'
-        match = re.search('[1-9]\d*', ft)
-        if match:
-            zeros = ft[:match.start()]
-            values = ft[match.start():]
-            ft = z_color + zeros + v_color + values
-        else:
-            ft = v_color + ft
-        return ft
+        return self.dec_colorize_ft(ft, v_color, z_color)
     def dec_t2dt(self, spent, target, is_last_stage):
         if not target:
             return ' ' * self.wt
@@ -222,6 +257,16 @@ class ViewRun(View):
             seconds = abs_delta % 60
             render = f'{sign}{minutes}:{seconds:.2f}'
         return  ('[g]' if delta >= 0 else '[r]') + render
+    def dec_colorize_ft(self, ft, v_color, z_color):
+        v_color, z_color = '['+v_color+']', '['+z_color+']'
+        match = re.search('[1-9]\d*', ft)
+        if match:
+            zeros = ft[:match.start()]
+            values = ft[match.start():]
+            ft = z_color + zeros + v_color + values
+        else:
+            ft = v_color + ft
+        return ft
     def calc_delta(self, spent, target, is_last_stage):
         if is_last_stage:
             return target - spent
@@ -232,28 +277,47 @@ class ViewRun(View):
 
     # finish
     def upd_bottom(self):
-        row = [self.w_start, self.w_operations, self.w_result] + ([self.wt] * (4 if self.t_goal else 3))
+        if self.mode == 'exam':
+            row = [self.w_operations]
+        else:
+            row = [self.w_start, self.w_operations, self.w_result]
+            row += [self.wt] * (4 if self.t_goal else 3)
         self.bottom = self.table_b(row)
     def upd_finish(self, is_passed, end_time):
         if self.mode == 'exam':
-            msg = '[g]Exam was passed!' if is_passed else '[r]The exam was not passed.'
+            answer = self.answer if self.answer else 'NONE'
+            if is_passed:
+                msg = dedent(f'''
+                    [g]Exam was passed!
+                    [x]Response was: [g]{answer}
+                ''').strip() + '\n'
+                v_color = 'g'
+            else:
+                msg = dedent(f'''
+                    [r]The exam was not passed:
+                    [x]  Response was:      [r]{answer}
+                    [x]  Correct answer is: [c]{self.total}
+                    [x]Result will not be recorded in the leaderboard table.
+                ''').strip() + '\n'
+                v_color = 'c'
         else:
-            msg = '[g]Exercise was finished!'
-        self.finish = self.padding(f"{msg}[x] Your time is: {self.dec_t2ft(end_time, v_color='g')}", [3,1,0,1])
+            msg = f"[{'b' if is_passed else 'c'}]Exercise was finished!"
+            v_color = 'y'
+        msg += f"[x]\nYour time is: {self.dec_t2ft(end_time, v_color=v_color)}"
+        self.finish = self.padding(msg, [3,1,0,1])
     # leaderboard
     def upd_leaderboard(self, df, user_data):
         df_exam = df.loc[(df['is_exam'] == 1)]
         df_training = df.loc[(df['is_exam'] == 0) & (df['is_passed'] == 1)]
         df_repetitions = df.loc[(df['is_exam'] == 0) & (df['is_passed'] == 0)]
-        table_exam = self.get_leaderboard_table(df_exam, '[g]', user_data)
-        table_training = self.get_leaderboard_table(df_training, '[b]', user_data)
-        table_repetitions = self.get_leaderboard_table(df_repetitions, '[x]', user_data)
+        table_exam = self.get_leaderboard_table(df_exam, 'g', user_data)
+        table_training = self.get_leaderboard_table(df_training, 'b', user_data)
+        table_repetitions = self.get_leaderboard_table(df_repetitions, 'x', user_data)
         leaderboard_list = self.merge_tables(table_exam, table_training, table_repetitions)
         self.leaderboard = self.padding('\n'.join(leaderboard_list),[3,0,0,0])
     def get_leaderboard_table(self, df, row_color, user_data):
-        if user_data:
-            user_id = user_data['id']
-            user_rank = user_data['rank']
+        user_id = user_data['id'] if user_data else False
+        user_rank = user_data['rank'] if user_data else False
         table = []
         table_size=9
         if df.empty:
@@ -289,15 +353,17 @@ class ViewRun(View):
             if user_data else
             (row['rank'], row['user_name'], row['time'], row['date'])
         )
+        color = 'y' if user_data else row_color
         rank = '99' if rank > 99 else (f'{rank} ' if rank < 10 else str(rank))
         name = name.ljust(6) if len(name) < 6 else name
-        color = '[y]' if user_data else row_color
-        return c.z(f'[x]│ {color}{rank} {name} {time}[x] {date} │')
+        v_color = 'c' if color == 'x' else color
+        time = self.dec_colorize_ft(time, v_color=v_color, z_color='x')
+        return c.z(f'[x]│ [{color}]{rank} {name} {time}[x] {date} │')
     def merge_tables(self, exam, training, repetitions):
         table = []
         table.append(c.z('[x]  ┌─ Leaderboard ─────────────────────────────────────────────────────────────────────┐'))
         table.append(c.z('[x]  │                             ┌────────────────────── Training ─────────────────────┴─┐'))
-        table.append(c.z('[x]┌─── [g]EXAM PASSED[x] ─────────────┐─┴─ [b]Passed[x] ──────────────────┐─── With repetitions ──────┴─┐'))
+        table.append(c.z('[x]┌─┴─ [g]EXAM PASSED[x] ─────────────┐─┴─ [b]Passed[x] ──────────────────┐─── With repetitions ──────┴─┐'))
         max_length = max(len(exam), len(training), len(repetitions))
         sep = ' '*30
         for i in range(max_length):

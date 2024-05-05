@@ -42,7 +42,7 @@ class View():
             if meth_pfx in ['disp', 'render']:
                 def method(*args, **kwargs):
                     if meth_pfx == 'render': return self._render(attr_sfx, *args, **kwargs)
-                    if meth_pfx == 'disp':   return self._disp(attr_sfx, *args, **kwargs)
+                    if meth_pfx == 'disp':   return self._disp(attr_sfx, **kwargs)
                 return method
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
     # render/upd/disp
@@ -80,8 +80,10 @@ class View():
         top_padding = [char * (left + right + max(len(c.remove_colors(line)) for line in lines))] * top
         bottom_padding = [char * (left + right + max(len(c.remove_colors(line)) for line in lines))] * bottom
         return '\n'.join(top_padding + padded_lines + bottom_padding)
-    def border(self, text, tstyle=False, color='', title=None):
+    # TODO: review. add title
+    def border(self, text, tstyle=False, color=False, title=None):
         text = c.z(text)
+        if not color: color = self.tcolor_default
         color = c.char2color(color or 'c')
         h,v,tl,tr,bl,br,_,_,_,_,_ = self.tstyles[self.tstyle_default] if not tstyle else self.tstyles[tstyle]
         lines = text.splitlines()
@@ -90,17 +92,15 @@ class View():
         top_border = color + tl + (h * max_length) + tr
         bottom_border = color + bl + (h * max_length) + br
         padded_lines = [color + v + '[c]' + line + ' ' * (max_length - len(c.remove_colors(line))) + color + v for line in lines]
-        res = self.join(top_border, padded_lines, bottom_border)
-        if title:
-            title_text = title.center(max_length)
-            top_border = color + tl + (h * max_length) + tr
-            title_line = color + v + title_text + color + v
-        else:
-            top_border = color + tl + (h * max_length) + tr
-        res = self.join(top_border, title_line if title else '', padded_lines, bottom_border)
-        if color:
-            res = c.z(res)
+        res = (top_border+'\n') + '\n'.join(padded_lines) + ('\n'+bottom_border)
         return res
+        # if title:
+        #     title_text = title.center(max_length)
+        #     top_border = color + tl + (h * max_length) + tr
+        #     title_line = color + v + title_text + color + v
+        # else:
+        #     top_border = color + tl + (h * max_length) + tr
+        # return top_border + (title_line if title else '') + '\n'.join(padded_lines) + ('\n'+bottom_border)
     def merge(self, *args, sep=' '):
         lines_lists = [arg.split('\n') for arg in args]
         if not lines_lists:

@@ -15,7 +15,7 @@ sys.setrecursionlimit(150)
 
 def would_like_repeat():
     while True:
-        answer = input("Would you like to repeat? (y/n): ").strip().lower()
+        answer = input("\nWould you like to repeat? (y/n): ").strip().lower()
         if answer == 'y': return True
         elif answer == 'n': return False
         else:
@@ -89,11 +89,6 @@ def main():
     """)
     p_study = p_command.add_parser('study', help=h_study, formatter_class=argparse.RawTextHelpFormatter)
     add_optarg_user(p_study)
-
-    # Add user option to each sub-parser for run-new
-
-
-
     args = parser.parse_args()
     if args.command == 'create':
         path = create(args.path, args.params)

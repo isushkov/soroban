@@ -4,14 +4,18 @@ import ast
 import src.helpers.colors as c
 
 # str/num
-def tonum(val, rnd=None):
+def tonum(val, rnd=None, allow2fail=False):
     max_rnd = 6
     if not isinstance(val, (str, int, float)):
+        if allow2fail:
+            return False
         raise ValueError(c.z(f'[r]ERROR - tonum():[c] unknown type {type(val)} ({val}).'))
     if isinstance(val, str):
         try:
             val = float(val)
         except ValueError:
+            if allow2fail:
+                return False
             raise ValueError(c.z(f'[r]ERROR - tonum():[c] Cannot convert {val} to a number.'))
     # определение необходимости округления
     if isinstance(val, float):

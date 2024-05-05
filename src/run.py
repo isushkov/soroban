@@ -55,7 +55,7 @@ def run(path, mode, uname, goal=False):
     view.render_finish(is_passed, end_time)
     say_beep('end-game-passed' if is_passed else 'end-game', cfg.signals_spd)
     # upd_records
-    if mode == 'training' or is_passed:
+    if is_passed or mode == 'training':
         df_records = add_record(df_records, uname, exercise_name, mode, is_passed, end_time)
         user_id = df_records.index[-1]
         df_records = upd_ranks(df_records)
@@ -73,8 +73,10 @@ def run(path, mode, uname, goal=False):
 # run
 def get_uname():
     tui.echo()
+    view.disp_uname_note()
     uname = input('Please enter your name: ').strip()[:6] or '<anon>'
     tui.noecho()
+    return uname
 def run_stages(mode, start_number, operations, check_method, timing):
     is_passed = True
     user_errors = 0
@@ -94,48 +96,58 @@ def run_stages(mode, start_number, operations, check_method, timing):
 def run_stage(mode, stage_number, total, stage_ops, check_method, is_passed,
               is_restart_stage, is_last_stage, user_errors, timing, start_time):
     # start/ready
-    if mode == 'training':
-        view.render_stage_start(stage_number, user_errors, end='', flush=True)
+    view.render_stage_start(stage_number, user_errors, end='', flush=True)
     if stage_number == 1 and not is_restart_stage:
         # say "get ready. start-number is N"
-        view.render_stage_ready(total, end='', flush=False)
+        view.render_stage_ready(total, end='', flush=True)
         say_text('get-ready', cfg.speech_spd)
         say_text('start-number', cfg.speech_spd)
         say_number(total, cfg.speech_spd)
     if mode == 'training':
         # say "stage_number is N" (+"continue-with N" if needed)
         say_stage_start(stage_number, total, is_restart_stage)
-    # operations
     if stage_number == 1 and not is_restart_stage:
         input()
         # re-render row
-        tui.clear('start')
+        tui.clear('line')
+        tui.clear_lines(3)
         tui.cursor_move(x=0)
         view.disp_stage(end='', flush=True)
         # say bip-bip-bip and start
         say_beep('start', cfg.signals_spd)
         start_time = round(time.time(), 2)
+    # operations
     run_operations(stage_ops)
     # answer
     total_bac = total
     total = total + s.safe_eval(' '.join(stage_ops))
     if check_method == 'yes-no':
         view.render_stage_result(total)
+        view.render_yesno(is_last_stage, end='', flush=True)
         say_text('answer' if is_last_stage else 'stage-result', cfg.res_ann_spd)
         say_number(total, cfg.res_num_spd)
-        view.render_yesno(is_last_stage)
-        answer = tui.yesno()
-        tui.clear_lines(3)
+        is_correct_answer = tui.yesno()
+        tui.clear('line')
+        tui.clear_lines(4)
+        tui.cursor_move(x=0)
     else:
-        view.render_input(is_last_stage, end='', flush=True)
+        x_pos = view.render_input(total, is_last_stage, end='', flush=True)
+        tui.cursor_shift(y=-1)
+        tui.cursor_move(x=x_pos)
         sound = 'enter-answer' if is_last_stage else 'enter-stage-result'
         say_text(sound, cfg.res_entry_spd)
-        answer = True if s.tonum(tui.input()) == total else False
+        answer = tui.input()
+        view.answer = answer # for finish msg
+        is_correct_answer = True if s.tonum(answer, allow2fail=True) == total else False
+        tui.clear('down')
+        tui.clear_lines(1)
     # result.failed
-    if not answer:
+    if not is_correct_answer:
+        is_passed = False
+        if mode == 'exam':
+            return total, is_passed, start_time
         user_errors += 1
         is_restart_stage = True
-        is_passed = False
         say_beep('wrong', cfg.res_wrong_spd)
         # upd view
         tui.clear_lines(1) # clear current stage row
@@ -147,12 +159,11 @@ def run_stage(mode, stage_number, total, stage_ops, check_method, is_passed,
         return run_stage(mode, stage_number, total_bac, stage_ops, check_method, is_passed,
                          is_restart_stage, is_last_stage, user_errors, timing, start_time)
     # result.ok
-    t_spent = round(time.time(), 2) - start_time
-    # result.ok: upd view
-    tui.clear_lines(1) # clear current-row
-    view.disp_stage(end='', flush=True)
-    view.render_stage_result_ok(total, end='', flush=True)
-    view.render_stage_timing(t_spent, timing, is_passed, is_last_stage)
+    if mode == 'training':
+        t_spent = round(time.time(), 2) - start_time
+        tui.clear_lines(1) # clear current-row
+        view.disp_stage(end='', flush=True)
+        view.render_stage_timing(t_spent, timing, is_passed, is_last_stage)
     return total, is_passed, start_time
 
 # stage.start
@@ -167,9 +178,6 @@ def say_stage_start(stage_number, start_number, is_restart_stage):
     if is_restart_stage:
         say_text('continue-with', cfg.cont_ann_spd)
         say_number(start_number, cfg.cont_num_spd)
-# stage.ready
-def operations_ready():
-    return start_time
 # stage.operations
 def run_operations(stage_ops):
     for operation in stage_ops:

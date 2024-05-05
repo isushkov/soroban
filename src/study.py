@@ -25,9 +25,10 @@ def study(arg_uname):
     uname = arg_uname or cfg.uname
     if not uname:
         view.disp_uname_note()
-        uname = input('Please enter your name: ').strip()[:6]
-        if not uname:
-            view.disp_uname_err()
+        while not uname:
+            uname = input('Please enter your name: ').strip()[:6]
+            if not uname:
+                view.disp_uname_err()
     # load/filter data
     study_attempts_columns = ['id','user_name','step','trainings_passed','exams_failed']
     df_study_attempts = pdo.load('./src/__study_attempts.csv', study_attempts_columns)
