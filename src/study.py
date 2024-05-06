@@ -16,13 +16,13 @@ import src.helpers.fo as fo
 import src.helpers.pdo as pdo
 import src.helpers.colors as c
 
-cfg = Config()
-view = ViewStudy(cfg.w)
 def study(arg_uname):
+    cnf = Config()
+    view = ViewStudy(cnf.w)
     view.render_title(f'[y]STUDY PROGRAM', char='_')
-    # args/cfg/fs
+    # args/cnf/fs
     prepare_fs()
-    uname = arg_uname or cfg.uname
+    uname = arg_uname or cnf.uname
     if not uname:
         view.disp_uname_note()
         while not uname:
@@ -36,18 +36,18 @@ def study(arg_uname):
     df_study_attempts4user = pdo.filter(df_study_attempts, where={'user_name': uname }, allow_empty=True)
     df_records4user = pdo.filter(df_records, where={'user_name': uname }, allow_empty=True, allow_many=True)
     # create/analyze
-    step, goal, params, comment, exercise = idstep(df_records4user)
+    step, goal, params, comment, exercise = idstep(view, df_records4user)
     view.render_sepline('>')
     path = create(path=False, params=params)
     analyze(path)
     view.render_sepline('<')
     # mode
     trainings_passed, exams_failed = get_attempts(df_study_attempts)
-    mode = idmode(df_records4user, uname, exercise, goal, trainings_passed,
-                  exams_failed, cfg.t2e, cfg.e2t)
+    mode = idmode(view, df_records4user, uname, exercise, goal, trainings_passed,
+                  exams_failed, cnf.t2e, cnf.e2t)
     # interrupt-handler/run
     view.render_status(uname, step, mode, goal, params, trainings_passed,
-                       exams_failed, cfg.t2e, cfg.e2t, comment)
+                       exams_failed, cnf.t2e, cnf.e2t, comment)
     interrupt_handler(df_study_attempts, uname, mode, trainings_passed, exams_failed)
     is_passed, time_seconds = run(path, mode, uname, goal2seconds(goal))
     # result/save
@@ -78,7 +78,7 @@ def interrupt_handler(df_study_attempts, uname, mode, trainings_passed, exams_fa
     trainings_passed, exams_failed = upd_attempts(mode, False, trainings_passed, exams_failed)
     save_study_attempts(df_study_attempts, uname, trainings_passed, exams_failed)
 # idstep
-def idstep(df_records4user):
+def idstep(view, df_records4user):
     view.disp_idstep_start()
     for row in pdo.load('./src/__study_program.csv').itertuples():
         step = row.Index + 1
@@ -88,14 +88,14 @@ def idstep(df_records4user):
             return step, row.goal, row.params, row.comment, exercise
         where = {'exercise':exercise,'is_exam':1,'is_passed':1}
         df_passed_exams = pdo.filter(df_records4user, where=where, allow_empty=True, allow_many=True)
-        if df_passed_exams[df_passed_exams['time_seconds'] <= goal2seconds(row.goal)].empty:
+        if df_passed_exams[df_passed_exams['time'] <= goal2seconds(row.goal)].empty:
             view.render_idstep_not_passed(step, row.params)
             return step, row.goal, row.params, row.comment, exercise
         view.render_idstep_passed(row.step, row.params)
     view.disp_idstep_unknown()
     exit(0)
 # idmode
-def idmode(df_records4user, uname, exercise, goal, trainings_passed, exams_failed, t2e, e2t):
+def idmode(view, df_records4user, uname, exercise, goal, trainings_passed, exams_failed, t2e, e2t):
     mode = 'training'
     where = {'exercise':exercise,'is_exam':0,'is_passed':1}
     df_passed_trainings = pdo.filter(df_records4user, where=where, allow_empty=True, allow_many=True)
@@ -103,7 +103,7 @@ def idmode(df_records4user, uname, exercise, goal, trainings_passed, exams_faile
     if df_passed_trainings.empty:
         view.render_idmode_training('404')
         return mode
-    if df_passed_trainings[df_passed_trainings['time_seconds'] <= goal2seconds(goal)].empty:
+    if df_passed_trainings[df_passed_trainings['time'] <= goal2seconds(goal)].empty:
         view.render_idmode_training('422')
         return mode
     if trainings_passed < t2e:

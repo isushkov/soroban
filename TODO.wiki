@@ -1,0 +1,49 @@
+tests run:
+  run-new training yes-no one-row   no_errors
+  run-new training yes-no one-row   err_1st_row
+  run-new training yes-no one-row   err_3th_row
+  run-new training yes-no one-row   err_3th_row_x3
+  run-new training yes-no multi-row no_errors
+  run-new training yes-no multi-row err_1st_row
+  run-new training yes-no multi-row err_3th_row
+  run-new training yes-no multi-row err_3th_row_x3
+  run-new training input  one-row   no_errors
+  run-new training input  one-row   err_1st_row
+  run-new training input  one-row   err_3th_row
+  run-new training input  one-row   err_3th_row_x3
+  run-new training input  multi-row no_errors
+  run-new training input  multi-row err_1st_row
+  run-new training input  multi-row err_3th_row
+  run-new training input  multi-row err_3th_row_x3
+  run-new exam     input  one-row   no_errors
+  run-new exam     input  one-row   errors
+  run-new exam     input  multi-row no_errors
+  run-new exam     input  multi-row errors
+
+tests create/analyze:
+  run scripts
+  check 3seq-random
+  note if cover range 1-3
+todo:
+  redo params + redo progressions:
+    "<first_sequence>,<sequence>,<sequence>,..."
+    decimal.precision -> range.procision
+  upd readme
+
+backlog:
+  дополнительные возможности:
+    прочитать книги:
+      decimal
+      отрицательные
+      умножение/деление
+    реализовать:
+      decimal
+      отрицательные
+      умножение/деление
+  mental-mode:
+    в процессе работы отображать stage по одному числу - числа должны маргать
+    как готово вернуть всю строку
+  extra возможности:
+    прочитать книги:
+      квадратные корни, другое?
+  добавить локаль для других языков через переводчик

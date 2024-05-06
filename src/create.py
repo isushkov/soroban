@@ -11,23 +11,23 @@ import src.helpers.colors as c
 import src.helpers.fo as fo
 
 # init
-cfg = Config()
-view = ViewCreate(cfg.w)
 def create(path, params):
+    cnf = Config()
+    view = ViewCreate(cnf.w)
     view.render_title('[y]CREATING')
     view.status = ''
     prepare_fs()
     params = parse_params(params)
-    sequence = create_sequence_start(params[0], params[1]) + '\n'
+    sequence = create_sequence_start(view, params[0], params[1]) + '\n'
     for i,seq_params in enumerate(params[1:]):
         kind = seq_params['kind']
         view.render_seq_header(i, kind, seq_params)
         is_roundtrip = seq_params['optional']['roundtrip']
         new_sequence = ''
-        if kind == 'p':  new_sequence += create_sequence_progression(seq_params, s.safe_eval(sequence))
-        if kind == 'r':  new_sequence += create_sequence_random(seq_params, s.safe_eval(sequence))
-        if kind == 'c':  new_sequence += create_sequence_cover(seq_params, s.safe_eval(sequence))
-        if is_roundtrip: new_sequence += create_sequence_roundtrip(new_sequence)
+        if kind == 'p':  new_sequence += create_sequence_progression(view, seq_params, s.safe_eval(sequence))
+        if kind == 'r':  new_sequence += create_sequence_random(view, seq_params, s.safe_eval(sequence))
+        if kind == 'c':  new_sequence += create_sequence_cover(view, seq_params, s.safe_eval(sequence))
+        if is_roundtrip: new_sequence += create_sequence_roundtrip(view, new_sequence)
         sequence += new_sequence.strip() + '\n'
     view.disp_status()
     # save
@@ -44,13 +44,13 @@ def save_file(path, data):
     c.p(f'[g]Exercise was created:[c] {path}')
 
 # start/roundtrip
-def create_sequence_start(start_param, seq_params):
+def create_sequence_start(view, start_param, seq_params):
     view.upd_legend('start')
     operands, range_params, length = seq_params['required'].values()
     allow_neg, decimal_params, _ = seq_params['optional'].values()
     operand = choose_operand(operands)
     if start_param == 'r':
-        _, number_str = s.split_operation(create_operation_random(0, operand, range_params, decimal_params, allow_neg))
+        _, number_str = s.split_operation(create_operation_random(view, 0, operand, range_params, decimal_params, allow_neg))
         second = s.tonum(number_str)
     else:
         second = s.tonum(start_param)
@@ -58,7 +58,7 @@ def create_sequence_start(start_param, seq_params):
     check_neg(s.do_math(first, operand, second), allow_neg)
     view.upd_status('[b]S ')
     return s.tostr(second)
-def create_sequence_roundtrip(sequence):
+def create_sequence_roundtrip(view, sequence):
     view.upd_legend('roundtrip')
     operations = sequence.split()
     operations.reverse()
@@ -70,7 +70,7 @@ def switch_operand(operation):
     return operation.replace(operand_old, {'+':'-','-':'+','*':'/','/':'*'}[operand_old])
 
 # progression
-def create_sequence_progression(seq_params, first):
+def create_sequence_progression(view, seq_params, first):
     view.upd_legend('progression')
     new_sequence = ''
     operands, range_params, length = seq_params['required'].values()
@@ -90,18 +90,18 @@ def create_operation_progression(first, operand, diff, allow_neg):
     return f' {s.add_sign(second)}', second
 
 # random
-def create_sequence_random(seq_params, first):
+def create_sequence_random(view, seq_params, first):
     view.upd_legend('random')
     new_sequence = ''
     operands, range_params, length = seq_params['required'].values()
     allow_neg, decimal_params, _ = seq_params['optional'].values()
     for i in range(int(length)):
         operand = choose_operand(operands)
-        new_sequence += create_operation_random(first, operand, range_params, decimal_params, allow_neg)
+        new_sequence += create_operation_random(view, first, operand, range_params, decimal_params, allow_neg)
         view.upd_status('[b]R')
     view.upd_status(' ')
     return new_sequence
-def create_operation_random(first, operand, range_params, decimal_params, allow_neg):
+def create_operation_random(view, first, operand, range_params, decimal_params, allow_neg):
     # is this possible?
     if not check_neg(s.do_math(first, operand, range_params[0]), allow_neg, exit_policy=0):
         operand = '+'
@@ -110,14 +110,14 @@ def create_operation_random(first, operand, range_params, decimal_params, allow_
         _,new_max_range = change_range('max', shift_max, range_params)
         new_range = [new_min_range, new_max_range]
         view.upd_status_random('[r]e', new_range)
-        return create_operation_random(first, operand, new_range, decimal_params, allow_neg)
+        return create_operation_random(view, first, operand, new_range, decimal_params, allow_neg)
     second = s.tonum(generate_random_number(range_params, decimal_params))
     # no luck this time
     if not check_neg(s.do_math(first, operand, second), allow_neg, exit_policy=0):
         side, shift = 'max', -75
         new_range = change_range('max', -75, range_params)
         view.upd_status_random('[y]n', new_range)
-        return create_operation_random(first, operand, new_range, decimal_params, allow_neg)
+        return create_operation_random(view, first, operand, new_range, decimal_params, allow_neg)
     return f' {operand}{s.del_sign(second)}'
 def choose_operand(operands):
     operations, weights = zip(*operands.items())
@@ -136,7 +136,7 @@ def generate_random_number(range_params, decimal_params):
     return s.tonum(random.randint(*range_values))
 
 # cover
-def create_sequence_cover(seq_params, first):
+def create_sequence_cover(view, seq_params, first):
     view.upd_legend('cover')
     operands, range_params, length = seq_params['required'].values()
     allow_neg, decimal_params, _ = seq_params['optional'].values()
@@ -159,11 +159,11 @@ def create_sequence_cover(seq_params, first):
         # prepare operand
         operand = choose_operand(operands)
         # prepare random_number
-        random_operation = create_operation_random(first, operand, range_params, decimal_params, allow_neg)
+        random_operation = create_operation_random(view, first, operand, range_params, decimal_params, allow_neg)
         _, random_number_str = s.split_operation(random_operation)
         random_number = s.tonum(random_number_str)
         # create operation
-        operation, first, combs = create_operation_cover(first, operand, allow_neg, combs, random_number)
+        operation, first, combs = create_operation_cover(view, first, operand, allow_neg, combs, random_number)
         new_sequence += operation
     # add extra random operations
     len_seq += 1
@@ -173,12 +173,12 @@ def create_sequence_cover(seq_params, first):
             view.render_cover_len('more', length, len_seq)
             view.calls_cover_len_more += 1
         operand = choose_operand(operands)
-        new_sequence += create_operation_random(first, operand, range_params, decimal_params, allow_neg)
+        new_sequence += create_operation_random(view, first, operand, range_params, decimal_params, allow_neg)
         view.upd_status('[b]R')
         len_seq += 1
     view.upd_status(' ')
     return new_sequence
-def create_operation_cover(first, operand, allow_neg, combs, random_number):
+def create_operation_cover(view, first, operand, allow_neg, combs, random_number):
     y = first % 10
     yx_pairs = list(combs[operand])
     # 1. (y,x) pairs exitst. remove pair, done.

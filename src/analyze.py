@@ -11,9 +11,9 @@ from src.view.analyze import ViewAnalyze
 import src.helpers.fo as fo
 import src.helpers.colors as c
 
-cnf = Config()
-view = ViewAnalyze(cnf.w)
 def analyze(path):
+    cnf = Config()
+    view = ViewAnalyze(cnf.w)
     view.render_title(f'[y]ANALYZE {path}')
     # exercise
     sequence, total_provided = fo.txt2str(path).split('=')

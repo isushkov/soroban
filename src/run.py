@@ -8,7 +8,6 @@ from num2words import num2words
 from src.config import Config
 import src.sequence as s
 # src/view
-from src.view._tui import Tui
 from src.view.run import ViewRun
 # src/helpers
 from src.helpers.cmd import cmd
@@ -16,44 +15,43 @@ import src.helpers.fo as fo
 import src.helpers.pdo as pdo
 import src.helpers.colors as c
 
-cfg = Config()
-tui = Tui()
-view = ViewRun(cfg.w)
 def run(path, mode, uname, goal=False):
+    cnf = Config()
+    view = ViewRun(cnf.w)
     # config
-    cfg.init4mode(mode)
-    uname = uname or cfg.uname
-    check_method = 'input' if mode == 'exam' else cfg.check_method
+    cnf.init4mode(mode)
+    uname = uname or cnf.uname
+    check_method = 'input' if mode == 'exam' else cnf.check_method
     # exercise
     exercise_name = os.path.splitext(os.path.basename(path))[0]
     sequence, total_provided = fo.txt2str(path).split('=')
     sequence = s.validate_sequence(sequence, exit_policy=2)
-    operations = sequence.split()
-    start_number = operations.pop(0)
+    ops = sequence.split()
+    start_number = ops.pop(0)
     total = s.safe_eval(sequence)
     # reocords
-    records_columns = ['id', 'rank', 'user_name', 'exercise', 'is_exam', 'is_passed', 'time', 'time_seconds', 'date']
+    records_columns = ['id', 'rank', 'user_name', 'exercise', 'is_exam', 'is_passed', 'time', 'date']
     where = {'exercise': exercise_name, 'is_exam': 1 if mode == 'exam' else 0}
     df_records = pdo.load('./src/__records.csv', columns=records_columns, allow_empty=True)
     df_run = pdo.filter(df_records, where=where, allow_empty=True, allow_many=True)
     timing = get_timing(df_run, uname, goal)
     # view
-    tui.noecho()
+    view.noecho()
     view.render_title(f'[y]RUNNING {exercise_name}')
-    uname = uname or get_uname()
-    view.init_params(mode, goal, uname, sequence, cfg.ops_per_stage, cfg.pls_show)
+    uname = uname or get_uname(view)
+    view.init_params(mode, goal, uname, sequence, cnf.ops_per_stage, cnf.pls_show)
     # fs/sounds
-    prepare_fs()
-    generate_sounds_texts()
-    generate_sounds_numbers(operations)
+    prepare_fs(cnf.lang)
+    generate_sounds_texts(view.w, cnf.lang)
+    generate_sounds_numbers(view.w, cnf.lang, ops)
     # run
     view.render_top(timing)
-    start_time, is_passed = run_stages(mode, start_number, operations, check_method, timing)
+    start_time, is_passed = run_stages(cnf,view, mode, start_number, ops, check_method, timing)
     end_time = round(round(time.time(), 2) - start_time, 2)
     # finish
-    view.render_bottom()
+    view.render_footer()
     view.render_finish(is_passed, end_time)
-    say_beep('end-game-passed' if is_passed else 'end-game', cfg.signals_spd)
+    say_beep('end-game-passed' if is_passed else 'end-game', cnf.signals_spd)
     # upd_records
     if is_passed or mode == 'training':
         df_records = add_record(df_records, uname, exercise_name, mode, is_passed, end_time)
@@ -67,126 +65,136 @@ def run(path, mode, uname, goal=False):
     # leaderboard
     df = pdo.filter(df_records, where={'exercise':exercise_name}, allow_empty=True, allow_many=True)
     view.render_leaderboard(df, user_data)
-    tui.echo()
+    view.echo()
     return is_passed, end_time
 
 # run
-def get_uname():
-    tui.echo()
+def get_uname(view):
+    view.echo()
     view.disp_uname_note()
     uname = input('Please enter your name: ').strip()[:6] or '<anon>'
-    tui.noecho()
+    view.noecho()
     return uname
-def run_stages(mode, start_number, operations, check_method, timing):
+def run_stages(cnf,view, mode, start_number, ops, check_method, timing):
     is_passed = True
     user_errors = 0
     if mode == 'exam':
-        stages = [operations]
+        stages = [ops]
     else:
-        chunk = cfg.ops_per_stage
-        stages = [operations[i:i+chunk] for i in range(0, len(operations), chunk)]
+        chunk = cnf.ops_per_stage
+        stages = [ops[i:i+chunk] for i in range(0, len(ops), chunk)]
     is_restart_stage = False
     total = s.tonum(start_number)
     start_time = None
     for stage_number, stage_ops in enumerate(stages, start=1):
         is_last_stage = True if stage_number == len(stages) else False
-        total, is_passed, start_time = run_stage(mode, stage_number, total, stage_ops, check_method,is_passed,
+        total, is_passed, start_time = run_stage(cnf,view, mode, stage_number, total, stage_ops, check_method,is_passed,
                                              is_restart_stage, is_last_stage, user_errors, timing, start_time)
     return start_time, is_passed
-def run_stage(mode, stage_number, total, stage_ops, check_method, is_passed,
+def run_stage(cnf,view, mode, stage_number, total, stage_ops, check_method, is_passed,
               is_restart_stage, is_last_stage, user_errors, timing, start_time):
-    # start/ready
+    # dummny
+    view.render_dummy_rows(is_last_stage)
+    view.render_footer()
+    # start
+    view.cursor_shift(y=-view.n_dummy_rows-1)
+    view.cursor_move(x=0)
     view.render_stage_start(stage_number, user_errors, end='', flush=True)
     if stage_number == 1 and not is_restart_stage:
-        # say "get ready. start-number is N"
-        view.render_stage_ready(total, end='', flush=True)
-        say_text('get-ready', cfg.speech_spd)
-        say_text('start-number', cfg.speech_spd)
-        say_number(total, cfg.speech_spd)
+        # menu.ready
+        view.cursor_shift(y=view.n_dummy_rows-1)
+        view.render_ready(total)
+        say_text(cnf.lang, 'get-ready', cnf.speech_spd)
+        say_text(cnf.lang, 'start-number', cnf.speech_spd)
+        say_number(cnf.lang, total, cnf.speech_spd)
+    # start continue
     if mode == 'training':
         # say "stage_number is N" (+"continue-with N" if needed)
-        say_stage_start(stage_number, total, is_restart_stage)
+        say_stage_start(cnf, stage_number, total, is_restart_stage)
+    # menu.ready continue
     if stage_number == 1 and not is_restart_stage:
         input()
-        # re-render row
-        tui.clear('line')
-        tui.clear_lines(3)
-        tui.cursor_move(x=0)
-        view.disp_stage(end='', flush=True)
+        view.clear_menu(view.ready)
+        # cursor back
+        view.cursor_shift(y=-view.n_dummy_rows-1)
+        view.cursor_move(x=view.x_ops)
         # say bip-bip-bip and start
-        say_beep('start', cfg.signals_spd)
+        say_beep('start', cnf.signals_spd)
         start_time = round(time.time(), 2)
-    # operations
-    run_operations(stage_ops)
-    # answer
+    # ops
+    run_ops(cnf,view, stage_ops)
     total_bac = total
     total = total + s.safe_eval(' '.join(stage_ops))
+    # menu.yes-no
     if check_method == 'yes-no':
-        view.render_stage_result(total)
-        view.render_yesno(is_last_stage, end='', flush=True)
-        say_text('answer' if is_last_stage else 'stage-result', cfg.res_ann_spd)
-        say_number(total, cfg.res_num_spd)
-        is_correct_answer = tui.yesno()
-        tui.clear('line')
-        tui.clear_lines(4)
-        tui.cursor_move(x=0)
+        # result (for yes-no)
+        view.render_stage_ops_pfx(end='', flush=True)
+        view.render_stage_result(total, end='', flush=True)
+        say_text(cnf.lang, 'answer' if is_last_stage else 'stage-result', cnf.res_ann_spd)
+        say_number(cnf.lang, total, cnf.res_num_spd)
+        view.render_yesno(is_last_stage)
+        is_correct_answer = view.menu_yesno()
+        view.clear_menu(view.yesno)
+    # menu.input
     else:
-        x_pos = view.render_input(total, is_last_stage, end='', flush=True)
-        tui.cursor_shift(y=-1)
-        tui.cursor_move(x=x_pos)
+        view.render_input(total, is_last_stage)
         sound = 'enter-answer' if is_last_stage else 'enter-stage-result'
-        say_text(sound, cfg.res_entry_spd)
-        answer = tui.input()
+        say_text(cnf.lang, sound, cnf.res_entry_spd)
+        answer = view.menu_input()
+        view.clear_menu(view.input)
         view.answer = answer # for finish msg
         is_correct_answer = True if s.tonum(answer, allow2fail=True) == total else False
-        tui.clear('down')
-        tui.clear_lines(1)
-    # result.failed
+    # restart stage
     if not is_correct_answer:
         is_passed = False
         if mode == 'exam':
             return total, is_passed, start_time
         user_errors += 1
         is_restart_stage = True
-        say_beep('wrong', cfg.res_wrong_spd)
+        say_beep('wrong', cnf.res_wrong_spd)
         # upd view
-        tui.clear_lines(1) # clear current stage row
+        view.clear_lines(view.n_dummy_rows+1) # clear current stage rows
         if view.calls_top == 1: # upd top when fail only once
-            tui.clear_lines(view.donestages_count)
-            tui.clear_lines(3) # clear top
+            view.clear_lines(view.n_donestages)
+            view.clear_lines(3) # clear top
             view.render_top(timing)
             view.disp_donestages()
-        return run_stage(mode, stage_number, total_bac, stage_ops, check_method, is_passed,
+        return run_stage(cnf,view, mode, stage_number, total_bac, stage_ops, check_method, is_passed,
                          is_restart_stage, is_last_stage, user_errors, timing, start_time)
-    # result.ok
+    # result (for input) - dont print, just sync with yes-no
+    if mode == 'training' and check_method == 'input':
+        view.upd_stage_ops_pfx()
+        view.upd_stage_result(total)
+    # timing
     if mode == 'training':
         t_spent = round(time.time(), 2) - start_time
-        tui.clear_lines(1) # clear current-row
+        # clear stage/disp stage + add timing
+        view.clear_lines(view.n_dummy_rows+1)
         view.disp_stage(end='', flush=True)
         view.render_stage_timing(t_spent, timing, is_passed, is_last_stage)
     return total, is_passed, start_time
 
 # stage.start
-def say_stage_start(stage_number, start_number, is_restart_stage):
+def say_stage_start(cnf, stage_number, start_number, is_restart_stage):
     if stage_number == 1 and not is_restart_stage:
-        speed_ann = cfg.speech_spd
+        speed_ann = cnf.speech_spd
     else:
-        speed_ann = cfg.start_ann_spd
+        speed_ann = cnf.start_ann_spd
     # say
-    say_text('stage', speed_ann)
-    say_number(stage_number, speed_ann)
+    say_text(cnf.lang, 'stage', speed_ann)
+    say_number(cnf.lang, stage_number, speed_ann)
     if is_restart_stage:
-        say_text('continue-with', cfg.cont_ann_spd)
-        say_number(start_number, cfg.cont_num_spd)
-# stage.operations
-def run_operations(stage_ops):
-    for operation in stage_ops:
-        operand, number = s.split_operation(operation)
-        view.render_stage_operation(operand, cfg.pls_show, number, end='', flush=True)
-        speed_operand = cfg.pls_spd if operand == '+' else cfg.num_spd
-        say_text(operand, speed_operand)
-        say_number(number, cfg.num_spd)
-        time.sleep(cfg.num_delay)
+        say_text(cnf.lang, 'continue-with', cnf.cont_ann_spd)
+        say_number(cnf.lang, start_number, cnf.cont_num_spd)
+# stage.ops
+def run_ops(cnf,view, stage_ops):
+    for op in stage_ops:
+        operand, number = s.split_operation(op)
+        view.render_stage_op(operand, number, cnf.pls_show, end='', flush=True)
+        speed_operand = cnf.pls_spd if operand == '+' else cnf.num_spd
+        say_text(cnf.lang, operand, speed_operand)
+        say_number(cnf.lang, number, cnf.num_spd)
+        time.sleep(cnf.num_delay)
 # stage.deltas
 def get_timing(df_run, uname, goal):
     timing = {'passed':{},'repeat':{}}
@@ -203,10 +211,10 @@ def get_timing(df_run, uname, goal):
 def df2besttime(df):
     if df.empty:
         return False
-    best_time_row = df.nsmallest(1, 'time_seconds')
+    best_time_row = df.nsmallest(1, 'time')
     if best_time_row.empty:
         return False
-    best_time_value = best_time_row['time_seconds'].iloc[0]
+    best_time_value = best_time_row['time'].iloc[0]
     return float(best_time_value)
 
 # final
@@ -217,50 +225,49 @@ def add_record(df_records, uname, exercise_name, mode, is_passed, end_time):
         'exercise': exercise_name,
         'is_exam': 1 if mode == 'exam' else 0,
         'is_passed': 1 if is_passed else 0,
-        'time': view.dec_t2ft(end_time, colorize=False),
-        'time_seconds': end_time,
+        'time': end_time,
         'date': datetime.fromtimestamp(time.time()).strftime('%d.%m.%y')
     })
 def upd_ranks(df):
-    df = df.sort_values(by=['is_exam', 'is_passed', 'time_seconds'], ascending=[False, False, True])
+    df = df.sort_values(by=['is_exam', 'is_passed', 'time'], ascending=[False, False, True])
     df['rank'] = range(1, len(df) + 1)
     return df
 
 # sounds
-def prepare_fs():
-    cmd(f'mkdir -p ./sounds/{cfg.lang}/numbers')
-def generate_sounds_texts():
+def prepare_fs(lang):
+    cmd(f'mkdir -p ./sounds/{lang}/numbers')
+def generate_sounds_texts(w, lang):
     texts = fo.yml2dict('./src/_texts4sounds.yml')
     for i,sound in enumerate(texts):
-        path = f'sounds/{cfg.lang}/{sound}.mp3'
-        generate_sound(path, texts[sound][cfg.lang])
-        progress_bar('generate speech (texts)  ', len(texts), i)
+        path = f'sounds/{lang}/{sound}.mp3'
+        generate_sound(lang, path, texts[sound][lang])
+        progress_bar(w, 'generate speech (texts)', len(texts), i)
     print() # for progress_bar
-def generate_sounds_numbers(operations):
-    for i,operation in enumerate(operations):
-        _, number = s.split_operation(operation)
-        path = f'sounds/{cfg.lang}/numbers/{number}.mp3'
-        generate_sound(path, num2words(number, lang=cfg.lang))
-        progress_bar('generate speech (numbers)', len(operations), i)
+def generate_sounds_numbers(w, lang, ops):
+    for i,op in enumerate(ops):
+        _, number = s.split_operation(op)
+        path = f'sounds/{lang}/numbers/{number}.mp3'
+        generate_sound(lang, path, num2words(number, lang=lang))
+        progress_bar(w, 'generate speech (numbers)', len(ops), i)
     print() # for progress_bar
-def generate_sound(path, text):
+def generate_sound(lang, path, text):
     if not fo.f_exist(path):
-        tts = gTTS(text=text, lang=cfg.lang)
+        tts = gTTS(text=text, lang=lang)
         tts.save(path)
-def progress_bar(msg, start_number, i):
-    w = view.w - len(msg) - 7
+def progress_bar(w,msg, start_number, i):
+    w -= 32
     progress = int((i + 1) / start_number * w)
     done = '#' * progress
     in_progress = '.'*(w - progress)
     print(c.z(f'[x]>>> {msg} [{done}{in_progress}]'), end='\r', flush=True)
 def say_beep(sound, speed):
     mpv(f'sounds/{sound}.mp3', speed)
-def say_text(sound, speed):
-    mpv(f'sounds/{cfg.lang}/{sound}.mp3', speed)
-def say_number(sound, speed):
-    path = f'sounds/{cfg.lang}/numbers/{sound}.mp3'
+def say_text(lang, sound, speed):
+    mpv(f'sounds/{lang}/{sound}.mp3', speed)
+def say_number(lang, sound, speed):
+    path = f'sounds/{lang}/numbers/{sound}.mp3'
     if not fo.f_exist(path):
-        generate_sound(path, num2words(sound, lang=cfg.lang))
+        generate_sound(lang, path, num2words(sound, lang=lang))
     mpv(path, speed)
 def mpv(path, speed):
     if not fo.f_exist(path):

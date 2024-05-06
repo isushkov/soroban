@@ -85,19 +85,3 @@ class Tui:
             exit(130)
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return key
-    # menus
-    def yesno(self):
-        key = self.getch()
-        if key in [' ', '\r', '\n']:
-            return True
-        elif key == '\x1b':
-            c.p('[g]Exit.')
-            exit(130)
-        else:
-            return False
-    def input(self):
-        self.echo()
-        answer = input()
-        self.noecho()
-        self.clear_lines(1)
-        return answer

@@ -1,14 +1,16 @@
 import re
 import shutil
 import src.helpers.colors as c
+from src.view._tui import Tui
 
 # magic:
 #   render_<attr>() : upd_<attr>() and then disp_<attr>()
 #      upd_<attr>() : set cpecific logic for upd <attr>
 #     disp_<attr>() : print <attr> or set specific-logic for print
 #    calls_<attr>   : auto-init counter for <attr>
-class View():
+class View(Tui):
     def __init__(self, w_settings):
+        super().__init__()
         self.w_term, self.h_term = shutil.get_terminal_size()
         self.w = self.upd_w(w_settings)
         self.tab = ' '
@@ -215,7 +217,7 @@ class View():
         return self.dec_table_line(column_lengths, color, left=self.tl, center=self.tx, right=self.tr, filler=self.h)
     def table_s(self, column_lengths, color=False):
         return self.dec_table_line(column_lengths, color, left=self.lx, center=self.cx, right=self.rx, filler=self.h)
-    def table_b(self, column_lengths, color=False):
+    def table_f(self, column_lengths, color=False):
         return self.dec_table_line(column_lengths, color, left=self.bl, center=self.bx, right=self.br, filler=self.h)
     # table.dec
     def dec_table_text(self, texts, color, edges, left,center,right, filler):
