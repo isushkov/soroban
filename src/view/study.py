@@ -36,12 +36,12 @@ class ViewStudy(View):
         return f'[g]>>> INFO: [x]Current [g]step is {step} [x]({params}).'
     # idmode
     def upd_idmode_training(self, code):
-        w_time = f'[y]within the specified time'
         pfx = '[x]for this exercise'
+        w_time = f'[c]within the specified time'
         code2msg = {
-            '404': f'[b]>>> INFO: [x]So far, no trainings have been passed {pfx}.',
-            '422': f'[b]>>> INFO: [x]So far, no trainings have been passed {w_time} {pfx}.',
-            't2e': f'[b]>>> INFO: [x]The training was [y]completed fewer times [x]in a row than necessary {pfx}.',
+            '404': f'[b]>>> INFO: [x]So far, [c]no trainings have been passed {pfx}.',
+            '422': f'[b]>>> INFO: [x]So far, [c]no trainings [x]have been passed {w_time} {pfx}.',
+            't2e': f'[b]>>> INFO: [x]The training was [c]completed fewer times in a row [x]than necessary {pfx}.',
             'e2t': f'[b]>>> INFO: [x]The exam is [r]retaken more times in a row [x]than possible {pfx}.'
         }
         self.idmode_training = code2msg[code] + '\n'
@@ -50,7 +50,7 @@ class ViewStudy(View):
         self.idmode_exam = '[g]>>> INFO: Admission to the exam has been received.\n'
         self.idmode_exam += self.dec_idmode_done('r', 'exam')
     def dec_idmode_done(self, color, mode):
-        return f'[b]>>> INFO:[x] Current mode is [{color}]{mode.upper()}[x].'
+        return f'[g]>>> INFO:[x] Current mode is [{color}]{mode.upper()}[x].'
 
     # status
     def upd_status(self, uname, step, mode, goal, params, trainings_passed, exams_failed, t2e, e2t, comment):

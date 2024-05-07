@@ -122,7 +122,7 @@ def run_stage(cnf,view, mode, stage_number, total, stage_ops, check_method, is_p
         say_beep('start', cnf.signals_spd)
         start_time = round(time.time(), 2)
     # ops
-    run_ops(cnf,view, stage_ops)
+    run_ops(cnf,view, stage_ops, stage_number, is_restart_stage)
     total_bac = total
     total = total + s.safe_eval(' '.join(stage_ops))
     # menu.yes-no
@@ -192,14 +192,15 @@ def say_stage_start(cnf, stage_number, start_number, is_restart_stage):
         say_text(cnf.lang, 'continue-with', cnf.cont_ann_spd)
         say_number(cnf.lang, start_number, cnf.cont_num_spd)
 # stage.ops
-def run_ops(cnf,view, stage_ops):
-    for op in stage_ops:
+def run_ops(cnf,view, stage_ops, stage_number, is_restart_stage):
+    for i,op in enumerate(stage_ops):
+        if not (stage_number == 1 and i == 0 and not is_restart_stage):
+            time.sleep(cnf.num_delay)
         operand, number = s.split_operation(op)
         view.render_stage_op(operand, number, cnf.pls_show, end='', flush=True)
         speed_operand = cnf.pls_spd if operand == '+' else cnf.num_spd
         say_text(cnf.lang, operand, speed_operand)
         say_number(cnf.lang, number, cnf.num_spd)
-        time.sleep(cnf.num_delay)
 # stage.deltas
 def get_timing(df_run, uname, goal):
     timing = {'passed':{},'repeat':{}}

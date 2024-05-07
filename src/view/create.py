@@ -62,10 +62,11 @@ class ViewCreate(View):
     def disp_status(self):
         if not self.status:
             return
-        wpad = 3
+        lr_padding = 3
+        w = min(self.w - lr_padding*2, 50)
         self.status = (
-            self.padding(self.legend, [wpad,1,0,1]) + '\n' +
-            self.padding(self.wrap(self.status, self.w - wpad*2), [wpad,0,wpad,1])
+            self.padding(self.legend, [lr_padding,1,0,1]) + '\n' +
+            self.padding(self.wrap(self.status, w), [lr_padding,0,lr_padding,1])
         )
         self._disp('status')
 

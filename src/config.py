@@ -80,7 +80,7 @@ class Config:
         val = int(self.find(path, default))
         if val < 0:
             val = self.e400(path, val, default)
-        return int(val / 1000)
+        return val / 1000
     def set_int(self, path, default=1, allow_zero=False, allow_negative=False):
         val = int(self.find(path, default))
         if not allow_negative and val <  0: val = self.e400(path, val, default)
