@@ -17,8 +17,8 @@ class Tui:
     # restore
     def signal_handler(self, signum, frame):
         self.echo()
-        print('\nBye!')
-        exit(0)
+        c.p('[r]Exit.', end='')
+        exit(130)
 
     # echo
     def noecho(self):

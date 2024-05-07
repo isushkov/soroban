@@ -8,7 +8,6 @@ import src.sequence as s
 from src.view._view import View
 # src/helpers
 import src.helpers.colors as c
-import src.helpers.fo as fo
 
 class ViewRun(View):
     def __init__(self, w_user):
@@ -98,20 +97,21 @@ class ViewRun(View):
             # atleast max width title
             min_w_ops = len(' Status:EXAM ─ Goal 00:00.00 ' if self.mode == 'exam' else ' Status:REPETITION ')
             w_occupied = (self.wsep + self.w_start +
-                          self.wsep + 1 + # for right-space
+                          self.wsep +
                           self.wsep + self.w_result +
                           self.wsep + self.w_timing + self.wsep)
             self.w_ops = self.w - w_occupied
             if self.w_ops < min_w_ops:
                 self.w_ops = min_w_ops
         self.w_status = self.w_ops + self.w_result
+        # depend on w_ops, w_op
+        self.n_rows_per_normal_stage = self.calc_n_rows_per_stage(self.n_ops_per_stage)
         # x_pos
         self.x_start = 1 + self.wsep
         if self.mode == 'exam':
             self.x_ops = self.x_start
         else:
             self.x_ops = self.x_start + self.w_start + self.wsep
-        # self.x_result = self.x_ops + self.w_ops + self.wsep
     # menus
     def upd_ready(self, start_number):
         self.ready = '\n'+self.dec_menu(
@@ -136,7 +136,6 @@ class ViewRun(View):
         msg = f"[x]Your [y]{'answer' if is_last_stage else 'stage result'} is: [c]"
         self.input = '\n'+self.dec_menu(msg)
         self.x_input = self.wsep + c.ln(msg) + 1 + 1 # + padding_left + space
-        fo.str2txt_append(s.tostr(total), 'spoilers.txt') # debug
     def menu_input(self):
         # prepare cursor
         self.cursor_shift(y=-2)
@@ -197,7 +196,7 @@ class ViewRun(View):
             if self.t_goal:
                 row.append([self.head_t_goal, 'center', self.wt])
             uname = '[x]t.'+self.uname
-            edges = '' if c.ln(uname) > 4 else ' '
+            edges = '' if c.ln(self.uname) > 4 else ' '
             row.append([uname, 'center', self.wt, edges])
             row.append([self.head_t_oth, 'center', self.wt])
             # state
@@ -231,6 +230,8 @@ class ViewRun(View):
         dummy_rows = [self.table_l([self.dummy_col(w) for w in w_cols]) for _ in range(n_rows)]
         self.dummy_rows = '\n'.join(dummy_rows)
         self.n_dummy_rows = n_rows # for cursor_shift
+    def upd_footer(self):
+        self.footer = self.table_f(self.calc_w_cols())
     def dummy_col(self, w):
         return [' '*w, 'center', w, '']
     def calc_n_rows_per_stage(self, n_ops):
@@ -243,8 +244,6 @@ class ViewRun(View):
         w_cols = [self.w_start, self.w_ops, self.w_result]
         w_cols += [self.wt] * (4 if self.t_goal else 3)
         return w_cols
-    def upd_footer(self):
-        self.footer = self.table_f(self.calc_w_cols())
 
     # stage.start
     def upd_stage_start(self, stage_number, user_errors):
@@ -438,7 +437,7 @@ class ViewRun(View):
         table = []
         table.append(c.z('[x]  ┌─ Leaderboard ─────────────────────────────────────────────────────────────────────┐'))
         table.append(c.z('[x]  │                             ┌────────────────────── Training ─────────────────────┴─┐'))
-        table.append(c.z('[x]┌─┴─ [g]EXAM PASSED[x] ─────────────┐─┴─ [b]Passed[x] ──────────────────┐─── With repetitions ──────┴─┐'))
+        table.append(c.z('[x]┌─┴─ [g]EXAM PASSED[x] ─────────────┐─┴─ [b]Passed[x] ──────────────────┐─── [c]With repetitions[x] ──────┴─┐'))
         max_length = max(len(exam), len(training), len(repetitions))
         sep = ' '*30
         for i in range(max_length):

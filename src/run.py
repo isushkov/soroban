@@ -156,7 +156,7 @@ def run_stage(cnf,view, mode, stage_number, total, stage_ops, check_method, is_p
         view.clear_lines(view.n_dummy_rows+1)
         if view.calls_top == 1: # upd top when fail only once
             # clear done stages, clear top
-            view.clear_lines(view.n_donestages*view.n_dummy_rows)
+            view.clear_lines(view.n_donestages*view.n_rows_per_normal_stage)
             view.clear_lines(3) # clear top
             # render top with new data and disp donestages
             view.render_top(timing)
