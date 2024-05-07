@@ -49,14 +49,13 @@ def run(path, mode, uname, goal=False):
     start_time, is_passed = run_stages(cnf,view, mode, start_number, ops, check_method, timing)
     end_time = round(round(time.time(), 2) - start_time, 2)
     # finish
-    view.render_footer()
     view.render_finish(is_passed, end_time)
     say_beep('end-game-passed' if is_passed else 'end-game', cnf.signals_spd)
     # upd_records
     if is_passed or mode == 'training':
         df_records = add_record(df_records, uname, exercise_name, mode, is_passed, end_time)
         user_id = df_records.index[-1]
-        df_records = upd_ranks(df_records)
+        df_records = upd_ranks(df_records, exercise_name)
         pdo.save(df_records, './src/__records.csv')
         user_data = df_records.loc[user_id].to_dict()
         user_data['id'] = user_id
@@ -64,6 +63,7 @@ def run(path, mode, uname, goal=False):
         user_data = False
     # leaderboard
     df = pdo.filter(df_records, where={'exercise':exercise_name}, allow_empty=True, allow_many=True)
+    df = df.sort_values(by='rank', ascending=True)
     view.render_leaderboard(df, user_data)
     view.echo()
     return is_passed, end_time
@@ -144,7 +144,7 @@ def run_stage(cnf,view, mode, stage_number, total, stage_ops, check_method, is_p
         view.clear_menu(view.input)
         view.answer = answer # for finish msg
         is_correct_answer = True if s.tonum(answer, allow2fail=True) == total else False
-    # restart stage
+    # wrong
     if not is_correct_answer:
         is_passed = False
         if mode == 'exam':
@@ -152,26 +152,31 @@ def run_stage(cnf,view, mode, stage_number, total, stage_ops, check_method, is_p
         user_errors += 1
         is_restart_stage = True
         say_beep('wrong', cnf.res_wrong_spd)
-        # upd view
-        view.clear_lines(view.n_dummy_rows+1) # clear current stage rows
+        # clear current stage rows
+        view.clear_lines(view.n_dummy_rows+1)
         if view.calls_top == 1: # upd top when fail only once
-            view.clear_lines(view.n_donestages)
+            # clear done stages, clear top
+            view.clear_lines(view.n_donestages*view.n_dummy_rows)
             view.clear_lines(3) # clear top
+            # render top with new data and disp donestages
             view.render_top(timing)
             view.disp_donestages()
         return run_stage(cnf,view, mode, stage_number, total_bac, stage_ops, check_method, is_passed,
                          is_restart_stage, is_last_stage, user_errors, timing, start_time)
-    # result (for input) - dont print, just sync with yes-no
-    if mode == 'training' and check_method == 'input':
-        view.upd_stage_ops_pfx()
-        view.upd_stage_result(total)
-    # timing
+    # correct
     if mode == 'training':
+        # result (for input) - dont print, just sync with yes-no
+        if check_method == 'input':
+            view.upd_stage_ops_pfx()
+            view.upd_stage_result(total)
+        # timing
         t_spent = round(time.time(), 2) - start_time
         # clear stage/disp stage + add timing
         view.clear_lines(view.n_dummy_rows+1)
         view.disp_stage(end='', flush=True)
         view.render_stage_timing(t_spent, timing, is_passed, is_last_stage)
+        if is_last_stage:
+            view.render_footer()
     return total, is_passed, start_time
 
 # stage.start
@@ -228,9 +233,21 @@ def add_record(df_records, uname, exercise_name, mode, is_passed, end_time):
         'time': end_time,
         'date': datetime.fromtimestamp(time.time()).strftime('%d.%m.%y')
     })
-def upd_ranks(df):
-    df = df.sort_values(by=['is_exam', 'is_passed', 'time'], ascending=[False, False, True])
-    df['rank'] = range(1, len(df) + 1)
+# TODO:
+# TODO:
+# TODO:
+# TODO:
+def upd_ranks(df, exercise_name):
+    # df = df.sort_values(by=['is_exam', 'is_passed', 'time'], ascending=[False, False, True])
+    # df['rank'] = range(1, len(df) + 1)
+    # return df
+    original_dtypes = df.dtypes
+    df3exercise = df[df['exercise'] == exercise_name]
+    df_sorted = df3exercise.sort_values(by=['is_exam', 'is_passed', 'time'], ascending=[False, False, True])
+    df_sorted['rank'] = range(1, len(df_sorted) + 1)
+    df.update(df_sorted)
+    for column, dtype in original_dtypes.items():
+        df[column] = df[column].astype(dtype)
     return df
 
 # sounds
@@ -255,11 +272,12 @@ def generate_sound(lang, path, text):
         tts = gTTS(text=text, lang=lang)
         tts.save(path)
 def progress_bar(w,msg, start_number, i):
-    w -= 32
+    msg = c.ljust('>>> '+msg, 29)
+    w = w - c.ln(msg) - 3 # for space and edges
     progress = int((i + 1) / start_number * w)
     done = '#' * progress
     in_progress = '.'*(w - progress)
-    print(c.z(f'[x]>>> {msg} [{done}{in_progress}]'), end='\r', flush=True)
+    print(c.z(f'[x]{msg} [x][{done}{in_progress}]'), end='\r', flush=True)
 def say_beep(sound, speed):
     mpv(f'sounds/{sound}.mp3', speed)
 def say_text(lang, sound, speed):

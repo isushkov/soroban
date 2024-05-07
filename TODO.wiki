@@ -1,24 +1,52 @@
 tests run:
-  run-new training yes-no one-row   no_errors
-  run-new training yes-no one-row   err_1st_row
-  run-new training yes-no one-row   err_3th_row
-  run-new training yes-no one-row   err_3th_row_x3
-  run-new training yes-no multi-row no_errors
-  run-new training yes-no multi-row err_1st_row
-  run-new training yes-no multi-row err_3th_row
-  run-new training yes-no multi-row err_3th_row_x3
-  run-new training input  one-row   no_errors
-  run-new training input  one-row   err_1st_row
-  run-new training input  one-row   err_3th_row
-  run-new training input  one-row   err_3th_row_x3
-  run-new training input  multi-row no_errors
-  run-new training input  multi-row err_1st_row
-  run-new training input  multi-row err_3th_row
-  run-new training input  multi-row err_3th_row_x3
-  run-new exam     input  one-row   no_errors
-  run-new exam     input  one-row   errors
-  run-new exam     input  multi-row no_errors
-  run-new exam     input  multi-row errors
+  1 stage (1 row)
+  1 stage (3 row, last uniq-len)
+  3 stage (1 row)
+  3 stage (3 row, last same-len)
+  3 stage (3 row, last uniq-len)
+  %% run-new training one-row   yes-no no_errors
+  %% run-new training one-row   yes-no err_1st_stage
+  %% run-new training one-row   yes-no err_3th_stage
+  %% run-new training one-row   yes-no err_3th_stage_x3
+  %% run-new training one-row   input  no_errors
+  %% run-new training one-row   input  err_1st_stage
+  %% run-new training one-row   input  err_3th_stage
+  %% run-new training one-row   input  err_3th_stage_x3
+  %% run-new training multi-row yes-no no_errors
+  %% run-new training multi-row yes-no err_1st_stage
+  %% run-new training multi-row yes-no err_2th_stage
+  %% run-new training multi-row yes-no err_2th_stage_x3
+  %% run-new training multi-row input  no_errors
+  %% run-new training multi-row input  err_1st_stage
+  %% run-new training multi-row input  err_2th_stage
+  %% run-new training multi-row input  err_2th_stage_x3
+  run-new exam     one-row   input  no_errors
+    bug extra footer after input
+  run-new exam     one-row   input  errors
+  run-new exam     multi-row input  no_errors
+    bug extra footer after input
+  run-new exam     multi-row input  errors
+
+  study   training one-row   yes-no no_errors
+  study   training one-row   yes-no err_1st_stage
+  study   training one-row   yes-no err_3th_stage
+  study   training one-row   yes-no err_3th_stage_x3
+  study   training one-row   input  no_errors
+  study   training one-row   input  err_1st_stage
+  study   training one-row   input  err_3th_stage
+  study   training one-row   input  err_3th_stage_x3
+  study   training multi-row yes-no no_errors
+  study   training multi-row yes-no err_1st_stage
+  study   training multi-row yes-no err_2th_stage
+  study   training multi-row yes-no err_2th_stage_x3
+  study   training multi-row input  no_errors
+  study   training multi-row input  err_1st_stage
+  study   training multi-row input  err_2th_stage
+  study   training multi-row input  err_2th_stage_x3
+  study   exam     one-row   input  no_errors
+  study   exam     one-row   input  errors
+  study   exam     multi-row input  no_errors
+  study   exam     multi-row input  errors
 
 tests create/analyze:
   run scripts

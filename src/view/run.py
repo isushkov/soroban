@@ -8,6 +8,7 @@ import src.sequence as s
 from src.view._view import View
 # src/helpers
 import src.helpers.colors as c
+import src.helpers.fo as fo
 
 class ViewRun(View):
     def __init__(self, w_user):
@@ -71,47 +72,46 @@ class ViewRun(View):
         self.mode = mode
         self.t_goal = goal
         self.n_ops = len(ops)
-        self.n_ops_per_stage = n_ops_per_stage
-        self.n_ops_last_stage = self.n_ops % n_ops_per_stage
-        self.n_stages = self.n_ops // n_ops_per_stage + (1 if self.n_ops_last_stage else 0)
+        # n_ops
+        if self.mode == 'exam':
+            self.n_ops_per_stage = self.n_ops
+            self.n_ops_last_stage = self.n_ops
+            self.n_stages = 1
+        else:
+            self.n_ops_per_stage = n_ops_per_stage
+            self.n_ops_last_stage = self.n_ops % n_ops_per_stage
+            self.n_stages = self.n_ops // n_ops_per_stage + (1 if self.n_ops_last_stage else 0)
         # start/result/timing/final
         self.w_start = max(c.ln(self.acc_start), c.ln(f'{self.n_stages}/{self.n_stages}x9')+2)
         self.w_result = max(c.ln(self.acc_result)+2, len(s.tostr(s.maxsum(s.tonum(start_number), ops)))+2)
         self.wt = c.ln(self.t_empty)
         self.w_timing = 0 if self.mode == 'exam' else ((self.wt+self.wsep)*(4 if self.t_goal else 3)) - self.wsep
         self.total = s.safe_eval(sequence)
-        # hooks: зависит от оставшейся ширины экрана
+        # hooks: w_ops/w_status - depend on global width
         # если среди операндов только плюсы и его не показывать len op -1
         existed_operands = list(set(s.split_operation(op)[0] for op in ops))
         pls_shift = 1 if len(existed_operands) == 1 and existed_operands[0] == '+' and not pls_show else 0
-        self.w_op = len(max(ops, key=len)) - pls_shift + 1 # for space
+        self.w_op = len(max(ops, key=len)) - pls_shift + 1 # for left-space
         if self.mode == 'exam':
-            self.w_ops = self.w - self.wsep - self.wsep
+            self.w_ops = self.w - self.wsep - 1 - self.wsep # 1 for right-space
         else:
-            # w_ops: atleast status title lenght
-            self._min_w_ops = len(' Status: REPETITION ')
-            self._w_occupied = (self.wsep + self.w_start +
-                                self.wsep +
-                                self.wsep + self.w_result +
-                                self.wsep + self.w_timing + self.wsep)
-            self.w_ops = self.w - self._w_occupied
-            if self.w_ops < self._min_w_ops:
-                self.w_ops = self._min_w_ops
-        self.n_rows_per_stage = self.calc_n_rows_per_stage(self.n_ops_per_stage)
-        self.n_rows_last_stage = self.calc_n_rows_per_stage(self.n_ops_last_stage)
+            # atleast max width title
+            min_w_ops = len(' Status:EXAM ─ Goal 00:00.00 ' if self.mode == 'exam' else ' Status:REPETITION ')
+            w_occupied = (self.wsep + self.w_start +
+                          self.wsep + 1 + # for right-space
+                          self.wsep + self.w_result +
+                          self.wsep + self.w_timing + self.wsep)
+            self.w_ops = self.w - w_occupied
+            if self.w_ops < min_w_ops:
+                self.w_ops = min_w_ops
         self.w_status = self.w_ops + self.w_result
         # x_pos
-        self.x_start  = 1 + self.wsep
+        self.x_start = 1 + self.wsep
         if self.mode == 'exam':
             self.x_ops = self.x_start
         else:
             self.x_ops = self.x_start + self.w_start + self.wsep
         # self.x_result = self.x_ops + self.w_ops + self.wsep
-    def calc_n_rows_per_stage(self, n_stage_ops):
-        n_ops_per_row = self.w_ops // self.w_op or 1
-        n_stage_rows = n_stage_ops // n_ops_per_row + (1 if n_stage_ops % n_ops_per_row else 0)
-        return n_stage_rows
-
     # menus
     def upd_ready(self, start_number):
         self.ready = '\n'+self.dec_menu(
@@ -136,6 +136,7 @@ class ViewRun(View):
         msg = f"[x]Your [y]{'answer' if is_last_stage else 'stage result'} is: [c]"
         self.input = '\n'+self.dec_menu(msg)
         self.x_input = self.wsep + c.ln(msg) + 1 + 1 # + padding_left + space
+        fo.str2txt_append(s.tostr(total), 'spoilers.txt') # debug
     def menu_input(self):
         # prepare cursor
         self.cursor_shift(y=-2)
@@ -146,13 +147,6 @@ class ViewRun(View):
         self.noecho()
         self.clear_lines(1)
         return answer
-    # cursors
-    def clear_menu(self, menu):
-        self.cursor_shift(y=999)
-        self.cursor_shift(y=-len(menu.splitlines(keepends=True))+1)
-        self.cursor_move(x=0)
-        self.clear('down')
-        self.render_footer()
     # menus.dec
     def dec_menu(self, msg):
         max_length = max(c.ln(line) for line in msg.split('\n'))
@@ -164,7 +158,13 @@ class ViewRun(View):
         if self.mode == 'exam': w = self.wsep + self.w_ops // 2 + self.wsep
         else: w = self.wsep + self.w_start + self.wsep + self.w_ops + self.wsep
         return w if w > min_w else min_w
-
+    # clear
+    def clear_menu(self, menu):
+        self.cursor_shift(y=999)
+        self.cursor_shift(y=-len(menu.splitlines(keepends=True))+1)
+        self.cursor_move(x=0)
+        self.clear('down')
+        self.render_footer()
     # top
     def upd_top(self, timing):
         self.top = '\n' # for top padding
@@ -183,10 +183,10 @@ class ViewRun(View):
         if self.mode == 'exam':
             status += '[r]'+self.mode.upper()
             if self.t_goal:
-                t_goal = self.dec_t2ft(self.t_goal, v_color='y')
-                status += self.tcolor+self.h + f' Goal:{t_goal} '
+                ft_goal = self.dec_t2ft(self.t_goal, v_color='y')
+                status += self.tcolor+self.h + f' Goal: {ft_goal}'
             # state
-            self.head = self.table_th([[status, 'left', self.w_ops]])
+            self.head = self.table_th([[status, 'left', self.w_ops +1]]) # 1 for right-space
         else:
             # status/result
             status += '[g]'+self.mode.upper() if is_passed else 'REPETITION'
@@ -219,21 +219,32 @@ class ViewRun(View):
 
     # dummy
     def upd_dummy_rows(self, is_last_stage):
-        n_rows = self.n_rows_last_stage if is_last_stage else self.n_rows_per_stage
+        if self.mode == 'exam':
+            n_ops = self.n_ops
+        else:
+            if is_last_stage:
+                n_ops = self.n_ops_last_stage or self.n_ops_per_stage
+            else:
+                n_ops = self.n_ops_per_stage
+        n_rows = self.calc_n_rows_per_stage(n_ops)
         w_cols = self.calc_w_cols()
         dummy_rows = [self.table_l([self.dummy_col(w) for w in w_cols]) for _ in range(n_rows)]
         self.dummy_rows = '\n'.join(dummy_rows)
         self.n_dummy_rows = n_rows # for cursor_shift
-    def upd_footer(self):
-        self.footer = self.table_f(self.calc_w_cols())
+    def dummy_col(self, w):
+        return [' '*w, 'center', w, '']
+    def calc_n_rows_per_stage(self, n_ops):
+        n_ops_per_row = self.w_ops // self.w_op or 1
+        n_stage_rows = n_ops // n_ops_per_row + (1 if n_ops % n_ops_per_row else 0)
+        return n_stage_rows
     def calc_w_cols(self):
         if self.mode == 'exam':
-            return [self.w_ops]
+            return [self.w_ops +1] # for right-space
         w_cols = [self.w_start, self.w_ops, self.w_result]
         w_cols += [self.wt] * (4 if self.t_goal else 3)
         return w_cols
-    def dummy_col(self, w):
-        return [' '*w, 'center', w, '']
+    def upd_footer(self):
+        self.footer = self.table_f(self.calc_w_cols())
 
     # stage.start
     def upd_stage_start(self, stage_number, user_errors):
@@ -250,12 +261,12 @@ class ViewRun(View):
     # stage.op
     def upd_stage_op(self, operand, number, pls_show):
         # на новую строку если ширина закончилась (dummy уже отрисованы)
-        if c.ln(self.row_ops) + self.w_op > self.w_ops:
+        if c.ln(self.row_ops) + self.w_op + 1 > self.w_ops: # 1 for right-space
             # upd stage:
             # +pfx
             self.stage += ' '*(self.w_ops - c.ln(self.row_ops))
             # +dummy result, timing
-            row = [dummy_col(self.w_result)] + [dummy(self.wt) for _ in range(3)]
+            row = [self.dummy_col(self.w_result)] + [self.dummy_col(self.wt) for _ in range(3)]
             if self.t_goal:
                 row.append([' '*self.wt, 'center', self.wt, ''])
             self.stage += self.table_l(row)

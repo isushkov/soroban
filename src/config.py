@@ -19,7 +19,7 @@ class Config:
         self.data = fo.yml2dict('config.yml')
         self.lang = self.get_lang()
         self.uname = self.get_uname()
-        self.w = self.set_int('common.view_width', allow_zero=True, default=120)
+        self.w = self.get_w()
         self.spoilers = self.set_bool('common.analyze_spoilers', default=False)
         self.t2e = self.set_int('common.study_program.passes_for_exam', default=3)
         self.e2t = self.set_int('common.study_program.fails_for_retake', default=0, allow_zero=True)
@@ -92,6 +92,11 @@ class Config:
             val = self.e400(path, val, default)
         return val
     # gets
+    def get_w(self, path='common.view_width', default=100):
+        val = self.set_int('common.view_width', default=default, allow_zero=True)
+        if 0 < val < 50:
+            val = self.e400(path, val, default)
+        return val
     def get_lang(self, path='common.lang', default='en'):
         val = self.find(path, default)
         if len(val) != 2:
