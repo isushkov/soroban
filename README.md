@@ -20,13 +20,12 @@ Demonstrations:
   - https://www.youtube.com/watch?v=uKCb-ek9Vs8
 
 ### Resources for Learning Soroban
-- Playlist for Beginners:
-  - https://www.youtube.com/playlist?list=PLLByEhnwMI5lhKse9FjEMNj_KzF5-W5BI
+- Buy soroban: https://www.amazon.com/s?k=soroban&ref=nb_sb_noss
+- Playlist for Beginners: https://www.youtube.com/playlist?list=PLLByEhnwMI5lhKse9FjEMNj_KzF5-W5BI
 - Books:
   - [Japanese Abacus Use & Theory](./theory/1_Abacus-Japanese-Its-Use-And-Theory.pdf)
   - [Advanced Abacus: Theory and Practice](./theory/2_Advanced-Abacus-Theory-and-Practice.pdf)
-- Additional Resources:
-  - https://www.sorobanexam.org/
+- Additional Resources: https://www.sorobanexam.org/
 
 ### Cheat Sheet for Finger Techniques: [cheat-sheet.jpg](./imgs/cheat-sheet.jpg)
 ```
