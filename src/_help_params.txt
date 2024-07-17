@@ -1,84 +1,84 @@
 params = "<start-number> <sequence> <sequence> ..."
 
-  определяет характеристики выражения.
-  должно быть указано минимум <start-number> и один <sequence>.
+  defines the characteristics of the expression.
+  at least <start-number> and one <sequence> must be specified.
 
   <start-number>:
-    начальное число в формате "sX", где X - любое число (влючая отрицательные и десятичные дроби),
-    или "r" - сгенерировать рандомно из <range> и <decimal> из первого <sequence>.
+    initial number in the format "sX", where X is any number (including negative and decimal fractions),
+    or "r" - generate randomly from <range> and <decimal> from the first <sequence>.
 
   <sequence> = "<kind><seq_params>":
     <kind>:
-      определяет "тип" последовательности:
+      defines the "type" of sequence:
         "a" - An arithmetic progression.
         "r" - Generate numbers randomly.
         "c" - Covering all possible combinations of the category of units.
     <seq_params>:
-      параметры для <seq_params> состоят из двух секций: обязательные аргументы и необязательные.
-      если указываются необязательных аргументы - они отделяются через двоеточие:
+      parameters for <seq_params> consist of two sections: required arguments and optional.
+      if optional arguments are specified - they are separated by a colon:
 
         <seq_params> = "<required>:<optional>"
 
-      для <kind> = "a" :
-        первым числом прогресси будет результат левой части выражения.
+      for <kind> = "a":
+        the first number of the progression will be the result of the left part of the expression.
         <required>:
-          обязательные параметры, отделяются друг от друга запятыми, указываются в строгом порядке:
+          required parameters, separated by commas, specified in strict order:
 
             <required> = "<diff>,<length>"
 
           <diff>
             The difference between the numbers.
-            любое число (влючая отрицательные и десятичные дроби), по умолчанию - нет.
+            any number (including negative and decimal fractions), by default - none.
           <length>
             The length of the progression.
-            любое натуральное число, по умолчанию - нет.
+            any natural number, by default - none.
 
         <optional>:
-          необязательные параметры:
+          optional parameters:
 
             <optional> = ":<roundtrip>"
 
-          <roundtrip> = "<" (поумолчанию отлючено):
-            добавить вконец копию инвертированной версии получившегося выражения:
-              - отзеркалить последовательность чисел
-              - преобразовать + в -, * в / и наоборот
+          <roundtrip> = "<" (default disabled):
+            add a copy of the inverted version of the resulting expression to the end:
+              - mirror the sequence of numbers
+              - convert + to -, * to / and vice versa
 
-      для <kind> = "r" or "c":
+      for <kind> = "r" or "c":
         <required>:
-          обязательные параметры (кроме <lenght> для <kind>="c"), отделяются друг от друга запятыми,
-          указываются в строгом порядке:
+          required parameters (except <length> for <kind>="c"), separated by commas,
+          specified in strict order:
 
             <required> = "<operands>,<range>,<length>"
 
           <operands>:
-            какие использовать операнды. варинаты: "+", "-", "*", "/".
-            при указании нескольких операндов будут выбираться рандомно для каждого нового числа.
-            после каждого операнда можно указать приоритет (любое натуральное число - по умолчанию "1").
+            which operands to use. options: "+", "-", "*", "/".
+            if multiple operands are specified, they will be selected randomly for each new number.
+            after each operand, you can specify priority (any natural number - default "1").
           <range>:
-            Диапазон для генерации чисел в виде "x-y", где "x" и "y" любые натуральные числа.
-            Будет автоматически учтена точность знаков после запятой.
-            Не может быть отрицательным - этот эфект достигается за счет операндов и их приоритетов.
-          <lenght> (для kind=cover необятельный)
-            длина последовательности, где <lenght> любое натуральное число.
-            для kind=cover необзятельный, после того как все комбинации подобраны - генерировать числа рандомно.
+            Range for generating numbers in the format "x-y", where "x" and "y" are any natural numbers.
+            Decimal precision will be automatically considered.
+            Cannot be negative - this effect is achieved through operands and their priorities.
+          <length> (optional for kind=cover)
+            the length of the sequence, where <length> is any natural number.
+            for kind=cover it is optional, once all combinations are covered - generate numbers randomly.
 
         <optional>:
-          необязательные параметры, друг от друга не отделяются, указываются в случайном порядке:
+          optional parameters, not separated by each other, specified in random order:
 
             <optional> = ":<allow-negative><decimal><roundtrip>"
 
-          <allow-negative> = "n" (поумолчанию отлючено):
-            если start-number >= 0 разрешить уходить в минус.
-            если start-number  < 0 разрешить уходить меньше чем был start-number.
-          <decimal> = ".x%%y" (поумолчанию отлючено):
-            рандомно добавлять десятичные дроби с точностью до "x" знаков после запятой,
-            где "x" любое натуральное число. поумолчанию - нет.
-            в конце можно указать вероятность в процентах через "%%y",
-            где "y" натуральное число от 0 до 100 (по умолчанию %%50).
-          <roundtrip> = "<" (поумолчанию отлючено):
-            добавить вконец копию инвертированной версии получившегося выражения:
-              - отзеркалить последовательность чисел
-              - преобразовать + в -, * в / и наоборот
+          <allow-negative> = "n" (default disabled):
+            if start-number >= 0 allow going into negative.
+            if start-number < 0 allow going below the initial start-number.
+          <decimal> = ".x%%y" (default disabled):
+            randomly add decimal fractions with precision up to "x" decimal places,
+            where "x" is any natural number. by default - none.
+            you can specify the probability in percent at the end with "%%y",
+            where "y" is a natural number from 0 to 100 (default %%50).
+          <roundtrip> = "<" (default disabled):
+            add a copy of the inverted version of the resulting expression to the end:
+              - mirror the sequence of numbers
+              - convert + to -, * to / and vice versa
 
-примеры использования:
+examples of use:
     ...

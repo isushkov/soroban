@@ -336,8 +336,10 @@ class ViewRun(View):
         else:
             minutes = int(abs_delta // 60)
             seconds = abs_delta % 60
-            render = f'{sign}{minutes}:{seconds:.2f}'
-        return  ('[g]' if delta >= 0 else '[r]') + render
+            seconds_int = int(seconds)
+            seconds_frac = f'{seconds - seconds_int:.2f}'.split('.')[1]
+            render = f'{sign}{minutes}:{seconds_int:02}.{seconds_frac}'
+        return ('[g]' if delta >= 0 else '[r]') + render
     def dec_colorize_ft(self, ft, v_color, z_color):
         v_color, z_color = '['+v_color+']', '['+z_color+']'
         match = re.search('[1-9]\d*', ft)

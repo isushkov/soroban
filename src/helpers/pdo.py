@@ -67,5 +67,8 @@ def update(df, where, values, allow_addnew=False, allow_many=False):
         if not allow_many:
             raise Exception(c.z(f'[r]ERROR:[c] found more than 1 matches. [y]<many> is not allowed.'))
     for key, value in values.items():
+        # Check if the value type is compatible with the column type and convert if necessary
+        if not pd.api.types.is_dtype_equal(df[key].dtype, pd.Series([value]).dtype):
+            value = pd.Series([value]).astype(df[key].dtype).iloc[0]
         df.loc[mask, key] = value
     return df

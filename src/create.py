@@ -31,7 +31,10 @@ def create(path, params):
         sequence += new_sequence.strip() + '\n'
     view.disp_status()
     # save
-    data = f'{sequence}= {s.safe_eval(sequence)}'
+    # TODO: redo safe_eval
+    # data = f'{sequence}= {s.safe_eval(sequence)}'
+    data = f'{sequence}= {s.safe_eval_2(sequence)}'
+
     path = path if path else f"./data/{params2basename(params)}.txt"
     save_file(path, data)
     return path

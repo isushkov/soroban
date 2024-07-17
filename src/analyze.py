@@ -21,7 +21,8 @@ def analyze(path):
     operations = sequence.split()
     start_number = s.tonum(operations.pop(0))
     total_provided = validate_total(total_provided)
-    total = s.safe_eval(sequence)
+    # TODO
+    total = s.safe_eval_2(sequence)
     # density
     #   - посчитать количество знаков в самой длинной дробной чати.
     #   - умножить каждое число на 10^max_f, чтобы избавиться от дробей.

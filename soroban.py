@@ -53,14 +53,14 @@ def main():
     parser = argparse.ArgumentParser(description='Soroban exercise management system.')
     p_command = parser.add_subparsers(dest='command', required=True, help='Command to perform.')
     # create
-    p_create = p_command.add_parser('create', help='Create a new exercise.')
+    p_create = p_command.add_parser('create', help='Create a new exercise.', formatter_class=argparse.RawTextHelpFormatter)
     add_arg_params(p_create)
     add_optarg_path(p_create)
     # analyze
-    p_analyze = p_command.add_parser('analyze', help='Analyze an exercise.')
+    p_analyze = p_command.add_parser('analyze', help='Analyze an exercise.', formatter_class=argparse.RawTextHelpFormatter)
     add_arg_path(p_analyze)
     # run
-    p_run = p_command.add_parser('run', help='Run an existing exercise.')
+    p_run = p_command.add_parser('run', help='Run an existing exercise.', formatter_class=argparse.RawTextHelpFormatter)
     add_arg_path(p_run)
     add_args_style(p_run)
     prun_mode = p_run.add_subparsers(dest='mode', required=True)
@@ -71,7 +71,7 @@ def main():
     add_optarg_user(prun_training)
     add_optarg_user(prun_exam)
     # run-new
-    p_runnew = p_command.add_parser('run-new', help='Create, analyze and run a new exercise.')
+    p_runnew = p_command.add_parser('run-new', help='Create, analyze and run a new exercise.', formatter_class=argparse.RawTextHelpFormatter)
     add_args_style(p_runnew)
     prunnew_mode = p_runnew.add_subparsers(dest='mode', required=True)
     prunnew_training = prunnew_mode.add_parser('training', help='A training session.', formatter_class=argparse.RawTextHelpFormatter)

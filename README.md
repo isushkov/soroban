@@ -1,5 +1,5 @@
 # Soroban Exercise Management System
-![./imgs/screen-run.jpg](./imgs/screen-run.jpg)
+![./imgs/screen.jpg](./imgs/screen.jpg)
 ## Content
 - [Intro](#Intro)
 - [Installation](#Installation)
@@ -23,8 +23,8 @@ Demonstrations:
 - Playlist for Beginners:
   - https://www.youtube.com/playlist?list=PLLByEhnwMI5lhKse9FjEMNj_KzF5-W5BI
 - Books:
-  - Japanese Abacus Use & Theory
-  - Advanced Abacus: Theory and Practice
+  - [Japanese Abacus Use & Theory](./theory/1_Abacus-Japanese-Its-Use-And-Theory.pdf)
+  - [Advanced Abacus: Theory and Practice](./theory/2_Advanced-Abacus-Theory-and-Practice.pdf)
 - Additional Resources:
   - https://www.sorobanexam.org/
 
@@ -54,6 +54,11 @@ How to use:
 ```
 
 ## Installation
+You can install it automatically:
+```bash
+./install.sh
+```
+or you can install it manually (recomended):
 ```bash
 # Create a Python virtual environment (venv).
 python -m venv venv
@@ -67,27 +72,141 @@ cp ./examples/config.yml ./config.yml
 ```
 
 ## Usage
+Activate the virtual environment before using it:
+```bash
+source venv/bin/activate
+```
 ### Main commands
 ```bash
-./main.py [-h] {create,analyze,run,run-new} ...
+usage: soroban.py [-h] {create,analyze,run,run-new,study} ...
+
+Soroban exercise management system.
+
+positional arguments:
+  {create,analyze,run,run-new,study}
+                        Command to perform.
     create              Create a new exercise.
     analyze             Analyze an exercise.
     run                 Run an existing exercise.
     run-new             Create, analyze and run a new exercise.
+    study               A collection of exercises with pre-defined modes (training and exam) and time to successfully complete further.
+
+options:
+  -h, --help            show this help message and exit
+```
+### Study (recomended)
+The easiest and most effective way to use the application for the end user:
+```bash
+usage: soroban.py study [-h] [--user USER]
+
+options:
+  -h, --help   show this help message and exit
+  --user USER  User-name to save and track records
 ```
 ### Creating an Exercise
 ```bash
-./main.py create [-h] {random,cover-units,arithmetic} ...
-                        Type for creating exercise.
-    arithmetic          Create an arithmetic progression.
-    random              Random type for creating exercise.
-    cover-units         An exercise with all possible combinations of the number of units.
+usage: soroban.py create [-h] [--path PATH] params
+
+positional arguments:
+  params       params = "<start-number> <sequence> <sequence> ..."
+
+                 defines the characteristics of the expression.
+                 at least <start-number> and one <sequence> must be specified.
+
+                 <start-number>:
+                   initial number in the format "sX", where X is any number (including negative and decimal fractions),
+                   or "r" - generate randomly from <range> and <decimal> from the first <sequence>.
+
+                 <sequence> = "<kind><seq_params>":
+                   <kind>:
+                     defines the "type" of sequence:
+                       "a" - An arithmetic progression.
+                       "r" - Generate numbers randomly.
+                       "c" - Covering all possible combinations of the category of units.
+                   <seq_params>:
+                     parameters for <seq_params> consist of two sections: required arguments and optional.
+                     if optional arguments are specified - they are separated by a colon:
+
+                       <seq_params> = "<required>:<optional>"
+
+                     for <kind> = "a":
+                       the first number of the progression will be the result of the left part of the expression.
+                       <required>:
+                         required parameters, separated by commas, specified in strict order:
+
+                           <required> = "<diff>,<length>"
+
+                         <diff>
+                           The difference between the numbers.
+                           any number (including negative and decimal fractions), by default - none.
+                         <length>
+                           The length of the progression.
+                           any natural number, by default - none.
+
+                       <optional>:
+                         optional parameters:
+
+                           <optional> = ":<roundtrip>"
+
+                         <roundtrip> = "<" (default disabled):
+                           add a copy of the inverted version of the resulting expression to the end:
+                             - mirror the sequence of numbers
+                             - convert + to -, * to / and vice versa
+
+                     for <kind> = "r" or "c":
+                       <required>:
+                         required parameters (except <length> for <kind>="c"), separated by commas,
+                         specified in strict order:
+
+                           <required> = "<operands>,<range>,<length>"
+
+                         <operands>:
+                           which operands to use. options: "+", "-", "*", "/".
+                           if multiple operands are specified, they will be selected randomly for each new number.
+                           after each operand, you can specify priority (any natural number - default "1").
+                         <range>:
+                           Range for generating numbers in the format "x-y", where "x" and "y" are any natural numbers.
+                           Decimal precision will be automatically considered.
+                           Cannot be negative - this effect is achieved through operands and their priorities.
+                         <length> (optional for kind=cover)
+                           the length of the sequence, where <length> is any natural number.
+                           for kind=cover it is optional, once all combinations are covered - generate numbers randomly.
+
+                       <optional>:
+                         optional parameters, not separated by each other, specified in random order:
+
+                           <optional> = ":<allow-negative><decimal><roundtrip>"
+
+                         <allow-negative> = "n" (default disabled):
+                           if start-number >= 0 allow going into negative.
+                           if start-number < 0 allow going below the initial start-number.
+                         <decimal> = ".x%y" (default disabled):
+                           randomly add decimal fractions with precision up to "x" decimal places,
+                           where "x" is any natural number. by default - none.
+                           you can specify the probability in percent at the end with "%y",
+                           where "y" is a natural number from 0 to 100 (default %50).
+                         <roundtrip> = "<" (default disabled):
+                           add a copy of the inverted version of the resulting expression to the end:
+                             - mirror the sequence of numbers
+                             - convert + to -, * to / and vice versa
+
+               examples of use:
+                   ...
+
+options:
+  -h, --help   show this help message and exit
+  --path PATH  Set the custom full file name of the created exercise (by default ./data/*.txt).
 ```
 ### Analyzing an Exercise
 Example: [./imgs/screen-analyze.jpg](./imgs/screen-analyze.jpg)
 ```bash
-./main.py analyze [-h] name
-    name                Name of the exercise to analyze.
+usage: soroban.py analyze [-h] path
+
+positional arguments:
+  path        Path to file.
+
+options:
+  -h, --help  show this help message and exit
 ```
 NOTE: Training on arithmetic progression may not be the most effective way:
 - It is advisable to use changing sequences to avoid memorization, instead of calculations
@@ -138,18 +257,32 @@ OK: The calculated total matches the provided total.
 ```bash
 # NOTE: An internet connection is required to generate uncached sounds.
 #       Ensure your system is connected to the internet before attempting to play these exercises.
-./main.py run [-h] name
-    name                Name of the exercise to run.
+usage: soroban.py run [-h] path {abacus,mental} {training,exam} ...
+
+positional arguments:
+  path             Path to file.
+  {abacus,mental}  Calculate using an abacus or mentally.
+  {training,exam}
+    training       A training session.
+    exam           An exercise.
+
+options:
+  -h, --help       show this help message and exit
 ```
 ### Create, analyze and run a new exercise
 ```bash
 # NOTE: An internet connection is required to generate uncached sounds.
 #       Ensure your system is connected to the internet before attempting to play these exercises.
-./main.py run-new [-h] {random,cover-units,arithmetic} ...
-                        Type for creating exercise.
-    arithmetic          Arithmetic type for creating exercise.
-    random              Random type for creating exercise.
-    cover-units         An exercise with all possible combinations of the number of units.
+usage: soroban.py run-new [-h] {abacus,mental} {training,exam} ...
+
+positional arguments:
+  {abacus,mental}  Calculate using an abacus or mentally.
+  {training,exam}
+    training       A training session.
+    exam           Pass the exam.
+
+options:
+  -h, --help       show this help message and exit
 ```
 <br/>
 <br/>
@@ -167,3 +300,4 @@ NOTE: Suitable for up to four-digit numbers.
     - Dominic system (PAO system):
         - https://youtu.be/R-gCm3gEFQE
         - https://youtu.be/ogtVQ48VgC4
+- Anki: https://ankiweb.net
