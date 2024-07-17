@@ -197,7 +197,9 @@ options:
   --path PATH  Set the custom full file name of the created exercise (by default ./data/*.txt).
 ```
 ### Analyzing an Exercise
-Example: [./imgs/screen-analyze.jpg](./imgs/screen-analyze.jpg)
+Examples:
+  - [analyze-random](./imgs/analyze-random.png)
+  - [analyze-cover](./imgs/analyze-cover.png)
 ```bash
 usage: soroban.py analyze [-h] path
 

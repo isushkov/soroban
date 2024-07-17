@@ -67,7 +67,7 @@ class ViewStudy(View):
 
     def dec_colorize_ft(self, ft, v_color, z_color):
         v_color, z_color = '['+v_color+']', '['+z_color+']'
-        match = re.search('[1-9]\d*', ft)
+        match = re.search(r'[1-9]\d*', ft)
         if match:
             zeros = ft[:match.start()]
             values = ft[match.start():]
