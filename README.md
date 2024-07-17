@@ -1,5 +1,5 @@
 # Soroban Exercise Management System
-![./imgs/screen.jpg](./imgs/screen.jpg)
+![./imgs/screen.png](./imgs/screen.png)
 ## Content
 - [Intro](#Intro)
 - [Installation](#Installation)
