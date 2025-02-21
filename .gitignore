@@ -5,5 +5,3 @@ venv/
 sounds/**/
 data/*
 config.yml
-src/__records.csv
-src/__study_attempts.csv
